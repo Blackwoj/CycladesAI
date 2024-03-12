@@ -1,7 +1,6 @@
-import pygame
+from .cyclades import GameManager
 
 
-was_closed = False
-
-while not was_closed:
-    
+if __name__ == "__main__":
+    game_state_manager = GameManager()
+    game_state_manager.start()
