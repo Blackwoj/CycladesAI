@@ -1,7 +1,9 @@
-import pygame
-from .enums.GameState import GameState
-from .components.button import Button
 from pathlib import Path
+
+import pygame
+
+from .components.button import Button
+from .enums.GameState import GameState
 
 
 class GameManager:
@@ -80,10 +82,17 @@ class GameManager:
     # Render the menu screen
     def render_menu(self):
         bg = pygame.image.load(Path(__file__).resolve().parent/"assets"/"menu_bg.png")
-        scalled_bg = pygame.transform.scale(bg, (self.screen.get_width(), self.screen.get_height()))
-        self.screen.blit(scalled_bg, (0, 0))
+
+        scaled_bg = pygame.transform.scale(bg, (self.screen.get_width(), self.screen.get_height()))
+        self.screen.blit(scaled_bg, (0, 0))
+
         img_path = Path(__file__).resolve().parent / 'assets'
-        self.button = Button(self.screen, img_path, pygame.Rect(100,100,200,200), self.play)
+        self.button = Button(
+            self.screen,
+            img_path,
+            pygame.Rect(100, 100, 200, 200),
+            self.play
+        )
         self.button.update()
         pygame.display.update()
         pass

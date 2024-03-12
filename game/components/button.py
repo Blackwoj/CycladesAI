@@ -1,9 +1,16 @@
-import pygame
 from pathlib import Path
+from typing import Callable
+
+import pygame
 
 
 class Button:
-    def __init__(self, screen: pygame.Surface, image_path: Path, position: pygame.Rect, callback: callable):
+    def __init__(
+        self,
+        screen: pygame.Surface,
+        image_path: Path,
+        position: pygame.Rect,
+        callback: Callable):
         self.screen = screen
         self.callback = callback
 
