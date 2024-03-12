@@ -10,7 +10,8 @@ class Button:
         screen: pygame.Surface,
         image_path: Path,
         position: pygame.Rect,
-        callback: Callable):
+        callback: Callable
+    ):
         self.screen = screen
         self.callback = callback
 

@@ -1,15 +1,15 @@
-from pathlib import Path
-
 import pygame
 
-from .components.button import Button
 from .enums.GameState import GameState
+
+from .gui.GameGui import ViewManager
 
 
 class GameManager:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((1200, 800))
+        self.Gui = ViewManager(self.screen)
 
         self.current_state = GameState.START
 
@@ -69,7 +69,7 @@ class GameManager:
         self.screen.fill((0, 0, 0))  # clear screen
 
         if self.current_state == GameState.START:
-            self.render_menu()
+            self.Gui.show_menu()
         elif self.current_state == GameState.BOARD:
             self.render_gameplay()
         elif self.current_state == GameState.PAUSE:
@@ -79,32 +79,13 @@ class GameManager:
 
         pygame.display.flip()  # update screen
 
-    # Render the menu screen
-    def render_menu(self):
-        bg = pygame.image.load(Path(__file__).resolve().parent/"assets"/"menu_bg.png")
-
-        scaled_bg = pygame.transform.scale(bg, (self.screen.get_width(), self.screen.get_height()))
-        self.screen.blit(scaled_bg, (0, 0))
-
-        img_path = Path(__file__).resolve().parent / 'assets'
-        self.button = Button(
-            self.screen,
-            img_path,
-            pygame.Rect(100, 100, 200, 200),
-            self.play
-        )
-        self.button.update()
-        pygame.display.update()
-        pass
-
-    def play(self):
-        print("Clicked!")
-        pass
-
     # Render the gameplay screen
     def render_gameplay(self):
-        self.screen.fill((255, 255, 255))
-        # render gameplay here
+
+        # bg = pygame.image.load(Config.app.background_dir/"game_bg.png")
+        # scaled_bg = pygame.transform.scale(bg, (self.screen.get_width(), self.screen.get_height()))
+        # self.screen.blit(scaled_bg, (0, 0))
+
         pass
 
     # Render the pause screen
