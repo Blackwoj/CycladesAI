@@ -1,8 +1,9 @@
-from .AbstractView import AbstractView
-from ..common.Config import Config
-from ..components.Button import Button
 import pygame
 
+from ..common.Config import Config
+from ..components.Button import Button
+from .AbstractView import AbstractView
+from ...static.EventConfig import EventConfig
 
 class MenuView(AbstractView):
 
@@ -22,4 +23,5 @@ class MenuView(AbstractView):
         self.button.update()
 
     def switch_to_game(self):
-        pass
+        pygame.event.post(pygame.event.Event(EventConfig.SHOW_BOARD))
+        print("showed_page")

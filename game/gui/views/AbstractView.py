@@ -1,6 +1,7 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
+
 import pygame
-from abc import abstractmethod, ABC
 
 
 class AbstractView(ABC):

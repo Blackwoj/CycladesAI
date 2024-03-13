@@ -1,5 +1,6 @@
-from .views.MenuView import MenuView
 from .common.Config import Config
+from .views.MenuView import MenuView
+
 
 class ViewManager():
 
@@ -11,7 +12,7 @@ class ViewManager():
         self.menu_view.render_view()
         pass
 
-    def show_gameboard(self):
+    def show_board(self):
         pass
 
     def show_pause(self):
