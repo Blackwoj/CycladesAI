@@ -8,4 +8,6 @@ class EventConfig:
     SHOW_PAUSE = pygame.USEREVENT + 3
     SHOW_ROLL = pygame.USEREVENT + 4
     CHANGE_PAGE = [SHOW_BOARD, SHOW_MENU, SHOW_PAUSE, SHOW_ROLL]
-    
+
+    PLAYER_END = pygame.USEREVENT + 5
+

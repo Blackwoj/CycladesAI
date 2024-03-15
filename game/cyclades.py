@@ -110,6 +110,8 @@ class GameManager:
             self.render_pause()
         elif self.current_state == GameState.GAME_OVER:
             self.render_game_over()
+        elif self.current_state == GameState.ROLL:
+            self.Gui.show_roll()
 
         pygame.display.flip()  # update screen
 

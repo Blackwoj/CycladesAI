@@ -10,14 +10,26 @@ class Button:
         screen: pygame.Surface,
         image_path: Path,
         position: pygame.Rect,
-        callback: Callable
+        callback: Callable = None,
     ):
         self.screen = screen
         self.callback = callback
 
-        self.org_image = pygame.image.load(str(image_path / "org.png"))
-        self.hov_image = pygame.image.load(str(image_path / "hov.png"))
+        # Load original and hover images, handling potential errors
+        self.org_image = None
+        self.hov_image = None
+        try:
+            self.org_image = pygame.image.load(str(image_path / "org.png"))
+            self.hov_image = pygame.image.load(str(image_path / "hov.png"))
+        except FileNotFoundError as e:
+            print(f"Error loading images: {e}")
+            return  # Exit initialization if images not found
 
+        # Apply scale factor
+        self.org_image = pygame.transform.scale(self.org_image, (position.width, position.height))
+        self.hov_image = pygame.transform.scale(self.hov_image, (position.width, position.height))
+
+        # Update rect based on scaled images
         self.rect = self.org_image.get_rect(topleft=position.topleft)
 
     def update(self):
@@ -30,5 +42,6 @@ class Button:
         else:
             self.screen.blit(self.org_image, self.rect)
 
-        if hit and click[0] == 1:
-            self.callback()
+        if hit and click[0] == 1 and self.callback is not None:
+            self.callback()  # Call the callback function if defined
+
