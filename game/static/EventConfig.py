@@ -11,3 +11,14 @@ class EventConfig:
 
     PLAYER_END = pygame.USEREVENT + 5
 
+    ROW_1_BID = pygame.USEREVENT + 6
+    ROW_2_BID = pygame.USEREVENT + 7
+    ROW_3_BID = pygame.USEREVENT + 8
+    ROW_4_BID = pygame.USEREVENT + 9
+
+    ROWS = {
+        "row_1": ROW_1_BID,
+        "row_2": ROW_2_BID,
+        "row_3": ROW_3_BID,
+        "row_4": ROW_4_BID
+    }

@@ -7,3 +7,11 @@ class GameState(Enum):
     ROLL = 3
     PAUSE = 4
     GAME_OVER = 5
+
+
+class GamePages(Enum):
+    START = 1
+    BOARD = 2
+    ROLL = 3
+    PAUSE = 4
+    GAME_OVER = 5

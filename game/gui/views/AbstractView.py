@@ -4,6 +4,8 @@ from pathlib import Path
 import pygame
 from ..components.Button import Button
 from ..common.Config import Config
+
+
 class AbstractView(ABC):
 
     def __init__(self, screen: pygame.Surface, background: Path):
@@ -44,7 +46,7 @@ class AbstractView(ABC):
     def scale_img(self, image: pygame.Surface, size: list[float]) -> pygame.Surface:
         return pygame.transform.scale(image, size)
 
-    def clicked(sefl):
+    def clicked(self):
         print("Clicked!")
 
     @abstractmethod

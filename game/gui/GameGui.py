@@ -2,6 +2,7 @@ from .common.Config import Config
 from .views.MenuView import MenuView
 from .views.RollView import RollView
 
+
 class ViewManager():
 
     def __init__(self, screen):
@@ -18,6 +19,6 @@ class ViewManager():
 
     def show_pause(self):
         pass
-    
+
     def show_roll(self):
         self.roll_view.render_view()
