@@ -4,6 +4,7 @@ from pathlib import Path
 import pygame
 from ..components.Button import Button
 from ..common.Config import Config
+from ...DataChache import DataCache
 
 
 class AbstractView(ABC):
@@ -38,6 +39,25 @@ class AbstractView(ABC):
             pygame.Rect(0, 180, 60, 60),
             self.clicked
         )
+
+        hero_player_name = str(DataCache.get_value("hero_players")[DataCache.get_value("act_player")])+".png"
+        hero_icon = pygame.image.load(Config.app.nav_bar / "hero" / hero_player_name)
+        self.screen.blit(self.scale_img(hero_icon, [60, 60]), [0, 500])
+
+        philosophers_player_name = str(DataCache.get_value("philosophers")[DataCache.get_value("act_player")])+".png"
+        philosophers_icon = pygame.image.load(Config.app.nav_bar / "philosophers" / philosophers_player_name)
+        self.screen.blit(self.scale_img(philosophers_icon, [60, 60]), [0, 560])
+
+        priests_player_name = str(DataCache.get_value("priests")[DataCache.get_value("act_player")])+".png"
+        priests_icon = pygame.image.load(Config.app.nav_bar / "priests" / priests_player_name)
+        self.screen.blit(self.scale_img(priests_icon, [60, 60]), [0, 620])
+
+        coin_player_name = str(DataCache.get_value("coins")[DataCache.get_value("act_player")])+".png"
+        coin_icon = pygame.image.load(Config.app.nav_bar / "coins" / coin_player_name)
+        self.screen.blit(self.scale_img(coin_icon, [60, 60]), [0, 680])
+        player_icon = pygame.image.load(Config.app.nav_bar / "player_marks" / (DataCache.get_value("act_player")+".png"))
+        self.screen.blit(self.scale_img(player_icon, [60, 60]), [0, 740])
+
         board_button.update()
         roll_button.update()
         setting_button.update()

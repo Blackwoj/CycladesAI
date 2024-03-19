@@ -18,11 +18,18 @@ class DataCache:
         "priests",
         "philosophers",
         "bids_order",
+        "hero_players",
     ]
 
     _data_cache: dict = {
         "act_player": "",
         "act_stage": "",
+        "hero_players": {
+            "p1": "None",
+            "p2": "Ares",
+            "p3": "",
+            "p4": ""
+        },
         "game_config": [],
 
         "coins": {
@@ -32,19 +39,19 @@ class DataCache:
             "p4": 0
         },
         "priests": {
-            "p1": 0,
+            "p1": 1,
             "p2": 0,
             "p3": 0,
             "p4": 0
         },
         "philosophers": {
-            "p1": 0,
+            "p1": 1,
             "p2": 0,
             "p3": 0,
             "p4": 0
         },
 
-        "num_of_players": 2,
+        "num_of_players": 4,
 
         "bid_order": [],
         "bids_value": {
@@ -52,9 +59,16 @@ class DataCache:
                 "player": "p2",
                 "bid": 1
             },
-            "row_2": {},
-            "row_3": {},
-            "row_4": {}
+            "row_2": {
+                "player": "p2",
+                "bid": 3
+            },
+            "row_3": {
+            },
+            "row_4": {
+                "player": "p2",
+                "bid": 5
+            },
         },
         "temp_bid": 2,
         "bids_order": ["p1", "p2"],
@@ -72,6 +86,7 @@ class DataCache:
         "coins": lambda x: x,
         "priests": lambda x: x,
         "philosophers": lambda x: x,
+        "hero_players": lambda x: x,
     }
 
     @staticmethod

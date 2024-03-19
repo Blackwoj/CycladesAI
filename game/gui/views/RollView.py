@@ -4,7 +4,8 @@ from .AbstractView import AbstractView
 from ..common.Config import Config
 from pathlib import Path
 from ..components.BidRow import BidRow
-from .
+from ...DataChache import DataCache
+
 
 class RollView(AbstractView):
 
@@ -13,12 +14,25 @@ class RollView(AbstractView):
 
     def render_view(self):
         self.scale_background(self._background)
+        self.build_nav_bar()
 
         picture = pygame.image.load(Config.app.assert_dir / "bid_points" / "priority.png")
         self.screen.blit(
             self.scale_img(picture, [404, 120]),
             pygame.Rect(60, 0, 404, 120))
-        self.build_nav_bar()
+        if DataCache.get_value("bid_order"):
+            location_list = [
+                [80, 30, 80, 80],
+                [150, 30, 80, 80],
+                [210, 30, 80, 80],
+                [270, 30, 80, 80]
+            ]
+            for i, player in enumerate(DataCache.get_value("bid_order")):
+                player_icon = pygame.image.load(Config.app.players_icons / (player + ".png"))
+                self.screen.blit(
+                    self.scale_img(player_icon, [50, 50]),
+                    pygame.Rect(*location_list[i])
+                )
         picture = pygame.image.load(Config.app.assert_dir / "roll_bg_2.png")
         self.screen.blit(
             self.scale_img(picture, [404, 680]),
