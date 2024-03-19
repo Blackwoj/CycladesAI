@@ -20,7 +20,7 @@ jobs:
 
       - name: Uruchom autopep8
         run: |
-          autopep8 .
+          autopep8 --recursive .
 
       - name: Uruchom isort
         run: |
