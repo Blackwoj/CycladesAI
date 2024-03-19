@@ -1,0 +1,31 @@
+name: CI
+
+on: [push]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Instalacja zależności Pythona
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+
+      - name: Instalacja narzędzi do analizy statycznej
+        run: |
+          pip install autopep8 isort flake8
+
+      - name: Uruchom autopep8
+        run: |
+          autopep8 .
+
+      - name: Uruchom isort
+        run: |
+          isort .
+
+      - name: Uruchom flake8
+        run: |
+          flake8 .
