@@ -16,16 +16,20 @@ jobs:
 
       - name: Instalacja narzędzi do analizy statycznej
         run: |
-          pip install autopep8 isort flake8
+          pip install -r ./ci/static_requirements.txt
 
       - name: Uruchom autopep8
         run: |
-          autopep8 --recursive .
+          python ./ci/jobs/autopep8_ci.py --exit-code --diff --recursive --aggressive --aggressive --aggressive .
 
       - name: Uruchom isort
         run: |
-          isort .
+          python ./ci/jobs/isort_ci.py --check --diff .
 
       - name: Uruchom flake8
         run: |
-          flake8 .
+          python ./ci/jobs/flake8_ci.py .
+
+      - name: Uruchom pylint
+        run: |
+          python ./ci/jobs/pylint_ci.py 
