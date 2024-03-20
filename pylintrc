@@ -1,0 +1,27 @@
+[MASTER]
+fail-under=10.0
+py-version=3.9
+ignore=install.py
+score=yes
+
+[FORMAT]
+max-line-length=100
+max-module-lines=1000
+
+logging-format-style=new
+logging-modules=logging
+
+[MESSAGES CONTROL]
+disable=raw-checker-failed,
+        bad-inline-option,
+        locally-disabled,
+        file-ignored,
+        suppressed-message,
+        useless-suppression,
+        deprecated-pragma,
+        use-symbolic-message-instead,
+        C0114,
+        R0801,
+        duplicate-code
+
+enable=c-extension-no-member
