@@ -8,7 +8,8 @@ job_name = "autopep8"
 
 
 def autopep8_run():
-    return autopep8.main()
+    options = ['--aggressive', '--aggressive', '--aggressive']
+    return autopep8.main(options)
 
 
 def code_to_value(code):
