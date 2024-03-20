@@ -7,3 +7,4 @@ flake8-comprehensions==3.7.0
 flake8-formatter-abspath==1.0.1
 isort==5.10.1
 pylint==2.12.2
+pygame==2.5.2

@@ -21,6 +21,8 @@ disable=raw-checker-failed,
         deprecated-pragma,
         use-symbolic-message-instead,
         C0114,
+        C0116,
+        C0103,
         R0801,
         duplicate-code
 
