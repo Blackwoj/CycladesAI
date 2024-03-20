@@ -1,0 +1,9 @@
+anybadge==1.8.0
+autopep8==1.6.0
+coverage==6.2
+flake8==4.0.1
+flake8-bugbear==21.11.29
+flake8-comprehensions==3.7.0
+flake8-formatter-abspath==1.0.1
+isort==5.10.1
+pylint==2.12.2
