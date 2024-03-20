@@ -3,7 +3,7 @@ name: CI
 on: [push]
 
 jobs:
-  static-analysis:
+  autopep8-job:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,13 +22,57 @@ jobs:
         run: |
           python ./ci/jobs/autopep8_ci.py --exit-code --diff --recursive --aggressive --aggressive --aggressive .
 
+  isort-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Instalacja zależności Pythona
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+
+      - name: Instalacja narzędzi do analizy statycznej
+        run: |
+          pip install -r ./ci/static_requirements.txt
+
       - name: Uruchom isort
         run: |
           python ./ci/jobs/isort_ci.py --check --diff .
+  flake8-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Instalacja zależności Pythona
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+
+      - name: Instalacja narzędzi do analizy statycznej
+        run: |
+          pip install -r ./ci/static_requirements.txt
 
       - name: Uruchom flake8
         run: |
           python ./ci/jobs/flake8_ci.py .
+
+  pylint-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Instalacja zależności Pythona
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+
+      - name: Instalacja narzędzi do analizy statycznej
+        run: |
+          pip install -r ./ci/static_requirements.txt
 
       - name: Uruchom pylint
         run: |
