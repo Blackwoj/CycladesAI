@@ -4,7 +4,6 @@ import sys
 from badge_generator import generate_badge
 from flake8.main import cli as flake8
 
-
 job_name = "flake8"
 
 

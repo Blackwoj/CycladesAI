@@ -4,7 +4,6 @@ import sys
 from badge_generator import generate_badge
 from isort.main import main as isort_main
 
-
 job_name = "isort"
 
 

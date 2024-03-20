@@ -5,7 +5,6 @@ import sys
 import pylint.lint
 from badge_generator import generate_badge
 
-
 job_name = "pylint"
 
 

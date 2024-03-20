@@ -2,9 +2,7 @@ import os
 import sys
 
 import autopep8
-
 from badge_generator import generate_badge
-
 
 job_name = "autopep8"
 
