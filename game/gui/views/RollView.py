@@ -1,10 +1,12 @@
-from pygame import Surface
-import pygame
-from .AbstractView import AbstractView
-from ..common.Config import Config
 from pathlib import Path
-from ..components.BidRow import BidRow
+
+import pygame
+from pygame import Surface
+
 from ...DataChache import DataCache
+from ..common.Config import Config
+from ..components.BidRow import BidRow
+from .AbstractView import AbstractView
 
 
 class RollView(AbstractView):

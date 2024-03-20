@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 import pygame
-from ..components.Button import Button
-from ..common.Config import Config
+
 from ...DataChache import DataCache
+from ..common.Config import Config
+from ..components.Button import Button
 
 
 class AbstractView(ABC):

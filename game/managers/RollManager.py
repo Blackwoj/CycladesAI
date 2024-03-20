@@ -1,10 +1,12 @@
+import logging
+import random
+
 import pygame
+
 from ..DataChache import DataCache
 from ..enums.GameState import GameState
-import logging
-from ..static.EventConfig import EventConfig
 from ..gui.common.Config import Config
-import random
+from ..static.EventConfig import EventConfig
 
 
 class RollManager():

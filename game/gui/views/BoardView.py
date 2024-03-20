@@ -1,6 +1,9 @@
-from pygame import Surface
-from .AbstractView import AbstractView
 from pathlib import Path
+
+from pygame import Surface
+
+from .AbstractView import AbstractView
+
 
 class BoardView(AbstractView):
 

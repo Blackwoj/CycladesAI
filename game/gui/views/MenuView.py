@@ -1,9 +1,9 @@
 import pygame
 
+from ...static.EventConfig import EventConfig
 from ..common.Config import Config
 from ..components.Button import Button
 from .AbstractView import AbstractView
-from ...static.EventConfig import EventConfig
 
 
 class MenuView(AbstractView):
