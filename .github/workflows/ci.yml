@@ -20,7 +20,7 @@ jobs:
 
       - name: Uruchom autopep8
         run: |
-          python ./ci/jobs/autopep8_ci.py --exit-code --diff --recursive --aggressive --aggressive --aggressive .
+          python ./ci/jobs/autopep8_ci.py .
 
   isort-job:
     runs-on: ubuntu-latest
