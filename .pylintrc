@@ -91,7 +91,7 @@ disable=raw-checker-failed,
         C0116,
         C0103,
         E1101,
-        C0115
+        C0115,
         duplicate-code
 
 # Enable the message, report, category or checker with the given id(s). You can
