@@ -15,7 +15,7 @@ class EventConfig:
     ROW_2_BID = pygame.USEREVENT + 7
     ROW_3_BID = pygame.USEREVENT + 8
     ROW_4_BID = pygame.USEREVENT + 9
-
+    APPOLLON_BID = pygame.USEREVENT + 10
     ROWS = {
         "row_1": ROW_1_BID,
         "row_2": ROW_2_BID,

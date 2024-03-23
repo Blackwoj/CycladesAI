@@ -70,8 +70,7 @@ class DataCache:
             },
             "row_4": {
             },
-            "row_5": {
-            }
+            "row_5": []
         },
         "heros_per_row": {
             "row_1": "",

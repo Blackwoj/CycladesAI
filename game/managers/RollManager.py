@@ -13,7 +13,7 @@ class RollManager():
 
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
-        self.bid_order = []
+        self._heros_order = None
 
     @property
     def stage_type(self):
@@ -24,36 +24,25 @@ class RollManager():
         self._bid_order = DataCache.get_value("bid_order")
         self._act_bids = DataCache.get_value("bids_value")
         self._act_player = DataCache.get_value("act_player")
-        self._num_of_player = DataCache.get_value("num_of_players")
         self._heros_per_row = DataCache.get_value("heros_per_row")
-        self._left_heros = DataCache.get_value("left_heros")
 
     def save_data_cache_values(self):
         DataCache.set_value("act_stage", self._act_stage)
         DataCache.set_value("bid_order", self._bid_order)
         DataCache.set_value("act_player", self._act_player)
-        DataCache.set_value("num_of_players", self._num_of_player)
         DataCache.set_value("heros_per_row", self._heros_per_row)
-        DataCache.set_value("left_heros", self._left_heros)
 
     def handle_events(self, event):
         self.read_data_cache_values()
         if self._act_stage == self.stage_type:
-            if not self._bid_order:
-                self._bid_order = Config.app.players_names[0:self._num_of_player]
-                random.shuffle(self._bid_order)
+            if not self._bid_order and not self._act_player and not self._heros_per_row["row_1"]:
+                self.config_stage()
             if not self._act_player:
-                self._act_player = self._bid_order[0]
-                self._bid_order = self._bid_order[1:]
-            # if not self._heros_per_row["row_1"]:
-            #     if self._num_of_player != 5:
-            #         heros = DataCache.get_value("left_heros")
-            #         additional_heros = Config.app.heros_names - heros
-            #         random.shuffle(additional_heros)
-            #         act_heros = heros + additional_heros[:(len(heros)-)]
-
+                self.next_player()
             if event.type in EventConfig.ROWS.values():
                 self.validate_bid(event.type)
+            if event.type == EventConfig.APPOLLON_BID:
+                self.add_player_to_appollon()
         else:
             logging.info("It's not roll stage, nothing will happend!")
         self.save_data_cache_values()
@@ -90,5 +79,44 @@ class RollManager():
             self._act_player = self._act_bids[row]["player"]
         self._act_bids[row]["player"] = player
         self._act_bids[row]["bid"] = bid
-        if not DataCache.get_value("bid_order") and not DataCache.get_value("act_player"):
-            DataCache.set_value("act_stage", GameState.BOARD)
+        if not self._bid_order and not self._act_player:
+            self._act_stage = GameState.BOARD
+
+    def add_player_to_appollon(self):
+        self._act_bids["row_5"] = self._act_bids["row_5"] + [self._act_player]
+        self.next_player()
+
+    def next_player(self):
+        print(self._bid_order)
+        if not self._bid_order:
+            self._act_stage = GameState.BOARD
+            self._act_player = ""
+        else:
+            self._act_player = self._bid_order[0]
+            self._bid_order = self._bid_order[1:]
+
+    def config_stage(self):
+        self._bid_order = Config.app.players_names[0:DataCache.get_value("num_of_players")]
+        random.shuffle(self._bid_order)
+        self._withdraw_heros()
+
+    def _withdraw_heros(self):
+        heros = []
+        left_heros = DataCache.get_value("left_heros")
+        av_heros = [element for element in Config.app.heros_names if element not in left_heros]
+        random.shuffle(av_heros)
+        num_of_players = DataCache.get_value("num_of_players") - 1
+        missing_heros_num = num_of_players - len(left_heros)
+        heros = left_heros + av_heros[:missing_heros_num]
+        DataCache.set_value(
+            "left_heros",
+            [element for element in Config.app.heros_names if element not in heros]
+        )
+        random.shuffle(heros)
+        print(heros, DataCache.get_value("left_heros"))
+        temp_heros_order = {}
+        for i, key in enumerate(self._heros_per_row.keys()):
+            if i < num_of_players:
+                temp_heros_order[key] = heros[i]
+        self._heros_per_row = temp_heros_order
+        print(self._heros_per_row, DataCache.get_value("left_heros"))
