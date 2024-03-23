@@ -20,6 +20,8 @@ class DataCache:
         "philosophers",
         "bids_order",
         "hero_players",
+        "heros_per_row",
+        "left_heros",
     ]
 
     _data_cache: dict = {
@@ -27,52 +29,59 @@ class DataCache:
         "act_stage": "",
         "hero_players": {
             "p1": "None",
-            "p2": "Ares",
-            "p3": "",
-            "p4": ""
+            "p2": "None",
+            "p3": "None",
+            "p4": "None",
+            "p5": "None",
         },
         "game_config": [],
 
         "coins": {
-            "p1": 3,
-            "p2": 0,
-            "p3": 0,
-            "p4": 0
+            "p1": 10,
+            "p2": 10,
+            "p3": 10,
+            "p4": 10,
+            "p5": 10
         },
         "priests": {
-            "p1": 1,
-            "p2": 0,
-            "p3": 0,
-            "p4": 0
+            "p1": 10,
+            "p2": 10,
+            "p3": 5,
+            "p4": 5,
+            "p5": 10
         },
         "philosophers": {
             "p1": 1,
             "p2": 0,
             "p3": 0,
-            "p4": 0
+            "p4": 0,
+            "p5": 0
         },
 
-        "num_of_players": 4,
+        "num_of_players": 5,
 
         "bid_order": [],
         "bids_value": {
             "row_1": {
-                "player": "p2",
-                "bid": 1
             },
             "row_2": {
-                "player": "p2",
-                "bid": 3
             },
             "row_3": {
             },
             "row_4": {
-                "player": "p2",
-                "bid": 5
             },
+            "row_5": {
+            }
         },
-        "temp_bid": 2,
-        "bids_order": ["p1", "p2"],
+        "heros_per_row": {
+            "row_1": "",
+            "row_2": "",
+            "row_3": "",
+            "row_4": ""
+        },
+        "temp_bid": 0,
+        "bids_order": [],
+        "left_heros": []
     }
     _cache_data_functions: dict = {
         "act_player": lambda x: x,
@@ -88,6 +97,8 @@ class DataCache:
         "priests": lambda x: x,
         "philosophers": lambda x: x,
         "hero_players": lambda x: x,
+        "heros_per_row": lambda x: x,
+        "left_heros": lambda x: x
     }
 
     @staticmethod

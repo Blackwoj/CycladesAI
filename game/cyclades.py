@@ -17,7 +17,6 @@ class GameManager:
         self.RollManager = RollManager(self.screen)
         self.current_state = GamePages.START
         DataCache.set_value("act_stage", GameState.ROLL)
-        DataCache.set_value("act_player", "p1")
 
     @property
     def _page_connector_dict(self):

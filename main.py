@@ -1,4 +1,4 @@
-from .cyclades import GameManager
+from game.cyclades import GameManager
 
 
 if __name__ == "__main__":

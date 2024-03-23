@@ -27,7 +27,8 @@ class RollView(AbstractView):
                 [80, 30, 80, 80],
                 [150, 30, 80, 80],
                 [210, 30, 80, 80],
-                [270, 30, 80, 80]
+                [270, 30, 80, 80],
+                [330, 30, 80, 80]
             ]
             for i, player in enumerate(DataCache.get_value("bid_order")):
                 player_icon = pygame.image.load(Config.app.players_icons / (player + ".png"))
