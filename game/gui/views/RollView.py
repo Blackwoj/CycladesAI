@@ -24,29 +24,23 @@ class RollView(AbstractView):
             self.scale_img(picture, [404, 120]),
             pygame.Rect(60, 0, 404, 120))
         if DataCache.get_value("bid_order"):
-            location_list = [
-                [80, 30, 80, 80],
-                [150, 30, 80, 80],
-                [210, 30, 80, 80],
-                [270, 30, 80, 80],
-                [330, 30, 80, 80]
-            ]
             for i, player in enumerate(DataCache.get_value("bid_order")):
                 player_icon = pygame.image.load(Config.app.players_icons / (player + ".png"))
                 self.screen.blit(
                     self.scale_img(player_icon, [50, 50]),
-                    pygame.Rect(*location_list[i])
+                    pygame.Rect(*Config.locations.players_bid_order[i])
                 )
         picture = pygame.image.load(Config.app.assert_dir / "roll_bg_2.png")
         self.screen.blit(
             self.scale_img(picture, [404, 680]),
-            pygame.Rect(60, 120, 404, 800))
+            Config.locations.roll_background
+        )
         self.build_nav_bar()
 
         board_picture = pygame.image.load(Config.app.assert_dir / "board.png")
         self.screen.blit(
             self.scale_img(board_picture, [736, 800]),
-            pygame.Rect(464, 0, 736, 800)
+            Config.locations.roll_board_background
         )
 
         Row1 = BidRow(self.screen, [100, 127], 1)
@@ -81,33 +75,20 @@ class RollView(AbstractView):
             rect
         )
 
-        players_picks_locations = [
-            pygame.Rect(320, 720, 40, 40),
-            pygame.Rect(360, 720, 40, 40),
-            pygame.Rect(400, 720, 40, 40),
-            pygame.Rect(360, 760, 40, 40),
-            pygame.Rect(400, 760, 40, 40),
-        ]
         appollon_row_bids = DataCache.get_value("bids_value")["row_5"]
         if appollon_row_bids:
             for i, player in enumerate(appollon_row_bids):
                 player_img = pygame.image.load(Config.app.players_icons / f"{player}.png")
                 self.screen.blit(
                     self.scale_img(player_img, [35, 35]),
-                    players_picks_locations[i]
+                    Config.locations.appollon_players_locations[i]
                 )
 
     def draw_heros(self):
-        heros_location = {
-            "row_1": pygame.Rect(95, 160, 40, 40),
-            "row_2": pygame.Rect(95, 305, 40, 40),
-            "row_3": pygame.Rect(95, 450, 40, 40),
-            "row_4": pygame.Rect(95, 600, 40, 40),
-        }
         for row, hero in DataCache.get_value("heros_per_row").items():
             if hero:
                 hero_img = pygame.image.load(Config.app.assert_dir / "heros_boards" / f"{hero}.png")
                 self.screen.blit(
                     self.scale_img(hero_img, [340, 100]),
-                    heros_location[row]
+                    Config.locations.heros_board_location[row]
                 )

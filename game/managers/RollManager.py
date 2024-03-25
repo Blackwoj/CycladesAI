@@ -64,14 +64,9 @@ class RollManager():
                         and player_coins >= 1
                     ):
                         self.updated_bids(row_name, self._act_player, passed_bid)
-                    else:
-                        print("invalid bid")
                 elif passed_bid <= player_coins + player_priests and player_coins >= 1:
                     self.updated_bids(row_name, self._act_player, passed_bid)
-                    print("Valid bid 1")
                     return
-                else:
-                    print("invalid bid, no money")
 
     def updated_bids(self, row, player, bid):
         self._act_player = ""
@@ -87,7 +82,6 @@ class RollManager():
         self.next_player()
 
     def next_player(self):
-        print(self._bid_order)
         if not self._bid_order:
             self._act_stage = GameState.BOARD
             self._act_player = ""
@@ -113,10 +107,12 @@ class RollManager():
             [element for element in Config.app.heros_names if element not in heros]
         )
         random.shuffle(heros)
-        print(heros, DataCache.get_value("left_heros"))
         temp_heros_order = {}
         for i, key in enumerate(self._heros_per_row.keys()):
             if i < num_of_players:
                 temp_heros_order[key] = heros[i]
         self._heros_per_row = temp_heros_order
-        print(self._heros_per_row, DataCache.get_value("left_heros"))
+
+    def define_roll_results(self):
+        if not self._bid_order and not self._act_player:
+            self._act_bids
