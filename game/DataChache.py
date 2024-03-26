@@ -3,12 +3,15 @@ from typing import Literal, Union
 from .enums.GameState import GameState
 from .DataCacheSection.RollCache import RollCacheSection
 from .DataCacheSection.CommonCache import CommonCache
+from .DataCacheSection.PlayerCache import PlayerCache
 
 
 class DataCache:
+
     _cache_sections: list = [
         RollCacheSection,
-        CommonCache
+        CommonCache,
+        PlayerCache
     ]
 
     AvailableSections = Literal[

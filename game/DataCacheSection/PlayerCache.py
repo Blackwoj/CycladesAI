@@ -1,4 +1,4 @@
-class CommonCache:
+class PlayerCache:
 
     _data_cache: dict = {
         "hero_players": {

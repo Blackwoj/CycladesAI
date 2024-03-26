@@ -115,4 +115,7 @@ class RollManager():
 
     def define_roll_results(self):
         if not self._bid_order and not self._act_player:
-            self._act_bids
+            players_coins = DataCache.get_value("coins")
+            player_priests = DataCache.get_value("priests")
+            for row in self._act_bids.keys():
+                DataCache.get_value("coins")
