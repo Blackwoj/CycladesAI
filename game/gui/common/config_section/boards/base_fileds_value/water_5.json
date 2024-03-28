@@ -1,0 +1,368 @@
+{
+    "A1": {
+        "type": "water",
+        "base_income": 1,
+        "neighbors": ["A2"],
+        "neighbors_island": ["IS1"]
+    },
+    "A2": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["A1", "B3", "A3"],
+        "neighbors_island": ["IS1"]
+    },
+    "A3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["A2", "B3", "B4"],
+        "neighbors_island": ["IS2"]
+    },
+    "A5": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["B6", "A6"],
+        "neighbors_island": ["IS2"]
+    },
+    "A6": {
+        "type": "water",
+        "base_income": 1,
+        "neighbors": ["A5", "B6", "B7"],
+        "neighbors_island": ""
+    },
+    "B3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["A2", "A3", "B4", "C4", "C3"],
+        "neighbors_island": ["IS1"]
+    },
+    "B4": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["A3", "B3", "C4", "C5"],
+        "neighbors_island": ["IS2"]
+    },
+    "B6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["A5", "A6", "B7", "C6", "C7"],
+        "neighbors_island": ["IS2"]
+    },
+    "B7": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["A6", "B6", "C7", "C8", "C7"],
+        "neighbors_island": ""
+    },
+    "C3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["B3", "C4","D3"],
+        "neighbors_island": ["IS1"]
+    },
+    "C4": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["B3", "B4", "C5", "D5"],
+        "neighbors_island": ["IS4"]
+    },
+    "C5": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["B4", "C6", "D5"],
+        "neighbors_island": ["IS2"]
+    },
+    "C6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["C5", "B6", "C7"],
+        "neighbors_island": ["IS2", "IS5"]
+    },
+    "C7": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["C6", "B6", "B7", "C8", "D8"],
+        "neighbors_island": ["IS5"]
+    },
+    "C8": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["B7", "C7", "D8"],
+        "neighbors_island": ["IS6"]
+    },
+    "D1": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["E1", "D2"],
+        "neighbors_island": ["IS1", "IS3"]
+    },
+    "D2": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["D1", "D3", "E3"],
+        "neighbors_island": ["IS1", "IS3"]
+    },
+    "D3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["C3", "D2", "E3", "E4"],
+        "neighbors_island": ["IS4", "IS1"]
+    },
+    "D5": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["C4", "C5", "E6"],
+        "neighbors_island": ["IS4", "IS5"]
+    },
+    "D8": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["C7", "C8", "E8"],
+        "neighbors_island": ["IS5", "IS6"]
+    },
+    "E1": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["D1", "F1", "F2"],
+        "neighbors_island": ["IS3"]
+    },
+    "E3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["D2", "D3", "E4", "F3"],
+        "neighbors_island": ["IS3", "IS8"]
+    },
+    "E4": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["D3", "E3", "F5"],
+        "neighbors_island": ["IS4", "IS8"]
+    },
+    "E6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["D5", "E7", "F6"],
+        "neighbors_island": ["IS4", "IS5", "IS7"]
+    },
+    "E7": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["E6", "E8", "F8"],
+        "neighbors_island": ["IS5", "IS9"]
+    },
+    "E8": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["E7", "D8", "F8", "F9"],
+        "neighbors_island": ["IS5", "IS6"]
+    },
+    "E10": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["F10", "F11"],
+        "neighbors_island": ["IS6"]
+    },
+    "F1": {
+        "type": "water",
+        "base_income": 1,
+        "neighbors": ["E1", "F2"],
+        "neighbors_island": ["IS7"]
+    },
+    "F2": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["E1", "F1", "F3", "G2"],
+        "neighbors_island": ["IS3", "IS7"]
+    },
+    "F3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["E3", "F2", "G2", "G3"],
+        "neighbors_island": ["IS3", "IS8"]
+    },
+    "F5": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["E4", "F6", "G5"],
+        "neighbors_island": ["IS4", "IS8"]
+    },
+    "F6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["F5", "E6", "G5", "G6"],
+        "neighbors_island": ["IS4", "IS9"]
+    },
+    "F8": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["E7", "E8", "F9", "G7", "G8"],
+        "neighbors_island": ["IS9"]
+    },
+    "F9": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["F8", "E8", "F10", "G8", "G9"],
+        "neighbors_island": ["IS6"]
+    },
+    "F10": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["F9", "E10", "F11", "G9"],
+        "neighbors_island": ["IS6", "IS11"]
+    },
+    "F11": {
+        "type": "water",
+        "base_income": 1,
+        "neighbors": ["E10", "F10"],    
+        "neighbors_island": ["IS11"]
+    },
+    "G2": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["F2", "F3", "G3"],
+        "neighbors_island": ["IS7"]
+    },
+    "G3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["G2", "F3", "H3"],
+        "neighbors_island": ["IS7", "IS8"]
+    },
+    "G5": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["F5", "F6", "G6", "H4", "H5"],
+        "neighbors_island": ["IS8"]
+    },
+    "G6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["F6", "G5", "G7", "H5", "H6"],
+        "neighbors_island": ["IS9"]
+    },
+    "G7": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["F8", "G6", "G8", "H6"],
+        "neighbors_island": ["IS9", "IS10"]
+    },
+    "G8": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["G7", "F8", "F9", "G9", "H8"],
+        "neighbors_island": ["IS10"]
+    },
+    "G9": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["G8", "F9", "F10", "H8"],
+        "neighbors_island": ["IS11"]
+    },
+    "H3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["G3", "H4", "I2"],
+        "neighbors_island": ["IS7", "IS8", "IS12"]
+    },
+    "H4": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["H3", "G5", "I4"],
+        "neighbors_island": ["IS8", "IS12"]
+    },
+    "H5": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["H4", "G5", "G6", "I4", "H6"],
+        "neighbors_island": ["IS13"]
+    },
+    "H6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["H5", "G6", "G7", "I6"],
+        "neighbors_island": ["IS13", "IS10"]
+    },
+    "H8": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["G8", "G9", "I7"],
+        "neighbors_island": ["IS10", "IS11"]
+    },
+    "I1": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["I2", "J1"],
+        "neighbors_island": ["IS7"]
+    },
+    "I2": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["I1", "J1", "H3"],
+        "neighbors_island": ["IS7", "IS12"]
+    },
+    "I4": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["H4", "H5", "J4"],
+        "neighbors_island": ["IS12", "IS13"]
+    },
+    "I6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["H6", "I7", "J6"],
+        "neighbors_island": ["IS13", "IS10"]
+    },
+    "I7": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["I6", "H8", "J6"],
+        "neighbors_island": ["IS10", "IS11"]
+    },
+    "J1": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["I1", "I2", "K1"],
+        "neighbors_island": ["IS12"]
+    },
+    "J4": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["I4", "K3", "K4"],
+        "neighbors_island": ["IS12", "IS13"]
+    },
+    "J6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["I6", "I7", "K6"],
+        "neighbors_island": ["IS13", "IS11"]
+    },
+    "K1": {
+        "type": "water",
+        "base_income": 1,
+        "neighbors": ["J1", "K2"],
+        "neighbors_island": ["IS12"]
+    },
+    "K2": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["K1", "K3"],
+        "neighbors_island": ["IS12"]
+    },
+    "K3": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["K2", "K4", "J4"],
+        "neighbors_island": ["IS12"]
+    },
+    "K4": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["J4", "K3"],
+        "neighbors_island": ["IS13"]
+    },
+    "K6": {
+        "type": "water",
+        "base_income": 0,
+        "neighbors": ["J6"],
+        "neighbors_island": ["IS13", "IS11"]
+    }
+}

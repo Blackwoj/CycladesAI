@@ -7,7 +7,7 @@ from ..DataChache import DataCache
 from ..enums.GameState import GameState
 from ..gui.common.Config import Config
 from ..static.EventConfig import EventConfig
-
+import time
 
 class RollManager():
 
@@ -33,6 +33,7 @@ class RollManager():
         DataCache.set_value("heros_per_row", self._heros_per_row)
 
     def handle_events(self, event):
+        start = time.time()
         self.read_data_cache_values()
         if self._act_stage == self.stage_type:
             if not self._bid_order and not self._act_player and not self._heros_per_row["row_1"]:
@@ -46,6 +47,9 @@ class RollManager():
         else:
             logging.info("It's not roll stage, nothing will happend!")
         self.save_data_cache_values()
+        len_time = start - time.time()
+        if len_time: 
+            print("Menager_time:", len_time)
 
     def validate_bid(self, event):
         player_coins = DataCache.get_value("coins")[self._act_player]

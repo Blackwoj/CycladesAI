@@ -44,7 +44,7 @@ class BidRow():
             )
 
         for i in range(0, 10):
-            rect = pygame.Rect((i * 30 + self._position[0]), self._position[1], 27, 27)
+            rect = pygame.Rect((i * 31 + self._position[0]), self._position[1], 27, 27)
 
             hit = rect.collidepoint(pos)
 
