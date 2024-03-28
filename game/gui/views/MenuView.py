@@ -10,14 +10,14 @@ class MenuView(AbstractView):
 
     def __init__(self, screen, background):
         super().__init__(screen, background)
+        self.play_button = self.org_hov((Config.app.assert_dir), [100, 120])
 
     def render_view(self):
-        self.scale_background(self._background)
+        self.fill_bg()
 
-        img_path = Config.app.assert_dir
         self.button = Button(
             self.screen,
-            img_path,
+            self.play_button,
             pygame.Rect(100, 100, 100, 120),
             self.switch_to_game
         )

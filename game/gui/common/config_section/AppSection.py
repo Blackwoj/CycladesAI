@@ -7,6 +7,7 @@ class AppSection:
     assert_dir: Path = game_dir / 'assets'
     bid_icon_dir: Path = assert_dir / "bid_points"
     background_dir: Path = assert_dir / "backgrounds"
+    heros_plates: Path = assert_dir / "heros_boards"
     nav_bar: Path = assert_dir / "nav_bar"
     players_icons: Path = assert_dir / "players_icons"
     boards: Path = assert_dir / "board" / "DEV"

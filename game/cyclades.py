@@ -10,6 +10,7 @@ from .static.EventConfig import EventConfig
 
 
 class GameManager:
+    GUI_CHANGED = True
     def __init__(self):
         pygame.init()
         DataCache.initialize_cache()
@@ -43,8 +44,8 @@ class GameManager:
     def start(self):
         while True:
             self.handle_events()
-            self.update()
-            self.render()
+            if self.GUI_CHANGED:
+                self.render()
 
     # Handle any input events
     def handle_events(self):
@@ -55,6 +56,7 @@ class GameManager:
                 self._change_page(event)
             else:
                 self._handle_event_dict(event)
+            self.GUI_CHANGED = True
 
     def _change_page(self, event: pygame.event.Event):
         """Handle change page event
@@ -94,11 +96,11 @@ class GameManager:
         if key == pygame.K_r:  # restart game
             self.current_state = GamePages.START
 
-    # Update the game state
-    def update(self):
-        if self.current_state == GamePages.BOARD:
-            # game logic and update here
-            pass
+    # # Update the game state
+    # def update(self):
+    #     if self.current_state == GamePages.BOARD:
+    #         # game logic and update here
+    #         pass
 
     # Render the current state
     def render(self):
@@ -116,6 +118,7 @@ class GameManager:
             self.Gui.show_roll()
 
         pygame.display.flip()  # update screen
+        self.GUI_CHANGED = False
 
     # Render the pause screen
     def render_pause(self):
