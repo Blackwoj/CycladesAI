@@ -8,7 +8,6 @@ from ..common.Config import Config
 from ..components.BidRow import BidRow
 from .AbstractView import AbstractView
 from ...static.EventConfig import EventConfig
-import time
 
 
 class RollView(AbstractView):
@@ -18,7 +17,10 @@ class RollView(AbstractView):
         self.pull_img()
 
     def pull_img(self):
-        self.priority_img = self.load_and_scale((Config.app.bid_icon_dir / "priority.png"), [404, 120])
+        self.priority_img = self.load_and_scale(
+            (Config.app.bid_icon_dir / "priority.png"),
+            [404, 120]
+        )
         self.roll_img = self.load_and_scale((Config.app.assert_dir / "roll_bg_2.png"), [404, 680])
         self.heros_imgs = {
             _hero: self.load_and_scale((Config.app.heros_plates / f"{_hero}.png"), [335, 95])
@@ -42,7 +44,6 @@ class RollView(AbstractView):
         }
 
     def render_view(self):
-        STart = time.time()
         self.fill_bg()
         self.build_nav_bar()
 
@@ -82,8 +83,6 @@ class RollView(AbstractView):
         self.appollon_row()
         self.draw_heros()
         pygame.display.update()
-        lentime_len = STart - time.time()
-        print("render time:", lentime_len)
 
     def appollon_row(self):
         rect = pygame.Rect(95, 690, 335, 90)

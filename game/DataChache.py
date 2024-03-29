@@ -29,6 +29,7 @@ class DataCache:
         "bids_order",
         "heros_per_row",
         "left_heros",
+        "play_order"
     ]
 
     _data_cache: dict = {}

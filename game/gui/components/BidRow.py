@@ -6,6 +6,7 @@ from ..common.Config import Config
 
 import time
 
+
 class BidRow():
 
     def __init__(
@@ -43,7 +44,7 @@ class BidRow():
 
         if act_bids and bid_value >= 10:
             dec_value = int(bid_value / 10)
-            dec_value_img = pygame.image.load(Config.app.bid_icon_dir / f"10_{dec_value}.png").convert()
+            dec_value_img = pygame.image.load(Config.app.bid_icon_dir / f"10_{dec_value}.png")
             rect = pygame.Rect((315 + self._position[0]), self._position[1], 27, 27)
             self._screen.blit(
                 self.scale_img(dec_value_img, [rect.width, rect.height]),

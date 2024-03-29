@@ -20,5 +20,5 @@ class EventConfig:
         "row_1": ROW_1_BID,
         "row_2": ROW_2_BID,
         "row_3": ROW_3_BID,
-        "row_4": ROW_4_BID
+        "row_4": ROW_4_BID,
     }

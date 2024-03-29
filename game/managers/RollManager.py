@@ -9,6 +9,7 @@ from ..gui.common.Config import Config
 from ..static.EventConfig import EventConfig
 import time
 
+
 class RollManager():
 
     def __init__(self, screen: pygame.Surface):
@@ -25,6 +26,8 @@ class RollManager():
         self._act_bids = DataCache.get_value("bids_value")
         self._act_player = DataCache.get_value("act_player")
         self._heros_per_row = DataCache.get_value("heros_per_row")
+        self._players_coins = DataCache.get_value("coins")
+        self._players_priests = DataCache.get_value("priests")
 
     def save_data_cache_values(self):
         DataCache.set_value("act_stage", self._act_stage)
@@ -33,7 +36,6 @@ class RollManager():
         DataCache.set_value("heros_per_row", self._heros_per_row)
 
     def handle_events(self, event):
-        start = time.time()
         self.read_data_cache_values()
         if self._act_stage == self.stage_type:
             if not self._bid_order and not self._act_player and not self._heros_per_row["row_1"]:
@@ -42,18 +44,17 @@ class RollManager():
                 self.next_player()
             if event.type in EventConfig.ROWS.values():
                 self.validate_bid(event.type)
+                self.define_roll_results()
             if event.type == EventConfig.APPOLLON_BID:
                 self.add_player_to_appollon()
+                self.define_roll_results()
         else:
             logging.info("It's not roll stage, nothing will happend!")
         self.save_data_cache_values()
-        len_time = start - time.time()
-        if len_time: 
-            print("Menager_time:", len_time)
 
     def validate_bid(self, event):
-        player_coins = DataCache.get_value("coins")[self._act_player]
-        player_priests = DataCache.get_value("priests")[self._act_player]
+        player_coins = self._players_coins[self._act_player]
+        player_priests = self._players_priests[self._act_player]
         for row_name, row_event in EventConfig.ROWS.items():
             if event == row_event:
                 passed_bid = DataCache.get_value("temp_bid")
@@ -84,6 +85,7 @@ class RollManager():
     def add_player_to_appollon(self):
         self._act_bids["row_5"] = self._act_bids["row_5"] + [self._act_player]
         self.next_player()
+        time.sleep(0.25)
 
     def next_player(self):
         if not self._bid_order:
@@ -119,7 +121,23 @@ class RollManager():
 
     def define_roll_results(self):
         if not self._bid_order and not self._act_player:
-            players_coins = DataCache.get_value("coins")
-            player_priests = DataCache.get_value("priests")
+            board_game_order = DataCache.get_value("play_order")
+            players_heros = DataCache.get_value("hero_players")
+
             for row in self._act_bids.keys():
-                DataCache.get_value("coins")
+                if self._act_bids[row]:
+                    if row != "row_5":
+                        row_hero = self._heros_per_row[row]
+                        _player = self._act_bids[row]["player"]
+                        board_game_order.append(_player)
+                        price = self._act_bids[row]["bid"]
+                        pricer_without_priests = price - self._players_priests[_player]
+                        final_cost = 1 if pricer_without_priests <= 0 else pricer_without_priests
+                        self._players_coins[_player] = self._players_coins[_player] - final_cost
+                        players_heros[_player] = row_hero
+                    else:
+                        for i in range(len(self._act_bids[row])):
+                            board_game_order.append(self._act_bids[row][i])
+                            players_heros[self._act_bids[row][i]] = "apollon" if i == 0 else "ap_s"
+            DataCache.set_value("play_order", board_game_order)
+            DataCache.set_value("hero_players", players_heros)

@@ -14,7 +14,6 @@ class MenuView(AbstractView):
 
     def render_view(self):
         self.fill_bg()
-
         self.button = Button(
             self.screen,
             self.play_button,

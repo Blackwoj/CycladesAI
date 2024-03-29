@@ -13,7 +13,7 @@ class ViewManager():
 
     def show_menu(self):
         self.menu_view.render_view()
-  
+
     def show_board(self):
         self.board_view.render_view()
 

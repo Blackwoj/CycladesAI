@@ -17,7 +17,8 @@ class RollCacheSection:
             "row_1": "",
             "row_2": "",
             "row_3": "",
-            "row_4": ""
+            "row_4": "",
+            "row_5": ""
         },
         "temp_bid": 0,
         "bids_order": [],
