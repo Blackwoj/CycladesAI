@@ -3,11 +3,11 @@ from pathlib import Path
 import pygame
 from pygame import Surface
 
-from ...DataChache import DataCache
+from ...DataCache import DataCache
+from ...static.EventConfig import EventConfig
 from ..common.Config import Config
 from ..components.BidRow import BidRow
 from .AbstractView import AbstractView
-from ...static.EventConfig import EventConfig
 
 
 class RollView(AbstractView):
@@ -27,7 +27,7 @@ class RollView(AbstractView):
             for _hero in ["ares", "posejdon", "atena", "zeus"]
         }
         self.board_pictures = {
-            str(i): self.load_and_scale((Config.app.boards / f"{i}.png"), [736, 800])
+            str(i): self.load_and_scale((Config.app.boards_path / f"{i}.png"), [736, 800])
             for i in range(2, 6)
         }
         self.players_icons_27 = {

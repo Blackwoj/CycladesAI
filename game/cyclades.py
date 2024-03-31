@@ -2,21 +2,23 @@ import logging
 
 import pygame
 
-from .DataChache import DataCache
+from .DataCache import DataCache
 from .enums.GameState import GamePages, GameState
 from .gui.GameGui import ViewManager
 from .managers.RollManager import RollManager
+from .managers.BoardManager import BoardManager
 from .static.EventConfig import EventConfig
 
 
 class GameManager:
-    GUI_CHANGED = True
+
     def __init__(self):
         pygame.init()
         DataCache.initialize_cache()
         self.screen = pygame.display.set_mode((1200, 800))
         self.Gui = ViewManager(self.screen)
         self.RollManager = RollManager(self.screen)
+        self.BoardManager = BoardManager(self.screen)
         self.current_state = GamePages.START
         DataCache.set_value("act_stage", GameState.ROLL)
 
@@ -44,8 +46,7 @@ class GameManager:
     def start(self):
         while True:
             self.handle_events()
-            if self.GUI_CHANGED:
-                self.render()
+            self.render()
 
     # Handle any input events
     def handle_events(self):
@@ -56,7 +57,6 @@ class GameManager:
                 self._change_page(event)
             else:
                 self._handle_event_dict(event)
-            self.GUI_CHANGED = True
 
     def _change_page(self, event: pygame.event.Event):
         """Handle change page event
@@ -77,9 +77,8 @@ class GameManager:
             self.quit_game()
 
     # Handle input events in the GAMEPLAY state
-    def handle_gameplay_input(self, key):
-        if key == pygame.K_p:  # pause
-            self.current_state = GamePages.PAUSE
+    def handle_gameplay_input(self, event):
+        self.BoardManager.handle_events(event)
 
     # Handle input events in the PAUSE state
     def handle_pause_input(self, key):
@@ -95,12 +94,6 @@ class GameManager:
     def handle_game_over_input(self, key):
         if key == pygame.K_r:  # restart game
             self.current_state = GamePages.START
-
-    # # Update the game state
-    # def update(self):
-    #     if self.current_state == GamePages.BOARD:
-    #         # game logic and update here
-    #         pass
 
     # Render the current state
     def render(self):
@@ -118,7 +111,6 @@ class GameManager:
             self.Gui.show_roll()
 
         pygame.display.flip()  # update screen
-        self.GUI_CHANGED = False
 
     # Render the pause screen
     def render_pause(self):

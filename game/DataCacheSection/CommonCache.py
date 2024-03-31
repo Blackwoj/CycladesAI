@@ -5,7 +5,8 @@ class CommonCache:
         "act_stage": "",
         "game_config": [],
         "num_of_players": 5,
-        "play_order": []
+        "play_order": [],
+        "is_dragging": False
     }
 
     _cache_data_functions: dict = {
@@ -13,5 +14,6 @@ class CommonCache:
         "act_stage": lambda x: x,
         "game_config": lambda x: x,
         "num_of_players": lambda x: x,
-        "play_order": lambda x: x
+        "play_order": lambda x: x,
+        "is_dragging": lambda x: x
     }

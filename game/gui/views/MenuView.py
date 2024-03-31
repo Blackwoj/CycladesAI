@@ -20,6 +20,7 @@ class MenuView(AbstractView):
             pygame.Rect(100, 100, 100, 120),
             self.switch_to_game
         )
+        self.build_nav_bar()
         self.button.update()
 
     def switch_to_game(self):

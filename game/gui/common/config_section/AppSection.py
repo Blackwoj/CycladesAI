@@ -10,7 +10,9 @@ class AppSection:
     heros_plates: Path = assert_dir / "heros_boards"
     nav_bar: Path = assert_dir / "nav_bar"
     players_icons: Path = assert_dir / "players_icons"
-    boards: Path = assert_dir / "board" / "DEV"
+
+    boards_path: Path = assert_dir / "board" / "DEV"
+    boards_items: Path = assert_dir / "boards_items"
 
     players_names: list[str] = ["p1", "p2", "p3", "p4", "p5"]
     heros_names: list[str] = ["ares", "atena", "posejdon", "zeus"]

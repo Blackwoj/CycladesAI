@@ -1,9 +1,10 @@
 from typing import Literal, Union
 
-from .enums.GameState import GameState
-from .DataCacheSection.RollCache import RollCacheSection
 from .DataCacheSection.CommonCache import CommonCache
 from .DataCacheSection.PlayerCache import PlayerCache
+from .DataCacheSection.RollCache import RollCacheSection
+from .DataCacheSection.BoardCache import BoardCacheSection
+from .enums.GameState import GameState
 
 
 class DataCache:
@@ -11,7 +12,8 @@ class DataCache:
     _cache_sections: list = [
         RollCacheSection,
         CommonCache,
-        PlayerCache
+        PlayerCache,
+        BoardCacheSection
     ]
 
     AvailableSections = Literal[
@@ -29,7 +31,13 @@ class DataCache:
         "bids_order",
         "heros_per_row",
         "left_heros",
-        "play_order"
+        "play_order",
+
+        "water_status",
+        "islands_status",
+        "warriors_status",
+        "is_dragging",
+        "new_warrior_location",
     ]
 
     _data_cache: dict = {}

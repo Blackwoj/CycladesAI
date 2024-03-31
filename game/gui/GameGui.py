@@ -1,7 +1,8 @@
 from .common.Config import Config
+from .views.BoardView import BoardView
 from .views.MenuView import MenuView
 from .views.RollView import RollView
-from .views.BoardView import BoardView
+
 
 class ViewManager():
 

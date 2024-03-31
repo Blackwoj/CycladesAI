@@ -1,10 +1,10 @@
+import time
+
 import pygame
 
-from ...DataChache import DataCache
+from ...DataCache import DataCache
 from ...static.EventConfig import EventConfig
 from ..common.Config import Config
-
-import time
 
 
 class BidRow():

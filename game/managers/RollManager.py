@@ -1,42 +1,42 @@
 import logging
 import random
+import time
 
 import pygame
 
-from ..DataChache import DataCache
+from ..DataCache import DataCache
 from ..enums.GameState import GameState
 from ..gui.common.Config import Config
 from ..static.EventConfig import EventConfig
-import time
+from .AbstractManager import AbstractManager
+from enum import Enum
 
 
-class RollManager():
+class RollManager(AbstractManager):
 
     def __init__(self, screen: pygame.Surface):
-        self.screen = screen
+        super().__init__(screen)
         self._heros_order = None
 
     @property
-    def stage_type(self):
+    def stage_type(self) -> Enum:
         return GameState.ROLL
 
-    def read_data_cache_values(self):
-        self._act_stage = DataCache.get_value("act_stage")
+    def read_cache_values(self):
         self._bid_order = DataCache.get_value("bid_order")
         self._act_bids = DataCache.get_value("bids_value")
-        self._act_player = DataCache.get_value("act_player")
         self._heros_per_row = DataCache.get_value("heros_per_row")
         self._players_coins = DataCache.get_value("coins")
         self._players_priests = DataCache.get_value("priests")
+        super().read_cache_values()
 
-    def save_data_cache_values(self):
-        DataCache.set_value("act_stage", self._act_stage)
+    def save_cache_values(self):
         DataCache.set_value("bid_order", self._bid_order)
-        DataCache.set_value("act_player", self._act_player)
         DataCache.set_value("heros_per_row", self._heros_per_row)
+        return super().save_cache_values()
 
-    def handle_events(self, event):
-        self.read_data_cache_values()
+    def handle_events(self, event: pygame.event.Event):
+        self.read_cache_values()
         if self._act_stage == self.stage_type:
             if not self._bid_order and not self._act_player and not self._heros_per_row["row_1"]:
                 self.config_stage()
@@ -50,7 +50,7 @@ class RollManager():
                 self.define_roll_results()
         else:
             logging.info("It's not roll stage, nothing will happend!")
-        self.save_data_cache_values()
+        self.save_cache_values()
 
     def validate_bid(self, event):
         player_coins = self._players_coins[self._act_player]

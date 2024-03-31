@@ -22,3 +22,8 @@ class EventConfig:
         "row_3": ROW_3_BID,
         "row_4": ROW_4_BID,
     }
+
+    UPDATE_WARRIOR_POS = pygame.USEREVENT + 11
+    UPDATE_SHIP_POS = pygame.USEREVENT + 12
+
+    BOARD_SECTION = [UPDATE_WARRIOR_POS, UPDATE_SHIP_POS]

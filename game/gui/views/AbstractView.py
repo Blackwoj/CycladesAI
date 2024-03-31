@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pygame
 
-from ...DataChache import DataCache
+from ...DataCache import DataCache
+from ...static.EventConfig import EventConfig
 from ..common.Config import Config
 from ..components.Button import Button
-from ...static.EventConfig import EventConfig
 
 
 class AbstractView(ABC):
@@ -49,7 +49,7 @@ class AbstractView(ABC):
         }
 
     def load_and_scale(self, location, size):
-        img = pygame.image.load(location).convert()
+        img = pygame.image.load(location).convert_alpha()
         return self.scale_img(img, size)
 
     def scale_bg(self, bg_path: Path):
