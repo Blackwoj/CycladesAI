@@ -20,6 +20,7 @@ class AbstractManager(ABC):
     def read_cache_values(self):
         self._act_stage = DataCache.get_value("act_stage")
         self._act_player = DataCache.get_value("act_player")
+        self._num_of_players = str(DataCache.get_value("num_of_players"))
 
     @abstractmethod
     def save_cache_values(self):

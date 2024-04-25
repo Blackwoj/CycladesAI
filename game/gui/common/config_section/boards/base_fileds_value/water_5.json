@@ -222,7 +222,7 @@
         "base_income": 0,
         "neighbors": ["F5", "E6", "G5", "G6"],
         "neighbors_island": ["IS4", "IS9"],
-        "owner": {}
+        "owner": {"p5": 1}
     },
     "F8": {
         "type": "water",
@@ -285,7 +285,7 @@
         "base_income": 0,
         "neighbors": ["F8", "G6", "G8", "H6"],
         "neighbors_island": ["IS9", "IS10"],
-        "owner": {}
+        "owner": {"p5": 1}
     },
     "G8": {
         "type": "water",

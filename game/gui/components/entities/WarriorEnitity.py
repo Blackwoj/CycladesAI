@@ -14,6 +14,7 @@ class WarriorEntity(AbstractEntity):
         num_of_entities: int,
         owner: str,
         warriors_icons: pygame.Surface,
+        ownership_icon: pygame.Surface,
         multiply_icon: dict[int, pygame.Surface],
     ):
         super().__init__(
@@ -23,9 +24,14 @@ class WarriorEntity(AbstractEntity):
             num_of_entities,
             owner,
             warriors_icons,
-            multiply_icon
+            multiply_icon,
+            ownership_icon
         )
 
     def validate_move(self):
-        DataCache.set_value("new_warrior_location", {self._id: self._act_location})
-        pygame.event.post(pygame.event.Event(EventConfig.UPDATE_WARRIOR_POS))
+        loc = (self._act_location[0] + 40, self._act_location[1] + 40)
+        DataCache.set_value(
+            "new_warrior_location",
+            {self._id: {"location": loc, "num_of_entities": self._num_of_entities}}
+        )
+        pygame.event.post(pygame.event.Event(EventConfig.SHOW_MULTIPLY_OPTIONS_WAR))

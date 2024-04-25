@@ -33,11 +33,17 @@ class DataCache:
         "left_heros",
         "play_order",
 
+        "board_row",
+        "player_god",
         "water_status",
         "islands_status",
         "warriors_status",
         "is_dragging",
         "new_warrior_location",
+        "message_board",
+        "entity_update",
+        "entity_delete",
+        "posejdon_move"
     ]
 
     _data_cache: dict = {}

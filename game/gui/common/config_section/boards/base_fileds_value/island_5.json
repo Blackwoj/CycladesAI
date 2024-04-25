@@ -6,7 +6,8 @@
             "big": [["1", "2"]] 
         },
         "base_income": 0,
-        "owner": {"p2": 1}
+        "owner": {"p2": 1},
+        "location": ["B1", "B2", "C1", "C2"]
     },
     "IS2":
     {
@@ -15,7 +16,8 @@
             "big": [["1", "2"]]
         },
         "base_income": 1,
-        "owner": {"p1": 1}
+        "owner": {"p1": 1},
+        "location": ["A4", "B5"]
     },
     "IS3":
     {
@@ -24,7 +26,8 @@
             "big": [["1"]]
         },
         "base_income": 2,
-        "owner": {"p3": 1}
+        "owner": {"p3": 1},
+        "location": ["E2"]
     },
     "IS4":
     {
@@ -33,7 +36,8 @@
             "big": [["1", "2"]]
         },
         "base_income": 1,
-        "owner": {"p5": 1}
+        "owner": {"p5": 4},
+        "location": ["D4", "E5"]
     }
     ,
     "IS5":
@@ -43,7 +47,8 @@
             "big": [["1", "2"]]
         },
         "base_income": 1,
-        "owner": {}
+        "owner": {},
+        "location": ["D6", "D7"]
     }
     ,
     "IS6":
@@ -53,7 +58,8 @@
             "big": [["1", "2"]]
         },
         "base_income": 1,
-        "owner": {"p4": 1}
+        "owner": {"p4": 1},
+        "location": ["D9", "E9"]
     },
     "IS7":
     {
@@ -62,7 +68,8 @@
             "big": [["1", "2"]]
         },
         "base_income": 0,
-        "owner": {"p4": 1}
+        "owner": {"p4": 1},
+        "location": ["G1", "H1", "H2"]
     },
     "IS8":
     {
@@ -71,7 +78,8 @@
             "big": [["1", "2"]]
         },
         "base_income": 1,
-        "owner": {}
+        "owner": {"p5": 1},
+        "location": ["F4", "G4"]
     },
     "IS9":
     {
@@ -80,7 +88,8 @@
             "big": [["1"]]
         },
         "base_income": 2,
-        "owner": {"p2": 1}
+        "owner": {"p2": 1},
+        "location": ["F7"]
     },
     "IS10":
     {
@@ -89,7 +98,8 @@
             "big": [["1"]]
         },
         "base_income": 2,
-        "owner": {}
+        "owner": {},
+        "location": ["H7"]
     },
     "IS11":
     {
@@ -98,7 +108,8 @@
             "big": [["1", "2"]] 
         },
         "base_income": 0,
-        "owner": {"p3":1}
+        "owner": {"p3":1},
+        "location": ["G10", "H9", "I8", "J7"]
     },
     "IS12":
     {
@@ -107,7 +118,8 @@
             "big": [["2", "3"]] 
         },
         "base_income": 0,
-        "owner": {"p1": 1}
+        "owner": {"p1": 1},
+        "location": ["I3", "J2", "J3"]
     },
     "IS13":
     {
@@ -116,6 +128,7 @@
             "big": [["2", "3"]] 
         },
         "base_income": 0,
-        "owner": {"p5": 1}
+        "owner": {"p5": 1},
+        "location": ["I5", "J5", "K5"]
     }
 }
