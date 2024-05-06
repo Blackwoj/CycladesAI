@@ -1,7 +1,8 @@
-from .AbstractEntity import AbstractEntity
 import pygame
+
 from ....DataCache import DataCache
 from ....static.EventConfig import EventConfig
+from .AbstractEntity import AbstractEntity
 
 
 class WarriorEntity(AbstractEntity):
@@ -35,3 +36,6 @@ class WarriorEntity(AbstractEntity):
             {self._id: {"location": loc, "num_of_entities": self._num_of_entities}}
         )
         pygame.event.post(pygame.event.Event(EventConfig.SHOW_MULTIPLY_OPTIONS_WAR))
+
+    def check_hero(self) -> bool:
+        return DataCache.get_value("act_hero") != "ares"

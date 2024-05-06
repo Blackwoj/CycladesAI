@@ -1,15 +1,17 @@
+import math
+import random
+import time
+from enum import Enum
+
 import pygame
 from pygame.event import Event
-from .AbstractManager import AbstractManager
-from enum import Enum
-from ..enums.GameState import GameState
+
 from ..DataCache import DataCache
-from ..gui.common.Config import Config
-import time
-import random
-from ..static.EventConfig import EventConfig
-import math
+from ..enums.GameState import GameState
 from ..graph import Graph
+from ..gui.common.Config import Config
+from ..static.EventConfig import EventConfig
+from .AbstractManager import AbstractManager
 
 
 class BoardManager(AbstractManager):
@@ -18,6 +20,10 @@ class BoardManager(AbstractManager):
         super().__init__(screen)
         self.Graph = Graph()
         self.fill_graph()
+        self.read_cache_values()
+        if not self._ships_status and not self._islands_status:
+            self.setup_board_first_stage()
+        self.save_cache_values()
 
     @property
     def stage_type(self) -> Enum:
@@ -27,18 +33,23 @@ class BoardManager(AbstractManager):
         self.read_cache_values()
         if self._act_stage != self.stage_type:
             return
-        # if not DataCache.get_value("board_row"):
-        if not self._ships_status and not self._islands_status:
-            self.setup_board_first_stage()
+        if DataCache.get_value("play_order") and not self._act_player:
+            self.define_player_hero()
         if event.type == EventConfig.UPDATE_WARRIOR_POS:
             self.valid_new_position("warrior")
-            # self.valid_warrior_pos()
         if event.type == EventConfig.SHOW_MULTIPLY_OPTIONS_WAR:
             self.define_message()
+        if event.type == EventConfig.NEW_BUILDING:
+            self.new_building_decider()
         self.save_cache_values()
 
-    # def define_board_stage(self):
-    #     DataCache.get_value("")
+    def define_player_hero(self):
+        player_order = DataCache.get_value("play_order")
+        player_hero = DataCache.get_value("hero_players")
+        if player_order and not self._act_player:
+            self._act_player = player_order[0]
+            DataCache.set_value("play_order", player_order[1:])
+            self._act_hero = player_hero[self._act_player]
 
     def read_cache_values(self):
         self._ships_status = DataCache.get_value("water_status")
@@ -136,7 +147,7 @@ class BoardManager(AbstractManager):
         }
 
     def valid_new_position(self, type: str):
-        avalible_posejdon_jumps = DataCache.get_value("posejdon_move")
+        # available_posejdon_jumps = DataCache.get_value("posejdon_move")
         distance = 1300
         new_place = ""
         centers_loc = Config.boards.circles_centers[self._num_of_players]
@@ -285,3 +296,6 @@ class BoardManager(AbstractManager):
 
     def clear_message(self):
         DataCache.set_value("message_board", "")
+
+    def new_building_decider(self):
+        pass

@@ -39,7 +39,7 @@ class AbstractView(ABC):
         }
         self.hero_icon = {
             _hero: self.load_and_scale((Config.app.nav_bar / "hero" / f"{_hero}.png"), [60, 60])
-            for _hero in ["ares", "posejdon", "atena", "zeus", "None", "apollon"]
+            for _hero in ["ares", "posejdon", "atena", "zeus", "None", "apollon", "ap_s"]
         }
 
     def org_hov(self, img_path: Path, size):
@@ -80,6 +80,9 @@ class AbstractView(ABC):
             self.switch_to_menu
         )
         if DataCache.get_value("act_player"):
+            # print("act_player", DataCache.get_value("act_player"))
+            # print("hero players", DataCache.get_value("hero_players"))
+            # print("output: ", DataCache.get_value("hero_players")[DataCache.get_value("act_player")])
             hero_player_name = str(
                 DataCache.get_value("hero_players")[DataCache.get_value("act_player")]
             )

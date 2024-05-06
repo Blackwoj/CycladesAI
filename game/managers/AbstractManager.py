@@ -1,5 +1,7 @@
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
+
 import pygame
+
 from ..DataCache import DataCache
 
 
@@ -7,8 +9,9 @@ class AbstractManager(ABC):
 
     def __init__(self, screen: pygame.Surface):
         self._screen = screen
+        self._act_hero = ""
 
-    @abstractproperty
+    @abstractmethod
     def stage_type(self):
         raise NotImplementedError
 
@@ -26,3 +29,4 @@ class AbstractManager(ABC):
     def save_cache_values(self):
         DataCache.set_value("act_stage", self._act_stage)
         DataCache.set_value("act_player", self._act_player)
+        DataCache.set_value("act_hero", self._act_hero)

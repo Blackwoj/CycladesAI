@@ -5,8 +5,8 @@ import pygame
 from .DataCache import DataCache
 from .enums.GameState import GamePages, GameState
 from .gui.GameGui import ViewManager
-from .managers.RollManager import RollManager
 from .managers.BoardManager import BoardManager
+from .managers.RollManager import RollManager
 from .static.EventConfig import EventConfig
 
 

@@ -1,6 +1,7 @@
 import logging
 import random
 import time
+from enum import Enum
 
 import pygame
 
@@ -9,7 +10,6 @@ from ..enums.GameState import GameState
 from ..gui.common.Config import Config
 from ..static.EventConfig import EventConfig
 from .AbstractManager import AbstractManager
-from enum import Enum
 
 
 class RollManager(AbstractManager):

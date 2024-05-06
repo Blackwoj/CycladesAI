@@ -1,5 +1,7 @@
 from abc import ABC
+
 import pygame
+
 from ...common.Config import Config
 
 

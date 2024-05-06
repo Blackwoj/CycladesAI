@@ -4,13 +4,15 @@ class BoardCacheSection:
         "water_status": {},
         "islands_status": {},
         "warriors_status": {},
+        "buildings_status": {},
         "new_warrior_location": (),
         "message_board": "",
         "entity_update": {},
         "entity_delete": [],
         "posejdon_move": 0,
         "board_row": [],
-        "player_god": {}
+        "player_god": {},
+        "new_building": [],
     }
 
     _cache_data_functions: dict = {
@@ -23,5 +25,7 @@ class BoardCacheSection:
         "entity_delete": lambda x: x,
         "posejdon_move": lambda x: x,
         "board_row": lambda x: x,
-        "player_god": lambda x: x
+        "player_god": lambda x: x,
+        "new_building": lambda x: x,
+        "buildings_status": lambda x: x,
     }

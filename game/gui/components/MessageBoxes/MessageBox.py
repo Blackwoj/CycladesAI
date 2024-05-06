@@ -1,6 +1,7 @@
 import pygame
-from ....static.EventConfig import EventConfig
+
 from ....DataCache import DataCache
+from ....static.EventConfig import EventConfig
 from .AbstractMessageBox import AbstractMessageBox
 
 

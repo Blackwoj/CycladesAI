@@ -1,9 +1,9 @@
 from typing import Literal, Union
 
+from .DataCacheSection.BoardCache import BoardCacheSection
 from .DataCacheSection.CommonCache import CommonCache
 from .DataCacheSection.PlayerCache import PlayerCache
 from .DataCacheSection.RollCache import RollCacheSection
-from .DataCacheSection.BoardCache import BoardCacheSection
 from .enums.GameState import GameState
 
 
@@ -20,7 +20,9 @@ class DataCache:
         "game_config",
         "num_of_players",
         "act_player",
+        "new_player",
         "act_stage",
+        "act_hero",
         "coins",
         "priests",
         "philosophers",
@@ -43,7 +45,9 @@ class DataCache:
         "message_board",
         "entity_update",
         "entity_delete",
-        "posejdon_move"
+        "posejdon_move",
+        "new_building",
+        "buildings_status"
     ]
 
     _data_cache: dict = {}
