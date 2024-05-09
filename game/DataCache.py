@@ -42,12 +42,14 @@ class DataCache:
         "warriors_status",
         "is_dragging",
         "new_warrior_location",
+        "new_ship_location",
         "message_board",
         "entity_update",
         "entity_delete",
         "posejdon_move",
         "new_building",
-        "buildings_status"
+        "buildings_status",
+        "reset_building"
     ]
 
     _data_cache: dict = {}

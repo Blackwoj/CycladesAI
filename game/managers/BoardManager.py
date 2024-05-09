@@ -12,13 +12,15 @@ from ..graph import Graph
 from ..gui.common.Config import Config
 from ..static.EventConfig import EventConfig
 from .AbstractManager import AbstractManager
+from typing import List
+import logging
 
 
 class BoardManager(AbstractManager):
 
     def __init__(self, screen: pygame.Surface):
         super().__init__(screen)
-        self.Graph = Graph()
+        self.graph_warrior = Graph()
         self.fill_graph()
         self.read_cache_values()
         if not self._ships_status and not self._islands_status:
@@ -38,7 +40,9 @@ class BoardManager(AbstractManager):
         if event.type == EventConfig.UPDATE_WARRIOR_POS:
             self.valid_new_position("warrior")
         if event.type == EventConfig.SHOW_MULTIPLY_OPTIONS_WAR:
-            self.define_message()
+            self.define_message("warrior", "Select how many soldiers you want to move")
+        if event.type == EventConfig.SHOW_MULTIPLY_OPTIONS_SHIP:
+            self.define_message("ship", "Select how many ship you want to move")
         if event.type == EventConfig.NEW_BUILDING:
             self.new_building_decider()
         self.save_cache_values()
@@ -77,7 +81,6 @@ class BoardManager(AbstractManager):
                     "num_of_entities": _num_of_entities,
                     "income": base_config["base_income"],
                     "field": circle,
-                    # "location": Config.boards.circles_centers[circle]
                 }
         _islands_config = Config.boards.islands_config
         for island, base_config in _islands_config[str(DataCache.get_value("num_of_players"))].items():
@@ -147,7 +150,7 @@ class BoardManager(AbstractManager):
         }
 
     def valid_new_position(self, type: str):
-        # available_posejdon_jumps = DataCache.get_value("posejdon_move")
+        available_posejdon_jumps = DataCache.get_value("posejdon_move")
         distance = 1300
         new_place = ""
         centers_loc = Config.boards.circles_centers[self._num_of_players]
@@ -162,9 +165,7 @@ class BoardManager(AbstractManager):
                 else:
                     filed_to_check.append(field_id)
                 for center in filed_to_check:
-                    temp_distance = math.sqrt(
-                        (location["location"][0] - centers_loc[center][0])**2 + (location["location"][1] - centers_loc[center][1])**2
-                    )
+                    temp_distance = self.calc_len(location["location"], centers_loc[center])
                     new_place = field_id if temp_distance < distance else new_place
                     distance = temp_distance if temp_distance < distance else distance
         if new_place:
@@ -172,13 +173,26 @@ class BoardManager(AbstractManager):
             entity_status = self.fields_status[type]
             entity_map_points = self.entities_points[type]
             if self._coins[entity_status[moving_entity_id]["owner"]] >= 1:
-                if type == "warrior" and self.Graph.has_connection(
+                if type == "warrior" and self.graph_warrior.has_connection(
                     entity_status[moving_entity_id]["field"],
                     new_place,
                     entity_status[moving_entity_id]["owner"]
                 ):
+                    self._coins[entity_status[moving_entity_id]["owner"]] -= 1
                     self.move_warrior(moving_entity, moving_entity_id, new_place, entity_map_points, entity_status)
-                elif type == "ship":
+                elif (
+                    type == "ship"
+                    and (
+                        available_posejdon_jumps > 0
+                        or self._coins[entity_status[moving_entity_id]["owner"]]
+                    )
+                ):
+                    if available_posejdon_jumps == 0:
+                        self._coins[entity_status[moving_entity_id]["owner"]] -= 1
+                        DataCache.set_value("posejdon_move", 2)
+                    else:
+                        DataCache.set_value("posejdon_move", available_posejdon_jumps - 1)
+                    self.move_ship(moving_entity, moving_entity_id, new_place, entity_map_points, entity_status)
                     pass
                 else:
                     update_entity = DataCache.get_value("entity_update")
@@ -187,7 +201,15 @@ class BoardManager(AbstractManager):
                         "num_of_entities": entity_status[moving_entity_id]["num_of_entities"]
                     }
                     DataCache.set_value("entity_update", update_entity)
+                    logging.info("No enough money to move %s!", type)
             self.clear_message()
+
+    # def move_ship(self, moving_entity, moving_entity_id, new_place, entity_map_points, entity_status):
+    #     entity_split = self.split_entity_number(
+    #         moving_entity[moving_entity_id],
+    #         self._warriors_status[moving_entity_id]
+    #     )
+    #     pass
 
     def move_warrior(self, moving_entity, moving_entity_id, new_place, entity_map_points, entity_status):
         entity_split = self.split_entity_number(
@@ -200,7 +222,7 @@ class BoardManager(AbstractManager):
             entity_split[1],
             self._warriors_status[moving_entity_id]["field"]
         )
-        if self.Graph.colors[new_place] == "None":
+        if self.graph_warrior.colors[new_place] == "None":
             self._warriors_status[self.generate_unique_id()] = {
                 "owner": entity_status[moving_entity_id]["owner"],
                 "num_of_entities": entity_split[0],
@@ -211,7 +233,7 @@ class BoardManager(AbstractManager):
             ]["num_of_entities"] = entity_split[1]
             self._islands_status[new_place]["owner"] = entity_status[moving_entity_id]["owner"]
 
-        elif self.Graph.colors[new_place] == entity_status[moving_entity_id]["owner"]:
+        elif self.graph_warrior.colors[new_place] == entity_status[moving_entity_id]["owner"]:
             for id, warrior_status in self._warriors_status.items():
                 if warrior_status["field"] == new_place:
 
@@ -273,29 +295,62 @@ class BoardManager(AbstractManager):
     def fill_graph(self):
         _water_config = Config.boards.water_config
         for ver in _water_config[str(DataCache.get_value("num_of_players"))].keys():
-            self.Graph.add_vertex(ver, "None")
+            self.graph_warrior.add_vertex(ver, "None")
         _island_vertex = Config.boards.islands_config
         for ver in _island_vertex[str(DataCache.get_value("num_of_players"))].keys():
-            self.Graph.add_vertex(ver, "None")
+            self.graph_warrior.add_vertex(ver, "None")
         for ver, ver_config in _water_config[str(DataCache.get_value("num_of_players"))].items():
             for neighbors in ver_config["neighbors"]:
-                self.Graph.add_edge(ver, neighbors)
+                self.graph_warrior.add_edge(ver, neighbors)
             for neighbors in ver_config["neighbors_island"]:
-                self.Graph.add_edge(ver, neighbors)
+                self.graph_warrior.add_edge(ver, neighbors)
 
     def update_graph_colors(self):
         island_colors = {key: values["owner"] for key, values in self._islands_status.items()}
         water_colors = {values["field"]: values["owner"] for _, values in self._ships_status.items()}
         fields_colors = island_colors | water_colors
-        if self.Graph.colors != fields_colors:
+        if self.graph_warrior.colors != fields_colors:
             for key, color in fields_colors.items():
-                self.Graph.set_vertex_color(key, color)
+                self.graph_warrior.set_vertex_color(key, color)
 
-    def define_message(self):
-        DataCache.set_value("message_board", "Select how many soldiers you want to use")
+    def define_message(self, property: str, msg: str):
+        DataCache.set_value(
+            "message_board",
+            {
+                "property": property,
+                "msg": msg
+            }
+        )
 
     def clear_message(self):
         DataCache.set_value("message_board", "")
 
     def new_building_decider(self):
-        pass
+        building_location = DataCache.get_value("new_building")
+        buildings_center = Config.boards.buildings_centers[self._num_of_players]
+        buildings_status = DataCache.get_value("buildings_status")
+        new_loc = ["IS1", "1"]
+        closest_loc = 100000
+        for island_id, island_data in self._islands_status.items():
+            if island_data["owner"] == self._act_player:
+                for i in range(len(buildings_center[island_id]["small"])):
+                    if not island_data["building"]["small"][str(i + 1)]:
+                        temp_loc = self.calc_len(building_location, buildings_center[island_id]["small"][i])
+                        new_loc = [island_id, str(i + 1)] if temp_loc < closest_loc else new_loc
+                        closest_loc = temp_loc if temp_loc < closest_loc else closest_loc
+        if closest_loc < 50 and self._coins[self._act_player] >= 2:
+            self._coins[self._act_player] -= 2
+            temp_id = self.generate_unique_id()
+            buildings_status[temp_id] = {
+                "hero": self._act_hero,
+                "loc": buildings_center[new_loc[0]]["small"][int(new_loc[1]) - 1]
+            }
+            self._islands_status[new_loc[0]]["building"]["small"][new_loc[1]] = self._act_hero
+            DataCache.set_value("buildings_status", buildings_status)
+        else:
+            DataCache.set_value("reset_building", True)
+
+    def calc_len(self, dest_loc: List[int], point_loc: List[int]):
+        return math.sqrt(
+            (dest_loc[0] - point_loc[0])**2 + (dest_loc[1] - point_loc[1])**2
+        )

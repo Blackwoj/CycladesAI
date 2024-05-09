@@ -85,7 +85,6 @@ class RollManager(AbstractManager):
     def add_player_to_appollon(self):
         self._act_bids["row_5"] = self._act_bids["row_5"] + [self._act_player]
         self.next_player()
-        time.sleep(0.25)
 
     def next_player(self):
         if not self._bid_order:

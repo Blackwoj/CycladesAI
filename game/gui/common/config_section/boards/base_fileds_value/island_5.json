@@ -64,7 +64,7 @@
     "IS7":
     {
         "buildings":{
-            "small": ["1", "2"],
+            "small": ["1", "2", "3"],
             "big": [["1", "2"]]
         },
         "base_income": 0,

@@ -8,7 +8,7 @@ from ...static.EventConfig import EventConfig
 from ..common.Config import Config
 from ..components.BidRow import BidRow
 from .AbstractView import AbstractView
-
+import time
 
 class RollView(AbstractView):
 
@@ -92,6 +92,7 @@ class RollView(AbstractView):
         hit = rect.collidepoint(pos)
         if hit and pressed[0] == 1:
             pygame.event.post(pygame.event.Event(EventConfig.APPOLLON_BID))
+            time.sleep(0.5)
 
         appollon_row_bids = DataCache.get_value("bids_value")["row_5"]
         if appollon_row_bids:

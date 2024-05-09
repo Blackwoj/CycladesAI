@@ -6,6 +6,7 @@ class BoardCacheSection:
         "warriors_status": {},
         "buildings_status": {},
         "new_warrior_location": (),
+        "new_ship_location": (),
         "message_board": "",
         "entity_update": {},
         "entity_delete": [],
@@ -13,6 +14,7 @@ class BoardCacheSection:
         "board_row": [],
         "player_god": {},
         "new_building": [],
+        "reset_building": False
     }
 
     _cache_data_functions: dict = {
@@ -28,4 +30,6 @@ class BoardCacheSection:
         "player_god": lambda x: x,
         "new_building": lambda x: x,
         "buildings_status": lambda x: x,
+        "reset_building": lambda x: x,
+        "new_ship_location": lambda x: x
     }

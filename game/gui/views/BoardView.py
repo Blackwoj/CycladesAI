@@ -9,8 +9,10 @@ from ...enums.GameState import GameState
 from ..common.Config import Config
 from ..components.Button import Button
 from ..components.entities.BuildingEntity import BuildingEntity
-from ..components.entities.WarriorEnitity import WarriorEntity
-from ..components.MessageBoxes.MessageBox import MessageBox
+from ..components.entities.WarriorEntity import WarriorEntity
+from ..components.entities.ShipEntity import ShipEntity
+from ..components.MessageBoxes.WarriorMessageBox import WarriorMessageBox
+from ..components.MessageBoxes.ShipMessageBox import ShipMessageBox
 from .AbstractView import AbstractView
 
 
@@ -20,7 +22,10 @@ class BoardView(AbstractView):
         super().__init__(screen, background)
         self.entities_sprite = pygame.sprite.Group()
         self.building_sprite = pygame.sprite.Group()
-        self.message_box = MessageBox(self.screen)
+        self.message_box = {
+            "warrior": WarriorMessageBox(self.screen),
+            "ship": ShipMessageBox(self.screen)
+        }
         self._loaded_entities = []
         self.pull_img()
 
@@ -77,6 +82,7 @@ class BoardView(AbstractView):
         self.load_warriors()
         self.deleted_warriors()
         self.updated_warriors()
+        self.add_building()
         self.update_sprite()
         self.load_ships()
         # self.load_items()
@@ -89,7 +95,7 @@ class BoardView(AbstractView):
     def build_message_box(self):
         message = DataCache.get_value("message_board")
         if message:
-            self.message_box.build_box(message)
+            self.message_box[message["property"]].build_box(message["msg"])
 
     def load_items(self):
         _circle_centers = Config.boards.circles_centers
@@ -138,15 +144,39 @@ class BoardView(AbstractView):
         DataCache.set_value("entity_delete", {})
 
     def load_ships(self):
-        _ships_points = Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))]
-        for water_point, values_for_ship in DataCache.get_value("water_status").items():
-            x = _ships_points[values_for_ship["field"]][0] - 80 // 2
-            y = _ships_points[values_for_ship["field"]][1] - 80 // 2
-            self.screen.blit(self._ships_icon[values_for_ship["owner"]], (x, y))
-            self.screen.blit(
-                self._multiplayer_icon[values_for_ship["num_of_entities"]],
-                (x + 40, y)
+        _warriors_points = Config.boards.warriors_points[str(DataCache.get_value("num_of_players"))]
+        for _warrior_id, warrior_stats in DataCache.get_value("warriors_status").items():
+            if _warrior_id in self._loaded_entities:
+                continue
+            self._loaded_entities.append(_warrior_id)
+            warrior_entity = WarriorEntity(
+                _warrior_id,
+                self.screen,
+                _warriors_points[warrior_stats["field"]],
+                warrior_stats["num_of_entities"],
+                warrior_stats["owner"],
+                self._warriors_icon[warrior_stats["owner"]],
+                self.ownership_icon[warrior_stats["owner"]],
+                self._multiplayer_icon
             )
+            self.entities_sprite.add(warrior_entity)
+
+        _ships_points = Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))]
+        for _ship_id, ship_stats in DataCache.get_value("water_status").items():
+            if _ship_id in self._loaded_entities:
+                continue
+            self._loaded_entities.append(_ship_id)
+            ship_entity = ShipEntity(
+                _ship_id,
+                self.screen,
+                _ships_points[ship_stats["field"]],
+                ship_stats["num_of_entities"],
+                ship_stats["owner"],
+                self._ships_icon[ship_stats["owner"]],
+                self.ownership_icon[ship_stats["owner"]],
+                self._multiplayer_icon
+            )
+            self.entities_sprite.add(ship_entity)
 
     def load_income(self):
         _income_points = Config.boards.income_point
@@ -168,6 +198,33 @@ class BoardView(AbstractView):
                 self.draw_center(self.screen, (0, 0, 255), big_buildings, 3)
         pass
 
+    def add_building(self):
+        buildings = DataCache.get_value("buildings_status")
+        _if_new = False
+        for building_id in buildings.keys():
+            if building_id and building_id not in self._loaded_entities:
+                building = BuildingEntity(
+                    building_id,
+                    self.screen,
+                    buildings[building_id]["loc"],
+                    self._buildings[buildings[building_id]["hero"]],
+                    False
+                )
+                self.building_sprite.add(building)
+                self._loaded_entities.append(building_id)
+                _if_new = True
+        if _if_new:
+            for building in self.building_sprite:
+                if building._id == 1:
+                    self.building_sprite.remove(building)
+            self.load_hero_layout()
+        elif DataCache.get_value("reset_building"):
+            DataCache.set_value("reset_building", False)
+            for building in self.building_sprite:
+                if building._id == 1:
+                    self.building_sprite.remove(building)
+            self.load_hero_layout()
+
     def load_hero_layout(self):
         if DataCache.get_value("act_hero"):
             self.heros_layout[DataCache.get_value("act_hero")]()
@@ -181,7 +238,6 @@ class BoardView(AbstractView):
             True
         )
         self.building_sprite.add(base_building)
-        print("loading ares")
 
     def load_poseidon(self):
         base_building = BuildingEntity(
@@ -192,7 +248,7 @@ class BoardView(AbstractView):
             True
         )
         self.building_sprite.add(base_building)
-        print("loading posejdon")
+        print("load_posejdon")
 
     def load_athena(self):
         base_building = BuildingEntity(

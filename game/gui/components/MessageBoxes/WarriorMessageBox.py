@@ -5,7 +5,7 @@ from ....static.EventConfig import EventConfig
 from .AbstractMessageBox import AbstractMessageBox
 
 
-class MessageBox(AbstractMessageBox):
+class WarriorMessageBox(AbstractMessageBox):
 
     def __init__(self, screen: pygame.Surface):
         super().__init__(screen)

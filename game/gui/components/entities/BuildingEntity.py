@@ -35,7 +35,8 @@ class BuildingEntity(pygame.sprite.Sprite):
         return self._id
 
     def update(self):
-        self.handle_mouse()
+        if self._if_dragging:
+            self.handle_mouse()
         self.rect.topleft = self._act_location
         if (
             not pygame.mouse.get_pressed()[0]
@@ -49,7 +50,6 @@ class BuildingEntity(pygame.sprite.Sprite):
     def handle_mouse(self):
         if (
             DataCache.get_value("act_stage") != GameState.BOARD
-            or self._if_dragging
             or DataCache.get_value("message_board")
         ):
             return
