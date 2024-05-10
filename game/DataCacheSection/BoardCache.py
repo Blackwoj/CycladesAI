@@ -14,7 +14,8 @@ class BoardCacheSection:
         "board_row": [],
         "player_god": {},
         "new_building": [],
-        "reset_building": False
+        "reset_building": False,
+        "ship_status": {},
     }
 
     _cache_data_functions: dict = {
@@ -31,5 +32,6 @@ class BoardCacheSection:
         "new_building": lambda x: x,
         "buildings_status": lambda x: x,
         "reset_building": lambda x: x,
-        "new_ship_location": lambda x: x
+        "new_ship_location": lambda x: x,
+        "ship_status": lambda x: x,
     }

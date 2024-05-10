@@ -47,9 +47,9 @@ class AbstractEntity(pygame.sprite.Sprite):
         self.rect.topleft = self._act_location
         if (
             not pygame.mouse.get_pressed()[0]
-            and 80 < math.sqrt(
-                (self._act_location[0] - self._map_point[0])**2
-                + (self._act_location[1] - self._map_point[1])**2
+            and 70 < math.sqrt(
+                (self._act_location[0] + 40 - self._map_point[0])**2
+                + (self._act_location[1] + 40 - self._map_point[1])**2
             )
         ):
             self.validate_move()

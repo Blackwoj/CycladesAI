@@ -80,8 +80,8 @@ class BoardView(AbstractView):
         self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [60, 0])
         self.screen.blit(self._play_order, [1140, 0])
         self.load_warriors()
-        self.deleted_warriors()
-        self.updated_warriors()
+        self.update_entity()
+        self.delete_entity()
         self.add_building()
         self.update_sprite()
         self.load_ships()
@@ -91,6 +91,7 @@ class BoardView(AbstractView):
         # self.load_income()
         if DataCache.get_value("act_stage") == GameState.BOARD:
             self.next_player_button()
+        self.draw_all_points()
 
     def build_message_box(self):
         message = DataCache.get_value("message_board")
@@ -102,6 +103,11 @@ class BoardView(AbstractView):
         for _, location in _circle_centers[str(DataCache.get_value("num_of_players"))].items():
             if location:
                 self.draw_center(self.screen, (255, 0, 0), location, 10)
+
+    def draw_all_points(self):
+        water = Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))]
+        for key, loc in water.items():
+            self.draw_center(self.screen, "red", loc, 5)
 
     def draw_center(self, screen, color, center, radius):
         pygame.draw.circle(screen, color, tuple(center), radius)
@@ -124,7 +130,7 @@ class BoardView(AbstractView):
             )
             self.entities_sprite.add(warrior_entity)
 
-    def updated_warriors(self):
+    def update_entity(self):
         _warriors_to_update = DataCache.get_value("entity_update")
         for entity in self.entities_sprite:
             if entity.entity_id in _warriors_to_update.keys():
@@ -134,14 +140,14 @@ class BoardView(AbstractView):
                 )
         DataCache.set_value("entity_update", {})
 
-    def deleted_warriors(self):
+    def delete_entity(self):
         delete_entity = DataCache.get_value("entity_delete")
         if not delete_entity:
             return
         for entity in self.entities_sprite:
             if entity.entity_id in delete_entity:
                 self.entities_sprite.remove(entity)
-        DataCache.set_value("entity_delete", {})
+        DataCache.set_value("entity_delete", [])
 
     def load_ships(self):
         _warriors_points = Config.boards.warriors_points[str(DataCache.get_value("num_of_players"))]
@@ -162,7 +168,7 @@ class BoardView(AbstractView):
             self.entities_sprite.add(warrior_entity)
 
         _ships_points = Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))]
-        for _ship_id, ship_stats in DataCache.get_value("water_status").items():
+        for _ship_id, ship_stats in DataCache.get_value("ship_status").items():
             if _ship_id in self._loaded_entities:
                 continue
             self._loaded_entities.append(_ship_id)

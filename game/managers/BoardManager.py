@@ -39,6 +39,8 @@ class BoardManager(AbstractManager):
             self.define_player_hero()
         if event.type == EventConfig.UPDATE_WARRIOR_POS:
             self.valid_new_position("warrior")
+        if event.type == EventConfig.UPDATE_SHIP_POS:
+            self.valid_new_position("ship")
         if event.type == EventConfig.SHOW_MULTIPLY_OPTIONS_WAR:
             self.define_message("warrior", "Select how many soldiers you want to move")
         if event.type == EventConfig.SHOW_MULTIPLY_OPTIONS_SHIP:
@@ -56,19 +58,23 @@ class BoardManager(AbstractManager):
             self._act_hero = player_hero[self._act_player]
 
     def read_cache_values(self):
-        self._ships_status = DataCache.get_value("water_status")
+        self._ships_status = DataCache.get_value("ship_status")
+        self._water_status = DataCache.get_value("water_status")
         self._islands_status = DataCache.get_value("islands_status")
         self._warriors_status = DataCache.get_value("warriors_status")
         self._coins = DataCache.get_value("coins")
         self._heros = DataCache.get_value("hero_players")
+        self.entity_to_delete = DataCache.get_value("entity_delete")
         super().read_cache_values()
 
     def save_cache_values(self):
-        DataCache.set_value("water_status", self._ships_status)
+        DataCache.set_value("ship_status", self._ships_status)
         DataCache.set_value("islands_status", self._islands_status)
         DataCache.set_value("warriors_status", self._warriors_status)
+        DataCache.set_value("water_status", self._water_status)
         DataCache.set_value("coins", self._coins)
         DataCache.set_value("hero_players", self._heros)
+        DataCache.set_value("entity_delete", self.entity_to_delete)
         super().save_cache_values()
 
     def setup_board_first_stage(self):
@@ -79,8 +85,18 @@ class BoardManager(AbstractManager):
                 self._ships_status[self.generate_unique_id()] = {
                     "owner": _player,
                     "num_of_entities": _num_of_entities,
-                    "income": base_config["base_income"],
                     "field": circle,
+                }
+                self._water_status[circle] = {
+                    "owner": _player,
+                    "num_of_entities": _num_of_entities,
+                    "base_income": base_config["base_income"],
+                }
+            else:
+                self._water_status[circle] = {
+                    "owner": "None",
+                    "num_of_entities": 0,
+                    "base_income": base_config["base_income"],
                 }
         _islands_config = Config.boards.islands_config
         for island, base_config in _islands_config[str(DataCache.get_value("num_of_players"))].items():
@@ -132,11 +148,11 @@ class BoardManager(AbstractManager):
     def new_entity(self) -> dict[str, DataCache.AvailableSections]:
         return {
             "warrior": "new_warrior_location",
-            "ship": "new_warrior_location"  # rename to ship
+            "ship": "new_ship_location"  # rename to ship
         }
 
     @property
-    def fields_status(self):
+    def entity_status(self):
         return {
             "warrior": self._warriors_status,
             "ship": self._ships_status
@@ -151,7 +167,7 @@ class BoardManager(AbstractManager):
 
     def valid_new_position(self, type: str):
         available_posejdon_jumps = DataCache.get_value("posejdon_move")
-        distance = 1300
+        distance = 1300000
         new_place = ""
         centers_loc = Config.boards.circles_centers[self._num_of_players]
         moving_entity = DataCache.get_value(self.new_entity[type])
@@ -170,7 +186,7 @@ class BoardManager(AbstractManager):
                     distance = temp_distance if temp_distance < distance else distance
         if new_place:
             self.update_graph_colors()
-            entity_status = self.fields_status[type]
+            entity_status = self.entity_status[type]
             entity_map_points = self.entities_points[type]
             if self._coins[entity_status[moving_entity_id]["owner"]] >= 1:
                 if type == "warrior" and self.graph_warrior.has_connection(
@@ -179,12 +195,15 @@ class BoardManager(AbstractManager):
                     entity_status[moving_entity_id]["owner"]
                 ):
                     self._coins[entity_status[moving_entity_id]["owner"]] -= 1
-                    self.move_warrior(moving_entity, moving_entity_id, new_place, entity_map_points, entity_status)
+                    self.move_entity("warrior", moving_entity, moving_entity_id, new_place, entity_map_points, entity_status)
                 elif (
                     type == "ship"
                     and (
                         available_posejdon_jumps > 0
                         or self._coins[entity_status[moving_entity_id]["owner"]]
+                    )
+                    and (
+                        self._ships_status[moving_entity_id]["field"] in self.filed_config[type][self._num_of_players][new_place]["neighbors"]
                     )
                 ):
                     if available_posejdon_jumps == 0:
@@ -192,8 +211,7 @@ class BoardManager(AbstractManager):
                         DataCache.set_value("posejdon_move", 2)
                     else:
                         DataCache.set_value("posejdon_move", available_posejdon_jumps - 1)
-                    self.move_ship(moving_entity, moving_entity_id, new_place, entity_map_points, entity_status)
-                    pass
+                    self.move_entity("ship", moving_entity, moving_entity_id, new_place, entity_map_points, entity_status)
                 else:
                     update_entity = DataCache.get_value("entity_update")
                     update_entity[moving_entity_id] = {
@@ -204,82 +222,90 @@ class BoardManager(AbstractManager):
                     logging.info("No enough money to move %s!", type)
             self.clear_message()
 
-    # def move_ship(self, moving_entity, moving_entity_id, new_place, entity_map_points, entity_status):
-    #     entity_split = self.split_entity_number(
-    #         moving_entity[moving_entity_id],
-    #         self._warriors_status[moving_entity_id]
-    #     )
-    #     pass
+    @property
+    def field_status(self):
+        return {
+            "warrior": self._islands_status,
+            "ship": self._water_status
+        }
 
-    def move_warrior(self, moving_entity, moving_entity_id, new_place, entity_map_points, entity_status):
+    def move_entity(self, type, moving_entity, moving_entity_id, new_place, entity_map_points, entity_status):
+        entities_stats = self.entity_status[type]
+        fields_stats = self.field_status[type]
         entity_split = self.split_entity_number(
             moving_entity[moving_entity_id],
-            self._warriors_status[moving_entity_id]
+            entities_stats[moving_entity_id]
         )
         self.send_update_warrior(
+            type,
             moving_entity_id,
             entity_map_points,
             entity_split[1],
-            self._warriors_status[moving_entity_id]["field"]
+            entities_stats[moving_entity_id]["field"]
         )
-        if self.graph_warrior.colors[new_place] == "None":
-            self._warriors_status[self.generate_unique_id()] = {
+        if type == "ship" and entity_split[1] == 0:
+            self.delete_entity(moving_entity_id)
+            fields_stats[entities_stats[moving_entity_id]["field"]]["owner"] = "None"
+            fields_stats[entities_stats[moving_entity_id]["field"]]["num_of_entity"] = 0
+        else:
+            fields_stats[
+                entities_stats[moving_entity_id]["field"]
+            ]["num_of_entities"] = entity_split[1]
+        if fields_stats[new_place]["owner"] == "None":
+            entities_stats[self.generate_unique_id()] = {
                 "owner": entity_status[moving_entity_id]["owner"],
                 "num_of_entities": entity_split[0],
                 "field": new_place
             }
-            self._islands_status[
-                self._warriors_status[moving_entity_id]["field"]
-            ]["num_of_entities"] = entity_split[1]
-            self._islands_status[new_place]["owner"] = entity_status[moving_entity_id]["owner"]
+            fields_stats[new_place]["owner"] = entity_status[moving_entity_id]["owner"]
 
-        elif self.graph_warrior.colors[new_place] == entity_status[moving_entity_id]["owner"]:
-            for id, warrior_status in self._warriors_status.items():
-                if warrior_status["field"] == new_place:
+        elif fields_stats[new_place]["owner"] == entity_status[moving_entity_id]["owner"]:
+            for id, entity_stat in entities_stats.items():
+                if entity_stat["field"] == new_place:
 
                     self.send_update_warrior(
+                        type,
                         id,
                         entity_map_points,
-                        warrior_status["num_of_entities"] + entity_split[0],
+                        entity_stat["num_of_entities"] + entity_split[0],
                         new_place
                     )
         else:
-            attacker_warriors_count = entity_split[0]
-            war_diff = attacker_warriors_count - self._islands_status[new_place]["num_of_entities"]
-            defensive_warrior_id = ""
-            for id, warrior_status in self._warriors_status.items():
-                if warrior_status["field"] == new_place:
-                    defensive_warrior_id = id
-
+            attacker_entity_count = entity_split[0]
+            war_diff = attacker_entity_count - fields_stats[new_place]["num_of_entities"]
+            defensive_entity_id = ""
+            for id, entity_stat in entities_stats.items():
+                if entity_stat["field"] == new_place:
+                    defensive_entity_id = id
             if war_diff > 0:
-                self._islands_status[new_place]["owner"] = entity_status[moving_entity_id]["owner"]
-                self._warriors_status[self.generate_unique_id()] = {
+                entities_stats[self.generate_unique_id()] = {
                     "owner": entity_status[moving_entity_id]["owner"],
                     "num_of_entities": war_diff,
                     "field": new_place
                 }
-                self._islands_status[new_place]["owner"] = entity_status[moving_entity_id]["owner"]
-                self.delete_entity(defensive_warrior_id)
+                fields_stats[new_place]["owner"] = entity_status[moving_entity_id]["owner"]
+                self.delete_entity(defensive_entity_id)
                 pass
             elif war_diff <= 0:
                 war_diff = abs(war_diff)
                 self.send_update_warrior(
-                    defensive_warrior_id,
+                    type,
+                    defensive_entity_id,
                     entity_map_points,
                     war_diff,
                     new_place
                 )
-            self._islands_status[new_place]["num_of_entities"] = war_diff
+            fields_stats[new_place]["num_of_entities"] = war_diff
 
-    def send_update_warrior(self, entity_id, map_points, entity_num_value, new_place):
+    def send_update_warrior(self, type, entity_id, map_points, entity_num_value, new_place):
         update_entity = DataCache.get_value("entity_update")
         update_entity[entity_id] = {
             "location": map_points[new_place],
             "num_of_entities": entity_num_value
         }
-        self._warriors_status[entity_id]["field"] = new_place
-        self._warriors_status[entity_id]["num_of_entities"] = entity_num_value
-        self._islands_status[new_place]["num_of_entities"] = entity_num_value
+        self.entity_status[type][entity_id]["field"] = new_place
+        self.entity_status[type][entity_id]["num_of_entities"] = entity_num_value
+        self.field_status[type][new_place]["num_of_entities"] = entity_num_value
         DataCache.set_value("entity_update", update_entity)
 
     @staticmethod
@@ -290,7 +316,7 @@ class BoardManager(AbstractManager):
         ]
 
     def delete_entity(self, entity_id):
-        DataCache.set_value("entity_delete", [entity_id])
+        self.entity_to_delete.append(entity_id)
 
     def fill_graph(self):
         _water_config = Config.boards.water_config
@@ -314,6 +340,10 @@ class BoardManager(AbstractManager):
                 self.graph_warrior.set_vertex_color(key, color)
 
     def define_message(self, property: str, msg: str):
+        moving_entity = DataCache.get_value(self.new_entity[property])
+        if moving_entity[list(moving_entity.keys())[0]]["num_of_entities"] == 1:
+            self.valid_new_position(property)
+            return
         DataCache.set_value(
             "message_board",
             {

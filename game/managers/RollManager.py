@@ -1,6 +1,5 @@
 import logging
 import random
-import time
 from enum import Enum
 
 import pygame

@@ -45,8 +45,8 @@ class GameManager:
 
     def start(self):
         while True:
-            self.handle_events()
             self.render()
+            self.handle_events()
 
     # Handle any input events
     def handle_events(self):

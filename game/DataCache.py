@@ -38,6 +38,7 @@ class DataCache:
         "board_row",
         "player_god",
         "water_status",
+        "ship_status",
         "islands_status",
         "warriors_status",
         "is_dragging",
