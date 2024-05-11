@@ -1,7 +1,4 @@
 import math
-import random
-import time
-from enum import Enum
 
 import pygame
 from pygame.event import Event
@@ -14,6 +11,7 @@ from ..static.EventConfig import EventConfig
 from .AbstractManager import AbstractManager
 from typing import List
 import logging
+from .board_sub_managers.PrepareStageManger import PrepareStageManager
 
 
 class BoardManager(AbstractManager):
@@ -21,14 +19,13 @@ class BoardManager(AbstractManager):
     def __init__(self, screen: pygame.Surface):
         super().__init__(screen)
         self.graph_warrior = Graph()
+        self.StageManager = PrepareStageManager(self._screen, self.stage_type)
+        self.StageManager.setup_board_first_stage()
         self.fill_graph()
         self.read_cache_values()
-        if not self._ships_status and not self._islands_status:
-            self.setup_board_first_stage()
-        self.save_cache_values()
 
     @property
-    def stage_type(self) -> Enum:
+    def stage_type(self) -> GameState:
         return GameState.BOARD
 
     def handle_events(self, event: Event):
@@ -36,7 +33,8 @@ class BoardManager(AbstractManager):
         if self._act_stage != self.stage_type:
             return
         if DataCache.get_value("play_order") and not self._act_player:
-            self.define_player_hero()
+            self.StageManager.define_player_hero()
+            self.read_cache_values()
         if event.type == EventConfig.UPDATE_WARRIOR_POS:
             self.valid_new_position("warrior")
         if event.type == EventConfig.UPDATE_SHIP_POS:
@@ -48,14 +46,6 @@ class BoardManager(AbstractManager):
         if event.type == EventConfig.NEW_BUILDING:
             self.new_building_decider()
         self.save_cache_values()
-
-    def define_player_hero(self):
-        player_order = DataCache.get_value("play_order")
-        player_hero = DataCache.get_value("hero_players")
-        if player_order and not self._act_player:
-            self._act_player = player_order[0]
-            DataCache.set_value("play_order", player_order[1:])
-            self._act_hero = player_hero[self._act_player]
 
     def read_cache_values(self):
         self._ships_status = DataCache.get_value("ship_status")
@@ -76,66 +66,6 @@ class BoardManager(AbstractManager):
         DataCache.set_value("hero_players", self._heros)
         DataCache.set_value("entity_delete", self.entity_to_delete)
         super().save_cache_values()
-
-    def setup_board_first_stage(self):
-        _water_config = Config.boards.water_config
-        for circle, base_config in _water_config[str(DataCache.get_value("num_of_players"))].items():
-            if base_config["owner"]:
-                _player, _num_of_entities = next(iter(base_config["owner"].items()))
-                self._ships_status[self.generate_unique_id()] = {
-                    "owner": _player,
-                    "num_of_entities": _num_of_entities,
-                    "field": circle,
-                }
-                self._water_status[circle] = {
-                    "owner": _player,
-                    "num_of_entities": _num_of_entities,
-                    "base_income": base_config["base_income"],
-                }
-            else:
-                self._water_status[circle] = {
-                    "owner": "None",
-                    "num_of_entities": 0,
-                    "base_income": base_config["base_income"],
-                }
-        _islands_config = Config.boards.islands_config
-        for island, base_config in _islands_config[str(DataCache.get_value("num_of_players"))].items():
-            if base_config["owner"]:
-                _player, _num_of_entities = next(iter(base_config["owner"].items()))
-                self._islands_status[island] = {
-                    "owner": _player,
-                    "num_of_entities": _num_of_entities,
-                    "base_income": base_config["base_income"],
-                    "income": 0,
-                    "building": {
-                        "small": {
-                            key: "" for key in base_config["buildings"]["small"]
-                        },
-                        "big": False
-                    }
-                }
-                self._warriors_status[self.generate_unique_id()] = {
-                    "owner": _player,
-                    "num_of_entities": _num_of_entities,
-                    "field": island
-                }
-            else:
-                self._islands_status[island] = {
-                    "owner": "None",
-                    "num_of_entities": 0,
-                    "base_income": base_config["base_income"],
-                    "income": 0,
-                    "building": {
-                        "small": {
-                            key: "" for key in base_config["buildings"]["small"]
-                        },
-                        "big": False
-                    }
-                }
-
-    def generate_unique_id(self) -> int:
-        current_time_microseconds = int(time.time() * 1000000) + random.randint(-1000, 1000)
-        return current_time_microseconds
 
     @property
     def filed_config(self):
@@ -332,6 +262,7 @@ class BoardManager(AbstractManager):
                 self.graph_warrior.add_edge(ver, neighbors)
 
     def update_graph_colors(self):
+        print(self._islands_status)
         island_colors = {key: values["owner"] for key, values in self._islands_status.items()}
         water_colors = {values["field"]: values["owner"] for _, values in self._ships_status.items()}
         fields_colors = island_colors | water_colors
