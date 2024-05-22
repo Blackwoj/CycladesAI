@@ -83,9 +83,8 @@ class PrepareStageManager(AbstractSubManager):
                         "big": False
                     }
                 }
-        print(_islands_status)
         DataCache.set_value("ship_status", _ships_status)
-        DataCache.set_value("islands_status", _islands_config)
+        DataCache.set_value("islands_status", _islands_status)
         DataCache.set_value("warriors_status", _warriors_status)
         DataCache.set_value("water_status", _water_status)
 
