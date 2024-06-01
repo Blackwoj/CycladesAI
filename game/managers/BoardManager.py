@@ -12,6 +12,7 @@ from typing import List
 from .board_sub_managers.PrepareStageManger import PrepareStageManager
 from .board_sub_managers.WarriorEntityManager import WarriorEntityManager
 from .board_sub_managers.ShipEntityManager import ShipEntityManager
+from .board_sub_managers.AppollonManager import AppollonManager
 
 
 class BoardManager(AbstractManager):
@@ -21,7 +22,8 @@ class BoardManager(AbstractManager):
         self.StageManager = PrepareStageManager(self._screen, self.stage_type)
         self.entity_manager = {
             "warrior": WarriorEntityManager(self._screen, self.stage_type),
-            "ship": ShipEntityManager(self._screen, self.stage_type)
+            "ship": ShipEntityManager(self._screen, self.stage_type),
+            "income": AppollonManager(self._screen)
         }
         self.StageManager.setup_board_first_stage()
         self.read_cache_values()
@@ -36,21 +38,28 @@ class BoardManager(AbstractManager):
             return
         if DataCache.get_value("play_order") and not self._act_player:
             self.StageManager.define_player_hero()
+            self.entity_manager["income"].calculate_income()
             self.read_cache_values()
         if event.type == EventConfig.UPDATE_WARRIOR_POS:
             self.entity_manager["warrior"].valid_new_position()
         if event.type == EventConfig.UPDATE_SHIP_POS:
             self.entity_manager["ship"].valid_new_position()
+        if event.type == EventConfig.UPDATE_INCOME_POS:
+            self.entity_manager["income"].valid_new_position()
         if event.type == EventConfig.SHOW_MULTIPLY_OPTIONS_WAR:
+            self.read_cache_values()
             self.define_message("warrior", "Select how many soldiers you want to move")
+            self.save_cache_values()
         if event.type == EventConfig.SHOW_MULTIPLY_OPTIONS_SHIP:
+            self.read_cache_values()
             self.define_message("ship", "Select how many ship you want to move")
+            self.save_cache_values()
         if event.type == EventConfig.NEW_BUILDING:
+            self.read_cache_values()
             self.new_building_decider()
-        self.save_cache_values()
+            self.save_cache_values()
 
     def read_cache_values(self):
-        self._ships_status = DataCache.get_value("ship_status")
         self._water_status = DataCache.get_value("water_status")
         self._islands_status = DataCache.get_value("islands_status")
         self._warriors_status = DataCache.get_value("warriors_status")
@@ -60,7 +69,6 @@ class BoardManager(AbstractManager):
         super().read_cache_values()
 
     def save_cache_values(self):
-        DataCache.set_value("ship_status", self._ships_status)
         DataCache.set_value("islands_status", self._islands_status)
         DataCache.set_value("warriors_status", self._warriors_status)
         DataCache.set_value("water_status", self._water_status)

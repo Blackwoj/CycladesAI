@@ -48,7 +48,21 @@ class WarriorEntityManager(EntityManager):
     def field_status(self):
         return self._islands_status
 
+    @property
     def valid_entity_move(self) -> bool:
+        self.update_graph_colors()
+        # print(self.entity_status[self.moving_entity_id]["field"])
+        # print(self.new_place)
+        # print(self.entity_status[self.moving_entity_id]["owner"])
+        # print(self.graph_warrior.has_connection(
+        #     self.entity_status[self.moving_entity_id]["field"],
+        #     self.new_place,
+        #     self.entity_status[self.moving_entity_id]["owner"]))
+        # print("graph colors")
+        # print(self.graph_warrior.colors[self.entity_status[self.moving_entity_id]["field"]])
+        # print(self.graph_warrior.colors[self.new_place])
+        # print(self.graph_warrior.colors["F5"])
+        # print(self.graph_warrior.colors["F6"])
         return self.graph_warrior.has_connection(
             self.entity_status[self.moving_entity_id]["field"],
             self.new_place,

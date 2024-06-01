@@ -25,12 +25,12 @@ class PrepareStageManager(AbstractSubManager):
         self.save_cache_values()
 
     def setup_board_first_stage(self):
-        _water_config = Config.boards.water_config
+        _water_config = Config.boards.water_config[str(DataCache.get_value("num_of_players"))]
         _ships_status = {}
         _water_status = {}
         _islands_status = {}
         _warriors_status = {}
-        for circle, base_config in _water_config[str(DataCache.get_value("num_of_players"))].items():
+        for circle, base_config in _water_config.items():
             if base_config["owner"]:
                 _player, _num_of_entities = next(iter(base_config["owner"].items()))
                 _ships_status[self.generate_unique_id()] = {

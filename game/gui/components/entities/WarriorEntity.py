@@ -3,6 +3,7 @@ import pygame
 from ....DataCache import DataCache
 from ....static.EventConfig import EventConfig
 from .AbstractEntity import AbstractEntity
+from ....enums.GameState import GameState
 
 
 class WarriorEntity(AbstractEntity):
@@ -23,19 +24,30 @@ class WarriorEntity(AbstractEntity):
             screen,
             island_point,
             num_of_entities,
-            owner,
             warriors_icons,
             multiply_icon,
             ownership_icon
         )
+        self._owner = owner
+
+    @property
+    def icon_size(self) -> int:
+        return 40
 
     def validate_move(self):
-        loc = (self._act_location[0] + 40, self._act_location[1] + 40)
+        loc = (self._act_location[0] + self.icon_size, self._act_location[1] + self.icon_size)
         DataCache.set_value(
             "new_warrior_location",
             {self._id: {"location": loc, "num_of_entities": self._num_of_entities}}
         )
         pygame.event.post(pygame.event.Event(EventConfig.SHOW_MULTIPLY_OPTIONS_WAR))
 
-    def check_hero(self) -> bool:
-        return DataCache.get_value("act_hero") != "ares"
+    @property
+    def handle_mouse_validator(self) -> bool:
+        return (
+            DataCache.get_value("act_stage") != GameState.BOARD
+            or self._num_of_entities == 0
+            or DataCache.get_value("message_board")
+            or DataCache.get_value("act_player") != self._owner
+            or DataCache.get_value("act_hero") != "ares"
+        )

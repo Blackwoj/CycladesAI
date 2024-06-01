@@ -16,6 +16,7 @@ class EntityManager(AbstractSubManager):
     def __init__(self, screen: Surface, stage: GameState):
         super().__init__(screen, stage)
         self.graph_warrior = Graph()
+        self.fill_graph()
 
     def handle_events(self, event: Event):
         pass
@@ -94,10 +95,6 @@ class EntityManager(AbstractSubManager):
             self.update_graph_colors()
             if self._coins[self.entity_status[self.moving_entity_id]["owner"]] >= 1:
                 if self.valid_entity_move:
-                    print(self.entity_type, self.valid_entity_move, self.graph_warrior.has_connection(
-                        self.entity_status[self.moving_entity_id]["field"],
-                        self.new_place,
-                        self.entity_status[self.moving_entity_id]["owner"]))
                     self.entity_move_prepare()
                 else:
                     update_entity = DataCache.get_value("entity_update")
@@ -116,7 +113,7 @@ class EntityManager(AbstractSubManager):
 
     def update_graph_colors(self):
         island_colors = {key: values["owner"] for key, values in self.field_status.items()}
-        water_colors = {values["field"]: values["owner"] for _, values in self.entity_status.items()}
+        water_colors = {id: values["owner"] for id, values in DataCache.get_value("water_status").items()}
         fields_colors = island_colors | water_colors
         if self.graph_warrior.colors != fields_colors:
             for key, color in fields_colors.items():

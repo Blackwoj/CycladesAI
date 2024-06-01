@@ -5,7 +5,6 @@ from typing import Optional
 import pygame
 
 from ....DataCache import DataCache
-from ....enums.GameState import GameState
 
 
 class AbstractEntity(pygame.sprite.Sprite):
@@ -16,23 +15,23 @@ class AbstractEntity(pygame.sprite.Sprite):
         screen: pygame.Surface,
         map_point: list[int],
         num_of_entities: int,
-        owner: str,
         entity_icon: pygame.Surface,
         multiply_icon: dict[int, pygame.Surface],
-        ownership_icon: Optional[pygame.Surface] = None
+        ownership_icon: Optional[pygame.Surface] = None,
+        allow_drag: bool = False
     ):
         self._id = entity_id
         self.screen = screen
         self._map_point = map_point
-        self._act_location = (self._map_point[0] - 40, self._map_point[1] - 40)
+        self._act_location = (self._map_point[0] - self.icon_size, self._map_point[1] - self.icon_size)
         self._num_of_entities = num_of_entities
-        self._owner = owner
         self._entity_icon = entity_icon
         self._ownership_icon = ownership_icon
         self._multiply_icon = multiply_icon
         self.is_dragging = False
         self.drag_offset_x = 0
         self.drag_offset_y = 0
+        self._allow_drag = allow_drag
         super().__init__()
         self.image = self.get_image()
         self.rect = self.image.get_rect()
@@ -42,14 +41,19 @@ class AbstractEntity(pygame.sprite.Sprite):
     def entity_id(self) -> int:
         return self._id
 
+    @property
+    @abstractmethod
+    def icon_size(self) -> int:
+        return NotImplementedError
+
     def update(self):
         self.handle_mouse()
         self.rect.topleft = self._act_location
         if (
             not pygame.mouse.get_pressed()[0]
             and 70 < math.sqrt(
-                (self._act_location[0] + 40 - self._map_point[0])**2
-                + (self._act_location[1] + 40 - self._map_point[1])**2
+                (self._act_location[0] + self.icon_size - self._map_point[0])**2
+                + (self._act_location[1] + self.icon_size - self._map_point[1])**2
             )
         ):
             self.validate_move()
@@ -66,13 +70,7 @@ class AbstractEntity(pygame.sprite.Sprite):
         return entity_image
 
     def handle_mouse(self):
-        if (
-            DataCache.get_value("act_stage") != GameState.BOARD
-            or self._num_of_entities == 0
-            or DataCache.get_value("message_board")
-            or DataCache.get_value("act_player") != self._owner
-            or self.check_hero()
-        ):
+        if self.handle_mouse_validator:
             return
         mouse_pos = pygame.mouse.get_pos()
         mouse_clicked = pygame.mouse.get_pressed()[0]
@@ -92,16 +90,17 @@ class AbstractEntity(pygame.sprite.Sprite):
             self._act_location = (mouse_x + self.drag_offset_x, mouse_y + self.drag_offset_y)
 
     @abstractmethod
-    def check_hero(self) -> bool:
+    def validate_move(self):
         raise NotImplementedError
 
+    @property
     @abstractmethod
-    def validate_move(self):
+    def handle_mouse_validator(self) -> bool:
         raise NotImplementedError
 
     def update_data(self, new_place, num_of_entity):
         self._map_point = new_place
         self._num_of_entities = num_of_entity
-        self._act_location = (self._map_point[0] - 40, self._map_point[1] - 40)
+        self._act_location = (self._map_point[0] - self.icon_size, self._map_point[1] - self.icon_size)
         self.image = self.get_image()
         self.rect.topleft = self._act_location

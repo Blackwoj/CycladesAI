@@ -49,6 +49,7 @@ class ShipEntityManager(EntityManager):
     def field_status(self):
         return self._water_status
 
+    @property
     def valid_entity_move(self) -> bool:
         return (
             self.available_posejdon_jumps > 0
