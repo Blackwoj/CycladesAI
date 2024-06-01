@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-
+import time
 import pygame
-
+import random
 from ..DataCache import DataCache
 
 
@@ -22,6 +22,7 @@ class AbstractManager(ABC):
     @abstractmethod
     def read_cache_values(self):
         self._act_stage = DataCache.get_value("act_stage")
+        self._act_hero = DataCache.get_value("act_hero")
         self._act_player = DataCache.get_value("act_player")
         self._num_of_players = str(DataCache.get_value("num_of_players"))
 
@@ -30,3 +31,8 @@ class AbstractManager(ABC):
         DataCache.set_value("act_stage", self._act_stage)
         DataCache.set_value("act_player", self._act_player)
         DataCache.set_value("act_hero", self._act_hero)
+
+    def generate_unique_id(self) -> int:
+        randomize_int = random.randint(-1000, 1000)
+        current_time_microseconds = int(time.time() * 1000000) + randomize_int
+        return current_time_microseconds

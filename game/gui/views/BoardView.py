@@ -11,6 +11,7 @@ from ..components.Button import Button
 from ..components.entities.BuildingEntity import BuildingEntity
 from ..components.entities.WarriorEntity import WarriorEntity
 from ..components.entities.ShipEntity import ShipEntity
+from ..components.entities.IncomeEntity import IncomeEntity
 from ..components.MessageBoxes.WarriorMessageBox import WarriorMessageBox
 from ..components.MessageBoxes.ShipMessageBox import ShipMessageBox
 from .AbstractView import AbstractView
@@ -22,6 +23,7 @@ class BoardView(AbstractView):
         super().__init__(screen, background)
         self.entities_sprite = pygame.sprite.Group()
         self.building_sprite = pygame.sprite.Group()
+        self.income_sprite = pygame.sprite.Group()
         self.message_box = {
             "warrior": WarriorMessageBox(self.screen),
             "ship": ShipMessageBox(self.screen)
@@ -59,6 +61,7 @@ class BoardView(AbstractView):
             building: self.load_and_scale((Config.app.building_icons / f"{building}.png"), [40, 40])
             for building in ["atena", "ares", "posejdon", "zeus", "metro"]
         }
+        self._income_icon = self.load_and_scale((Config.app.boards_items / "rog.png"), [40, 40])
 
     def update_sprite(self):
         self.load_warriors()
@@ -71,6 +74,8 @@ class BoardView(AbstractView):
             self.load_hero_layout()
             DataCache.set_value("new_player", False)
         self.building_sprite.update()
+        self.income_sprite.update()
+        self.income_sprite.draw(self.screen)
         self.building_sprite.draw(self.screen)
         self.entities_sprite.draw(self.screen)
 
@@ -88,7 +93,7 @@ class BoardView(AbstractView):
         # self.load_items()
         # self.load_buildings()
         self.build_message_box()
-        # self.load_income()
+        self.load_income()
         if DataCache.get_value("act_stage") == GameState.BOARD:
             self.next_player_button()
         self.draw_all_points()
@@ -131,22 +136,26 @@ class BoardView(AbstractView):
             self.entities_sprite.add(warrior_entity)
 
     def update_entity(self):
-        _warriors_to_update = DataCache.get_value("entity_update")
-        for entity in self.entities_sprite:
-            if entity.entity_id in _warriors_to_update.keys():
-                entity.update_data(
-                    _warriors_to_update[entity.entity_id]["location"],
-                    _warriors_to_update[entity.entity_id]["num_of_entities"]
-                )
+        _entity_to_update = DataCache.get_value("entity_update")
+        if not _entity_to_update:
+            return
+        for sprite_group in [self.entities_sprite, self.income_sprite]:
+            for entity in sprite_group:
+                if entity.entity_id in _entity_to_update.keys():
+                    entity.update_data(
+                        _entity_to_update[entity.entity_id]["location"],
+                        _entity_to_update[entity.entity_id]["num_of_entities"]
+                    )
         DataCache.set_value("entity_update", {})
 
     def delete_entity(self):
         delete_entity = DataCache.get_value("entity_delete")
         if not delete_entity:
             return
-        for entity in self.entities_sprite:
-            if entity.entity_id in delete_entity:
-                self.entities_sprite.remove(entity)
+        for sprite_group in [self.entities_sprite, self.income_sprite]:
+            for entity in sprite_group:
+                if entity.entity_id in delete_entity:
+                    sprite_group.remove(entity)
         DataCache.set_value("entity_delete", [])
 
     def load_ships(self):
@@ -166,7 +175,6 @@ class BoardView(AbstractView):
                 self._multiplayer_icon
             )
             self.entities_sprite.add(warrior_entity)
-
         _ships_points = Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))]
         for _ship_id, ship_stats in DataCache.get_value("ship_status").items():
             if _ship_id in self._loaded_entities:
@@ -185,11 +193,22 @@ class BoardView(AbstractView):
             self.entities_sprite.add(ship_entity)
 
     def load_income(self):
-        _income_points = Config.boards.income_point
-        for _, location in _income_points[str(DataCache.get_value("num_of_players"))].items():
-            if location:
-                self.draw_center(self.screen, (255, 255, 255), location, 3)
-        pass
+        _income_points = Config.boards.income_point[str(DataCache.get_value("num_of_players"))]
+        income_status = DataCache.get_value("income_status")
+        for id, income_config in income_status.items():
+            if id in self._loaded_entities:
+                continue
+            self._loaded_entities.append(id)
+            income_entity = IncomeEntity(
+                id,
+                self.screen,
+                _income_points[income_config["location"]],
+                income_config["num_of_entities"],
+                self._income_icon,
+                self._multiplayer_icon,
+                allow_drag=False
+            )
+            self.income_sprite.add(income_entity)
 
     def load_buildings(self):
         _buildings_centers = Config.boards.buildings_centers
@@ -202,7 +221,6 @@ class BoardView(AbstractView):
                         self.draw_center(self.screen, (0, 255, 0), location, 3)
             if big_buildings:
                 self.draw_center(self.screen, (0, 0, 255), big_buildings, 3)
-        pass
 
     def add_building(self):
         buildings = DataCache.get_value("buildings_status")
@@ -279,8 +297,17 @@ class BoardView(AbstractView):
         print("loading zeus")
 
     def load_appollon(self):
-        print("loading apollon")
-        pass
+        base_income = IncomeEntity(
+            1,
+            self.screen,
+            [1100, 80],
+            1,
+            self._income_icon,
+            self._multiplayer_icon,
+            True
+        )
+        self.income_sprite.add(base_income)
+        print("loading apollon", DataCache.get_value("act_hero"))
 
     def next_player_button(self):
         next_player_button = Button(

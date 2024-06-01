@@ -422,7 +422,7 @@
     },
     "K6": {
         "type": "water",
-        "base_income": 0,
+        "base_income": 1,
         "neighbors": ["J6"],
         "neighbors_island": ["IS13", "IS11"],
         "owner": {"p5": 1}

@@ -16,6 +16,8 @@ class BoardCacheSection:
         "new_building": [],
         "reset_building": False,
         "ship_status": {},
+        "new_income_location": {},
+        "income_status": {}
     }
 
     _cache_data_functions: dict = {
@@ -34,4 +36,6 @@ class BoardCacheSection:
         "reset_building": lambda x: x,
         "new_ship_location": lambda x: x,
         "ship_status": lambda x: x,
+        "new_income_location": lambda x: x,
+        "income_status": lambda x: x
     }

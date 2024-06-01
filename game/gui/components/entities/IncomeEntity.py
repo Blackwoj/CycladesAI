@@ -1,12 +1,12 @@
 import pygame
 
 from ....DataCache import DataCache
-from ....static.EventConfig import EventConfig
-from .AbstractEntity import AbstractEntity
 from ....enums.GameState import GameState
+from .AbstractEntity import AbstractEntity
+from ....static.EventConfig import EventConfig
 
 
-class ShipEntity(AbstractEntity):
+class IncomeEntity(AbstractEntity):
 
     def __init__(
         self,
@@ -14,33 +14,31 @@ class ShipEntity(AbstractEntity):
         screen: pygame.Surface,
         island_point: list[int],
         num_of_entities: int,
-        owner: str,
-        warriors_icons: pygame.Surface,
-        ownership_icon: pygame.Surface,
+        income_icons: pygame.Surface,
         multiply_icon: dict[int, pygame.Surface],
+        allow_drag: bool = False
     ):
         super().__init__(
             entity_id,
             screen,
             island_point,
             num_of_entities,
-            warriors_icons,
+            income_icons,
             multiply_icon,
-            ownership_icon
+            allow_drag=allow_drag
         )
-        self._owner = owner
 
     @property
     def icon_size(self) -> int:
-        return 40
+        return 20
 
     def validate_move(self):
         loc = (self._act_location[0] + self.icon_size, self._act_location[1] + self.icon_size)
         DataCache.set_value(
-            "new_ship_location",
+            "new_income_location",
             {self._id: {"location": loc, "num_of_entities": self._num_of_entities}}
         )
-        pygame.event.post(pygame.event.Event(EventConfig.SHOW_MULTIPLY_OPTIONS_SHIP))
+        pygame.event.post(pygame.event.Event(EventConfig.UPDATE_INCOME_POS))
 
     @property
     def handle_mouse_validator(self) -> bool:
@@ -48,6 +46,6 @@ class ShipEntity(AbstractEntity):
             DataCache.get_value("act_stage") != GameState.BOARD
             or self._num_of_entities == 0
             or DataCache.get_value("message_board")
-            or DataCache.get_value("act_player") != self._owner
-            or DataCache.get_value("act_hero") != "posejdon"
+            or DataCache.get_value("act_hero") != "apollon"
+            or not self._allow_drag
         )
