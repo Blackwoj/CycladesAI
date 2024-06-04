@@ -1,4 +1,5 @@
 import math
+import logging
 
 import pygame
 from pygame.event import Event
@@ -38,8 +39,10 @@ class BoardManager(AbstractManager):
             return
         if DataCache.get_value("play_order") and not self._act_player:
             self.StageManager.define_player_hero()
-            self.entity_manager["income"].calculate_income()
             self.read_cache_values()
+        if not DataCache.get_value("play_order") and not self._act_player:
+            logging.info("Rodund end, calcualtin income and reset heros roll!")
+            self.StageManager.end_stage()
         if event.type == EventConfig.UPDATE_WARRIOR_POS:
             self.entity_manager["warrior"].valid_new_position()
         if event.type == EventConfig.UPDATE_SHIP_POS:

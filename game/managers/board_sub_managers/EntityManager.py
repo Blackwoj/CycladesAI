@@ -91,6 +91,9 @@ class EntityManager(AbstractSubManager):
                     temp_distance = self.calc_len(location["location"], centers_loc[center])
                     self.new_place = field_id if temp_distance < distance else self.new_place
                     distance = temp_distance if temp_distance < distance else distance
+        if self.moving_entity_id in [0, -1, -2, -3, -4]:
+            self.add_new_entity()
+            return
         if self.new_place:
             self.update_graph_colors()
             if self._coins[self.entity_status[self.moving_entity_id]["owner"]] >= 1:
@@ -103,8 +106,20 @@ class EntityManager(AbstractSubManager):
                         "num_of_entities": self.entity_status[self.moving_entity_id]["num_of_entities"]
                     }
                     DataCache.set_value("entity_update", update_entity)
-                    logging.info("No enough money to move %s!", self.entity_type)
+                    logging.info("Wrong entity move", self.entity_type)
+            else:
+                update_entity = DataCache.get_value("entity_update")
+                update_entity[self.moving_entity_id] = {
+                    "location": self.entities_points[self.entity_status[self.moving_entity_id]["field"]],
+                    "num_of_entities": self.entity_status[self.moving_entity_id]["num_of_entities"]
+                }
+                DataCache.set_value("entity_update", update_entity)
+                logging.info("No enough money to move %s!", self.entity_type)
             self.clear_message()
+
+    @abstractmethod
+    def add_new_entity(self):
+        raise NotImplementedError
 
     def calc_len(self, dest_loc: List[int], point_loc: List[int]):
         return math.sqrt(

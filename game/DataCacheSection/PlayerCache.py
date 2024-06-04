@@ -9,21 +9,21 @@ class PlayerCache:
             "p5": "None",
         },
         "coins": {
-            "p1": 10,
-            "p2": 10,
-            "p3": 10,
-            "p4": 10,
-            "p5": 10
-        },
-        "priests": {
-            "p1": 10,
-            "p2": 10,
+            "p1": 5,
+            "p2": 5,
             "p3": 5,
             "p4": 5,
-            "p5": 10
+            "p5": 5
+        },
+        "priests": {
+            "p1": 0,
+            "p2": 0,
+            "p3": 0,
+            "p4": 0,
+            "p5": 0
         },
         "philosophers": {
-            "p1": 1,
+            "p1": 0,
             "p2": 0,
             "p3": 0,
             "p4": 0,
@@ -37,3 +37,5 @@ class PlayerCache:
         "philosophers": lambda x: x,
         "hero_players": lambda x: x,
     }
+
+    _base_values: dict = {}

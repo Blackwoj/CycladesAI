@@ -51,18 +51,6 @@ class WarriorEntityManager(EntityManager):
     @property
     def valid_entity_move(self) -> bool:
         self.update_graph_colors()
-        # print(self.entity_status[self.moving_entity_id]["field"])
-        # print(self.new_place)
-        # print(self.entity_status[self.moving_entity_id]["owner"])
-        # print(self.graph_warrior.has_connection(
-        #     self.entity_status[self.moving_entity_id]["field"],
-        #     self.new_place,
-        #     self.entity_status[self.moving_entity_id]["owner"]))
-        # print("graph colors")
-        # print(self.graph_warrior.colors[self.entity_status[self.moving_entity_id]["field"]])
-        # print(self.graph_warrior.colors[self.new_place])
-        # print(self.graph_warrior.colors["F5"])
-        # print(self.graph_warrior.colors["F6"])
         return self.graph_warrior.has_connection(
             self.entity_status[self.moving_entity_id]["field"],
             self.new_place,
@@ -77,3 +65,32 @@ class WarriorEntityManager(EntityManager):
             self.entities_points,
             self.entity_status
         )
+
+    def add_new_entity(self):
+        if (
+            self.field_status[self.new_place]["owner"] == self._act_player
+            and self._coins[self._act_player] >= int(self.moving_entity_id) * -1
+        ):
+            for entity_id, entity_data in self.entity_status.items():
+                if entity_data["field"] == self.new_place:
+                    self.send_update(
+                        entity_id,
+                        self.entities_points,
+                        entity_data["num_of_entities"] + 1,
+                        self.new_place
+                    )
+
+            self._coins[self._act_player] -= DataCache.get_value("new_entity_price")
+
+            if DataCache.get_value("new_entity_price") <= 4:
+                new_price = int(self.moving_entity_id) * (-1) + 1
+                if new_price == 1:
+                    new_price += 1
+                DataCache.set_value("new_entity_price", new_price)
+        else:
+            update_entity = DataCache.get_value("entity_update")
+            update_entity[self.moving_entity_id] = {
+                "location": Config.boards.new_special_event_loc,
+                "num_of_entities": 1
+            }
+            DataCache.set_value("entity_update", update_entity)

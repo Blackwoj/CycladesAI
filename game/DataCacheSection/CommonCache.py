@@ -21,3 +21,5 @@ class CommonCache:
         "is_dragging": lambda x: x,
         "new_player": lambda x: x
     }
+
+    _base_values: dict = {}

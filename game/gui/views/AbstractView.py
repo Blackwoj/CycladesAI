@@ -19,6 +19,8 @@ class AbstractView(ABC):
     def pull_nav_bar(self):
         self.game_icon = self.load_and_scale((Config.app.nav_bar / "gameIcon.png"), [60, 60])
         self.board_icon = self.org_hov((Config.app.nav_bar / "board"), [60, 60])
+        self.priest_card = self.load_and_scale((Config.app.boards_items / "priest_card.png"), [60, 100])
+        self.philosophers_card = self.load_and_scale((Config.app.boards_items / "phil_card.png"), [60, 100])
         self.roll_icon = self.org_hov((Config.app.nav_bar / "roll"), [60, 60])
         self.settings_icon = self.org_hov((Config.app.nav_bar / "settings"), [60, 60])
         self.priest_icon = {
@@ -80,9 +82,6 @@ class AbstractView(ABC):
             self.switch_to_menu
         )
         if DataCache.get_value("act_player"):
-            # print("act_player", DataCache.get_value("act_player"))
-            # print("hero players", DataCache.get_value("hero_players"))
-            # print("output: ", DataCache.get_value("hero_players")[DataCache.get_value("act_player")])
             hero_player_name = str(
                 DataCache.get_value("hero_players")[DataCache.get_value("act_player")]
             )
