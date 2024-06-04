@@ -74,13 +74,3 @@ class AppollonManager(AbstractManager):
         return math.sqrt(
             (dest_loc[0] - point_loc[0])**2 + (dest_loc[1] - point_loc[1])**2
         )
-
-    def calculate_income(self):
-        self.read_cache_values()
-        players_name = {f"p{num}": 0 for num in range(1, 6)}
-        for filed_status in [self._island_status, self._water_status]:
-            for _, field_data in filed_status.items():
-                if field_data["owner"] in players_name.keys():
-                    if "income" in field_data.keys():
-                        players_name[field_data["owner"]] += field_data["income"]
-                    players_name[field_data["owner"]] += field_data["base_income"]

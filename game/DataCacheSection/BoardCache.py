@@ -45,3 +45,5 @@ class BoardCacheSection:
         "zeus_card": lambda x: x,
         "athena_card": lambda x: x,
     }
+
+    _base_values: dict = {}

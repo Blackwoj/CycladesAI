@@ -37,3 +37,5 @@ class PlayerCache:
         "philosophers": lambda x: x,
         "hero_players": lambda x: x,
     }
+
+    _base_values: dict = {}

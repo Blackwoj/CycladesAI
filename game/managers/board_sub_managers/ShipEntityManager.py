@@ -51,6 +51,7 @@ class ShipEntityManager(EntityManager):
 
     @property
     def valid_entity_move(self) -> bool:
+        self.available_posejdon_jumps = DataCache.get_value("posejdon_move")
         return (
             self.available_posejdon_jumps > 0
             or self._coins[self.entity_status[self.moving_entity_id]["owner"]]
@@ -60,6 +61,14 @@ class ShipEntityManager(EntityManager):
 
     def entity_move_prepare(self):
         if self.available_posejdon_jumps == 0:
+            if self._coins[self.entity_status[self.moving_entity_id]["owner"]] == 0:
+                self.send_update(
+                    self.moving_entity_id,
+                    self.entities_points,
+                    self.entity_status[self.moving_entity_id]["num_of_entities"],
+                    self.entity_status[self.moving_entity_id]["field"]
+                )
+                return
             self._coins[self.entity_status[self.moving_entity_id]["owner"]] -= 1
             DataCache.set_value("posejdon_move", 2)
         else:
@@ -99,9 +108,17 @@ class ShipEntityManager(EntityManager):
                     "num_of_entities": 1,
                     "field": self.new_place
                 }
+                self.field_status[self.new_place]["num_of_entities"] = 1
+                self.field_status[self.new_place]["owner"] = self._act_player
             self._coins[self._act_player] -= DataCache.get_value("new_entity_price")
-
             if DataCache.get_value("new_entity_price") <= 3:
                 new_price = int(self.moving_entity_id) * (-1) + 1
 
                 DataCache.set_value("new_entity_price", new_price)
+        else:
+            update_entity = DataCache.get_value("entity_update")
+            update_entity[self.moving_entity_id] = {
+                "location": Config.boards.new_special_event_loc,
+                "num_of_entities": 1
+            }
+            DataCache.set_value("entity_update", update_entity)

@@ -41,19 +41,19 @@ class BoardView(AbstractView):
             for _player in ["p1", "p2", "p3", "p4", "p5"]
         }
         self._warriors_icon = {
-            _player: self.load_and_scale((Config.app.boards_items / "wariors" / f"{_player}.png"), [80, 80])
+            _player: self.load_and_scale((Config.app.boards_items / "wariors" / f"{_player}.png"), [60, 60])
             for _player in ["p1", "p2", "p3", "p4", "p5"]
         }
         self.ownership_icon = {
-            _player: self.load_and_scale((Config.app.boards_items / "ownership" / f"{_player}.png"), [80, 80])
+            _player: self.load_and_scale((Config.app.boards_items / "ownership" / f"{_player}.png"), [40, 40])
             for _player in ["p1", "p2", "p3", "p4", "p5"]
         }
         self._ships_icon = {
-            _player: self.load_and_scale((Config.app.boards_items / "ships" / f"{_player}.png"), [80, 80])
+            _player: self.load_and_scale((Config.app.boards_items / "ships" / f"{_player}.png"), [60, 60])
             for _player in ["p1", "p2", "p3", "p4", "p5"]
         }
         self._multiplayer_icon = {
-            i: self.load_and_scale((Config.app.boards_items / "multiplier" / f"{i}.png"), [30, 30])
+            i: self.load_and_scale((Config.app.boards_items / "multiplier" / f"{i}.png"), [20, 20])
             for i in range(1, 7)
         }
         self._play_order = self.load_and_scale((Config.app.boards_items / "order.png"), [60, 250])
@@ -61,7 +61,7 @@ class BoardView(AbstractView):
             building: self.load_and_scale((Config.app.building_icons / f"{building}.png"), [40, 40])
             for building in ["atena", "ares", "posejdon", "zeus", "metro"]
         }
-        self._income_icon = self.load_and_scale((Config.app.boards_items / "rog.png"), [40, 40])
+        self._income_icon = self.load_and_scale((Config.app.boards_items / "rog.png"), [30, 30])
 
     def update_sprite(self):
         self.load_warriors()
@@ -84,18 +84,18 @@ class BoardView(AbstractView):
         self.build_nav_bar()
         self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [60, 0])
         self.screen.blit(self._play_order, [1140, 0])
-        # self.load_entity_to_buy()
-        # self.delete_entity()
-        # self.add_building()
-        # self.load_ships()
-        # self.load_income()
-        # self.update_entity()
-        # self.update_sprite()
-        # self.build_message_box()
-        # self.buy_card_button()
-        # if DataCache.get_value("act_stage") == GameState.BOARD:
-        #     self.next_player_button()
-        self.draw_all_points()
+        self.load_entity_to_buy()
+        self.delete_entity()
+        self.add_building()
+        self.load_ships()
+        self.load_income()
+        self.update_entity()
+        self.update_sprite()
+        self.build_message_box()
+        self.buy_card_button()
+        if DataCache.get_value("act_stage") == GameState.BOARD:
+            self.next_player_button()
+        # self.draw_all_points()
 
     def build_message_box(self):
         message = DataCache.get_value("message_board")
@@ -199,7 +199,6 @@ class BoardView(AbstractView):
     def load_income(self):
         _income_points = Config.boards.income_point[str(DataCache.get_value("num_of_players"))]
         income_status = DataCache.get_value("income_status")
-        _if_new = False
         for id, income_config in income_status.items():
             if id in self._loaded_entities:
                 continue
@@ -241,7 +240,6 @@ class BoardView(AbstractView):
                 )
                 self.building_sprite.add(building)
                 self._loaded_entities.append(building_id)
-                print("bbb")
                 _if_new = True
         if _if_new:
             for building in self.building_sprite:
@@ -329,7 +327,6 @@ class BoardView(AbstractView):
             True
         )
         self.building_sprite.add(base_building)
-        print("load_posejdon")
 
     def load_athena(self):
         base_building = BuildingEntity(
@@ -340,7 +337,6 @@ class BoardView(AbstractView):
             True
         )
         self.building_sprite.add(base_building)
-        print("loading atena")
 
     def load_zeus(self):
         base_building = BuildingEntity(
@@ -351,7 +347,6 @@ class BoardView(AbstractView):
             True
         )
         self.building_sprite.add(base_building)
-        print("loading zeus")
 
     def load_appollon(self):
         base_income = IncomeEntity(
@@ -366,7 +361,7 @@ class BoardView(AbstractView):
         self.income_sprite.add(base_income)
 
     def load_small_apollon(self):
-        print("Small Appollon")
+        pass
 
     def next_player_button(self):
         next_player_button = Button(

@@ -32,7 +32,7 @@ class ShipEntity(AbstractEntity):
 
     @property
     def icon_size(self) -> int:
-        return 40
+        return 30
 
     def validate_move(self):
         loc = (self._act_location[0] + self.icon_size, self._act_location[1] + self.icon_size)

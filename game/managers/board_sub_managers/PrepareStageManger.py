@@ -4,7 +4,8 @@ from .AbstractSubManager import AbstractSubManager
 from ...enums.GameState import GameState
 from ...DataCache import DataCache
 from ...gui.common.Config import Config
-
+from ...dataclasses.FieldDataClass import Water, Island
+from ...dataclasses.EntitiesDataClass import Entity
 
 class PrepareStageManager(AbstractSubManager):
 
@@ -136,3 +137,31 @@ class PrepareStageManager(AbstractSubManager):
 
     def save_cache_values(self):
         return super().save_cache_values()
+
+    def end_stage(self):
+        _coins = DataCache.get_value("coins")
+        income_pre_round = self.calculate_income(
+            DataCache.get_value("islands_status"),
+            DataCache.get_value("water_status")
+        )
+        for player, income in income_pre_round.items():
+            _coins[player] += income
+        DataCache.set_value("coins", _coins)
+        DataCache.set_value("act_stage", GameState.ROLL)
+        DataCache.reset_stage(GameState.ROLL)
+
+    @staticmethod
+    def calculate_income(_island_status, _water_status):
+        players_name = {f"p{num}": 0 for num in range(1, 6)}
+        for filed_status in [_island_status, _water_status]:
+            for _, field_data in filed_status.items():
+                if field_data["owner"] in players_name.keys():
+                    if "income" in field_data.keys():
+                        players_name[field_data["owner"]] += field_data["income"]
+                    players_name[field_data["owner"]] += field_data["base_income"]
+        return players_name
+
+    @staticmethod
+    def check_win():
+        islands_status = DataCache.get_value("islands_status")
+        for island_id, island_data in islands_status:

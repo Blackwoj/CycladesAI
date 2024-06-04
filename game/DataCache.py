@@ -9,12 +9,12 @@ from .enums.GameState import GameState
 
 class DataCache:
 
-    _cache_sections: list = [
-        RollCacheSection,
-        CommonCache,
-        PlayerCache,
-        BoardCacheSection
-    ]
+    _cache_sections: dict = {
+        GameState.ROLL: RollCacheSection,
+        "Common": CommonCache,
+        "Player": PlayerCache,
+        GameState.BOARD: BoardCacheSection
+    }
 
     AvailableSections = Literal[
         "game_config",
@@ -30,7 +30,6 @@ class DataCache:
         "bids_value",
         "temp_bid",
         "bid_order",
-        "bids_order",
         "heros_per_row",
         "left_heros",
         "play_order",
@@ -64,11 +63,11 @@ class DataCache:
     @classmethod
     def initialize_cache(cls):
         cls._data_cache = {
-            key: value for cache_cls in cls._cache_sections for (key, value) in cache_cls._data_cache.items()
+            key: value for cache_cls in cls._cache_sections.values() for (key, value) in cache_cls._data_cache.items()
         }
 
         cls._cache_data_functions = {
-            key: value for cache_cls in cls._cache_sections for (key, value) in cache_cls._cache_data_functions.items()
+            key: value for cache_cls in cls._cache_sections.values() for (key, value) in cache_cls._cache_data_functions.items()
         }
 
     @staticmethod
@@ -84,3 +83,8 @@ class DataCache:
             return DataCache._data_cache.get(key, None)
         else:
             raise AttributeError(f"'{type(DataCache).__name__}' object has no attribute '{key}'")
+
+    @classmethod
+    def reset_stage(cls, stage):
+        for _cache_setting, _cache_value in cls._cache_sections[stage]._base_values.items():
+            cls._data_cache[_cache_setting] = _cache_value

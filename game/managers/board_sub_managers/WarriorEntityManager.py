@@ -80,12 +80,17 @@ class WarriorEntityManager(EntityManager):
                         self.new_place
                     )
 
-            print(DataCache.get_value("new_entity_price"))
             self._coins[self._act_player] -= DataCache.get_value("new_entity_price")
 
             if DataCache.get_value("new_entity_price") <= 4:
                 new_price = int(self.moving_entity_id) * (-1) + 1
                 if new_price == 1:
                     new_price += 1
-                print("new price", new_price)
                 DataCache.set_value("new_entity_price", new_price)
+        else:
+            update_entity = DataCache.get_value("entity_update")
+            update_entity[self.moving_entity_id] = {
+                "location": Config.boards.new_special_event_loc,
+                "num_of_entities": 1
+            }
+            DataCache.set_value("entity_update", update_entity)

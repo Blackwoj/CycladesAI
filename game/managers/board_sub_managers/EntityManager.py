@@ -106,7 +106,15 @@ class EntityManager(AbstractSubManager):
                         "num_of_entities": self.entity_status[self.moving_entity_id]["num_of_entities"]
                     }
                     DataCache.set_value("entity_update", update_entity)
-                    logging.info("No enough money to move %s!", self.entity_type)
+                    logging.info("Wrong entity move", self.entity_type)
+            else:
+                update_entity = DataCache.get_value("entity_update")
+                update_entity[self.moving_entity_id] = {
+                    "location": self.entities_points[self.entity_status[self.moving_entity_id]["field"]],
+                    "num_of_entities": self.entity_status[self.moving_entity_id]["num_of_entities"]
+                }
+                DataCache.set_value("entity_update", update_entity)
+                logging.info("No enough money to move %s!", self.entity_type)
             self.clear_message()
 
     @abstractmethod
