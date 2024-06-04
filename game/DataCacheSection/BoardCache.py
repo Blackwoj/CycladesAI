@@ -17,7 +17,10 @@ class BoardCacheSection:
         "reset_building": False,
         "ship_status": {},
         "new_income_location": {},
-        "income_status": {}
+        "income_status": {},
+        "new_entity_price": 0,
+        "zeus_card": False,
+        "athena_card": False,
     }
 
     _cache_data_functions: dict = {
@@ -37,5 +40,8 @@ class BoardCacheSection:
         "new_ship_location": lambda x: x,
         "ship_status": lambda x: x,
         "new_income_location": lambda x: x,
-        "income_status": lambda x: x
+        "income_status": lambda x: x,
+        "new_entity_price": lambda x: x,
+        "zeus_card": lambda x: x,
+        "athena_card": lambda x: x,
     }

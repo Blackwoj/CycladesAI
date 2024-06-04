@@ -40,6 +40,8 @@ class BoardManager(AbstractManager):
             self.StageManager.define_player_hero()
             self.entity_manager["income"].calculate_income()
             self.read_cache_values()
+        if not DataCache.get_value("play_order") and not self._act_player:
+            print("round ended!!!!")
         if event.type == EventConfig.UPDATE_WARRIOR_POS:
             self.entity_manager["warrior"].valid_new_position()
         if event.type == EventConfig.UPDATE_SHIP_POS:

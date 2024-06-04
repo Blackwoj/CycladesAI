@@ -84,16 +84,18 @@ class BoardView(AbstractView):
         self.build_nav_bar()
         self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [60, 0])
         self.screen.blit(self._play_order, [1140, 0])
-        self.load_warriors()
-        self.update_entity()
+        # self.load_warriors()
+        self.load_entity_to_buy()
         self.delete_entity()
         self.add_building()
-        self.update_sprite()
         self.load_ships()
+        self.load_income()
+        self.update_entity()
+        self.update_sprite()
         # self.load_items()
         # self.load_buildings()
         self.build_message_box()
-        self.load_income()
+        self.buy_card_button()
         if DataCache.get_value("act_stage") == GameState.BOARD:
             self.next_player_button()
         self.draw_all_points()
@@ -195,6 +197,7 @@ class BoardView(AbstractView):
     def load_income(self):
         _income_points = Config.boards.income_point[str(DataCache.get_value("num_of_players"))]
         income_status = DataCache.get_value("income_status")
+        _if_new = False
         for id, income_config in income_status.items():
             if id in self._loaded_entities:
                 continue
@@ -236,12 +239,14 @@ class BoardView(AbstractView):
                 )
                 self.building_sprite.add(building)
                 self._loaded_entities.append(building_id)
+                print("bbb")
                 _if_new = True
         if _if_new:
             for building in self.building_sprite:
-                if building._id == 1:
+                if building._id == 2:
                     self.building_sprite.remove(building)
             self.load_hero_layout()
+
         elif DataCache.get_value("reset_building"):
             DataCache.set_value("reset_building", False)
             for building in self.building_sprite:
@@ -255,19 +260,69 @@ class BoardView(AbstractView):
 
     def load_ares(self):
         base_building = BuildingEntity(
-            1,
+            2,
             self.screen,
-            [1100, 80],
+            Config.boards.new_building_icon_loc,
             self._buildings["ares"],
             True
         )
         self.building_sprite.add(base_building)
 
+    # def build_price_list(self, building_price: int, special_price: int):
+    #     building_price_loc = []
+
+    @property
+    def entity_type(self) -> Callable:
+        _entity_type = {
+            "ares": WarriorEntity,
+            "posejdon": ShipEntity
+        }
+        return _entity_type[DataCache.get_value("act_hero")]
+
+    @property
+    def entity_icon(self) -> dict[str, pygame.Surface]:
+        _entity_icon = {
+            "ares": self._warriors_icon,
+            "posejdon": self._ships_icon
+        }
+        return _entity_icon[DataCache.get_value("act_hero")]
+
+    @property
+    def max_entity_price(self) -> int:
+        if DataCache.get_value("act_hero") in ["ares", "posejdon"]:
+            return 5 if DataCache.get_value("act_hero") == "ares" else 4
+        else:
+            return -1
+
+    def load_entity_to_buy(self):
+        new_entity_price = DataCache.get_value("new_entity_price")
+        if new_entity_price < self.max_entity_price:
+            for entity in self.entities_sprite:
+                if int(entity._id) * -1 == new_entity_price:
+                    return
+                if int(entity._id) == 0 or int(entity._id) * -1 + 1 == new_entity_price:
+                    self.entities_sprite.remove(entity)
+            entity_to_but = self.entity_type(
+                new_entity_price * -1,
+                self.screen,
+                Config.boards.new_special_event_loc,
+                1,
+                DataCache.get_value("act_player"),
+                self.entity_icon[DataCache.get_value("act_player")],
+                self.ownership_icon[DataCache.get_value("act_player")],
+                self._multiplayer_icon
+            )
+            self.entities_sprite.add(entity_to_but)
+        elif new_entity_price == self.max_entity_price:
+            for entity in self.entities_sprite:
+                if int(entity._id) * -1 + 1 == new_entity_price:
+                    self.entities_sprite.remove(entity)
+
     def load_poseidon(self):
         base_building = BuildingEntity(
-            1,
+            2,
             self.screen,
-            [1100, 80],
+            Config.boards.new_building_icon_loc,
             self._buildings["posejdon"],
             True
         )
@@ -276,9 +331,9 @@ class BoardView(AbstractView):
 
     def load_athena(self):
         base_building = BuildingEntity(
-            1,
+            2,
             self.screen,
-            [1100, 80],
+            Config.boards.new_building_icon_loc,
             self._buildings["atena"],
             True
         )
@@ -287,9 +342,9 @@ class BoardView(AbstractView):
 
     def load_zeus(self):
         base_building = BuildingEntity(
-            1,
+            2,
             self.screen,
-            [1100, 80],
+            Config.boards.new_building_icon_loc,
             self._buildings["zeus"],
             True
         )
@@ -298,16 +353,18 @@ class BoardView(AbstractView):
 
     def load_appollon(self):
         base_income = IncomeEntity(
-            1,
+            2,
             self.screen,
-            [1100, 80],
+            Config.boards.new_building_icon_loc,
             1,
             self._income_icon,
             self._multiplayer_icon,
             True
         )
         self.income_sprite.add(base_income)
-        print("loading apollon", DataCache.get_value("act_hero"))
+
+    def load_small_apollon(self):
+        print("Small Appollon")
 
     def next_player_button(self):
         next_player_button = Button(
@@ -320,9 +377,10 @@ class BoardView(AbstractView):
 
     def clear_player(self):
         DataCache.set_value("act_player", "")
-        for sprite in self.building_sprite:
-            if sprite._id == 1:
-                self.building_sprite.remove(sprite)
+        for sprite_group in [self.building_sprite, self.entities_sprite, self.income_sprite]:
+            for sprite in sprite_group:
+                if sprite._id in [2, 0, -1, -2, -3, -4]:
+                    sprite_group.remove(sprite)
         DataCache.set_value("new_player", True)
         time.sleep(0.5)
 
@@ -334,6 +392,52 @@ class BoardView(AbstractView):
             "atena": self.load_athena,
             "posejdon": self.load_poseidon,
             "ares": self.load_ares,
-            "ap_s": self.load_appollon
+            "ap_s": self.load_small_apollon
         }
         return heros
+
+    def buy_card_button(self):
+        if DataCache.get_value("athena_card"):
+            athena_card = Button(
+                self.screen,
+                {
+                    "org": self.philosophers_card,
+                    "hov": self.philosophers_card
+                },
+                pygame.Rect(1080, 100, 60, 100),
+                self.add_card_to_player
+            )
+            athena_card.update()
+
+        if DataCache.get_value("zeus_card"):
+            zeus_card = Button(
+                self.screen,
+                {
+                    "org": self.priest_card,
+                    "hov": self.priest_card
+                },
+                pygame.Rect(1080, 100, 60, 100),
+                self.add_card_to_player
+            )
+            zeus_card.update()
+
+    @property
+    def card_hero(self) -> list:
+        hero_card = {
+            "atena": ["philosophers", "athena_card"],
+            "zeus": ["priests", "zeus_card"]
+        }
+        return hero_card[DataCache.get_value("act_hero")]
+
+    def add_card_to_player(self):
+
+        card_status = DataCache.get_value(self.card_hero[0])
+        coins_status = DataCache.get_value("coins")
+
+        DataCache.set_value(self.card_hero[1], False)
+
+        card_status[DataCache.get_value("act_player")] += 1
+        coins_status[DataCache.get_value("act_player")] -= 4
+
+        DataCache.set_value(self.card_hero[0], card_status)
+        DataCache.set_value("coins", coins_status)

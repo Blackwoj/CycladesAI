@@ -10,6 +10,7 @@ from ..components.BidRow import BidRow
 from .AbstractView import AbstractView
 import time
 
+
 class RollView(AbstractView):
 
     def __init__(self, screen: Surface, background: Path):

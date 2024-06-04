@@ -59,7 +59,7 @@ class AppollonManager(AbstractManager):
                     "num_of_entities": self._island_status[self.new_place]["income"]
                 }
             entity_to_delete = DataCache.get_value("entity_delete")
-            entity_to_delete.append(1)
+            entity_to_delete.append(2)
             DataCache.set_value("entity_delete", entity_to_delete)
 
     @property

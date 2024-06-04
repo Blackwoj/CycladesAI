@@ -55,7 +55,7 @@ class ShipEntityManager(EntityManager):
             self.available_posejdon_jumps > 0
             or self._coins[self.entity_status[self.moving_entity_id]["owner"]]
         ) and (
-            self._ships_status[self.moving_entity_id]["field"] in self.filed_config[type][self._num_of_players][self.new_place]["neighbors"]
+            self._ships_status[self.moving_entity_id]["field"] in self.filed_config[self._num_of_players][self.new_place]["neighbors"]
         )
 
     def entity_move_prepare(self):
@@ -71,3 +71,37 @@ class ShipEntityManager(EntityManager):
             self.entities_points,
             self.entity_status
         )
+
+    def add_new_entity(self):
+        island_status = DataCache.get_value("islands_status")
+        neighbors_island = self.filed_config[self._num_of_players][self.new_place]["neighbors_island"]
+        _is_valid_field = False
+        for island in neighbors_island:
+            if island_status[island]["owner"] == self._act_player:
+                _is_valid_field = True
+        if (
+            _is_valid_field
+            and self._coins[self._act_player] >= int(self.moving_entity_id) * -1
+        ):
+            _ship_added = False
+            for entity_id, entity_data in self.entity_status.items():
+                if entity_data["field"] == self.new_place:
+                    self.send_update(
+                        entity_id,
+                        self.entities_points,
+                        entity_data["num_of_entities"] + 1,
+                        self.new_place
+                    )
+                    _ship_added = True
+            if not _ship_added:
+                self.entity_status[self.generate_unique_id()] = {
+                    "owner": self._act_player,
+                    "num_of_entities": 1,
+                    "field": self.new_place
+                }
+            self._coins[self._act_player] -= DataCache.get_value("new_entity_price")
+
+            if DataCache.get_value("new_entity_price") <= 3:
+                new_price = int(self.moving_entity_id) * (-1) + 1
+
+                DataCache.set_value("new_entity_price", new_price)

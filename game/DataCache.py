@@ -52,7 +52,10 @@ class DataCache:
         "new_building",
         "buildings_status",
         "reset_building",
-        "income_status"
+        "income_status",
+        "new_entity_price",
+        "zeus_card",
+        "athena_card",
     ]
 
     _data_cache: dict = {}

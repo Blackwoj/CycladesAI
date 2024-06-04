@@ -18,11 +18,54 @@ class PrepareStageManager(AbstractSubManager):
         self.read_cache_values()
         player_order = DataCache.get_value("play_order")
         player_hero = DataCache.get_value("hero_players")
+        print(player_order)
         if player_order and not self._act_player:
             self._act_player = player_order[0]
             DataCache.set_value("play_order", player_order[1:])
             self._act_hero = player_hero[self._act_player]
+            DataCache.set_value("new_entity_price", 0)
+            DataCache.set_value("athena_card", False)
+            DataCache.set_value("zeus_card", False)
+            if self._act_hero == "ares":
+                DataCache.set_value("new_entity_price", 0)
+            elif self._act_hero == "posejdon":
+                DataCache.set_value("new_entity_price", 0)
+            elif self._act_hero == "atena":
+                self._add_atena_card(self._act_player)
+                DataCache.set_value("athena_card", True)
+            elif self._act_hero == "zeus":
+                self._add_zeus_card(self._act_player)
+                DataCache.set_value("zeus_card", True)
+            else:
+                print(self._act_player)
+                self._calc_apollon_money(self._act_player)
         self.save_cache_values()
+
+    @staticmethod
+    def _calc_apollon_money(act_player):
+        _act_islands_status = DataCache.get_value("islands_status")
+        num_of_is = 0
+        coins_for_player = DataCache.get_value("coins")
+        for _, island_data in _act_islands_status.items():
+            if island_data["owner"] == act_player:
+                num_of_is += 1
+        if num_of_is > 1:
+            coins_for_player[act_player] += 1
+        else:
+            coins_for_player[act_player] += 4
+        DataCache.set_value("coins", coins_for_player)
+
+    @staticmethod
+    def _add_zeus_card(act_player):
+        priest_per_player = DataCache.get_value("priests")
+        priest_per_player[act_player] += 1
+        DataCache.set_value("priests", priest_per_player)
+
+    @staticmethod
+    def _add_atena_card(act_player):
+        philosophers_per_player = DataCache.get_value("philosophers")
+        philosophers_per_player[act_player] += 1
+        DataCache.set_value("philosophers", philosophers_per_player)
 
     def setup_board_first_stage(self):
         _water_config = Config.boards.water_config[str(DataCache.get_value("num_of_players"))]
