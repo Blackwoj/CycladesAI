@@ -109,9 +109,14 @@ class BoardView(AbstractView):
                 self.draw_center(self.screen, (255, 0, 0), location, 10)
 
     def draw_all_points(self):
-        water = Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))]
-        for key, loc in water.items():
-            self.draw_center(self.screen, "red", loc, 5)
+        # water = Config.boards.warriors_points[str(DataCache.get_value("num_of_players"))]
+        # for key, loc in water.items():
+        #     self.draw_center(self.screen, "red", loc, 5)
+        water = Config.boards.buildings_centers[str(DataCache.get_value("num_of_players"))]
+        for _, loc in water.items():
+            for center in loc["small"]:
+                self.draw_center(self.screen, "yellow", center, 2)
+            self.draw_center(self.screen, "blue", loc["big"], 2)
 
     def draw_center(self, screen, color, center, radius):
         pygame.draw.circle(screen, color, tuple(center), radius)
