@@ -33,7 +33,7 @@ class BoardView(AbstractView):
 
     def pull_img(self):
         self._boards = {
-            str(i): self.load_and_scale((Config.app.boards_path / f"{i}.png"), [1140, 800])
+            str(i): self.load_and_scale((Config.app.boards_path / f"{i}.png"), [800, 800])
             for i in range(2, 6)
         }
         self._player_icon_20 = {
@@ -84,20 +84,17 @@ class BoardView(AbstractView):
         self.build_nav_bar()
         self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [60, 0])
         self.screen.blit(self._play_order, [1140, 0])
-        # self.load_warriors()
-        self.load_entity_to_buy()
-        self.delete_entity()
-        self.add_building()
-        self.load_ships()
-        self.load_income()
-        self.update_entity()
-        self.update_sprite()
-        # self.load_items()
-        # self.load_buildings()
-        self.build_message_box()
-        self.buy_card_button()
-        if DataCache.get_value("act_stage") == GameState.BOARD:
-            self.next_player_button()
+        # self.load_entity_to_buy()
+        # self.delete_entity()
+        # self.add_building()
+        # self.load_ships()
+        # self.load_income()
+        # self.update_entity()
+        # self.update_sprite()
+        # self.build_message_box()
+        # self.buy_card_button()
+        # if DataCache.get_value("act_stage") == GameState.BOARD:
+        #     self.next_player_button()
         self.draw_all_points()
 
     def build_message_box(self):
