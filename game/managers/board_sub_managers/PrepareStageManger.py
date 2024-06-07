@@ -4,8 +4,9 @@ from .AbstractSubManager import AbstractSubManager
 from ...enums.GameState import GameState
 from ...DataCache import DataCache
 from ...gui.common.Config import Config
-from ...dataclasses.FieldDataClass import Water, Island
+from ...dataclasses.FieldDataClass import Field
 from ...dataclasses.EntitiesDataClass import Entity
+
 
 class PrepareStageManager(AbstractSubManager):
 
@@ -48,7 +49,7 @@ class PrepareStageManager(AbstractSubManager):
         num_of_is = 0
         coins_for_player = DataCache.get_value("coins")
         for _, island_data in _act_islands_status.items():
-            if island_data["owner"] == act_player:
+            if island_data.owner == act_player:
                 num_of_is += 1
         if num_of_is > 1:
             coins_for_player[act_player] += 1
@@ -70,66 +71,43 @@ class PrepareStageManager(AbstractSubManager):
 
     def setup_board_first_stage(self):
         _water_config = Config.boards.water_config[str(DataCache.get_value("num_of_players"))]
-        _ships_status = {}
         _water_status = {}
         _islands_status = {}
-        _warriors_status = {}
+        _entities_status = {}
         for circle, base_config in _water_config.items():
             if base_config["owner"]:
-                _player, _num_of_entities = next(iter(base_config["owner"].items()))
-                _ships_status[self.generate_unique_id()] = {
-                    "owner": _player,
-                    "num_of_entities": _num_of_entities,
-                    "field": circle,
-                }
-                _water_status[circle] = {
-                    "owner": _player,
-                    "num_of_entities": _num_of_entities,
-                    "base_income": base_config["base_income"],
-                }
+                _player, quantity = next(iter(base_config["owner"].items()))
+                _entities_status[self.generate_unique_id()] = Entity("ship", _player, quantity, circle)
+                _water_status[circle] = Field("water", _player, quantity, base_config["base_income"])
             else:
-                _water_status[circle] = {
-                    "owner": "None",
-                    "num_of_entities": 0,
-                    "base_income": base_config["base_income"],
-                }
+                _water_status[circle] = Field("Water", "None", 0, base_config["base_income"])
+
         _islands_config = Config.boards.islands_config
         for island, base_config in _islands_config[str(DataCache.get_value("num_of_players"))].items():
             if base_config["owner"]:
-                _player, _num_of_entities = next(iter(base_config["owner"].items()))
-                _islands_status[island] = {
-                    "owner": _player,
-                    "num_of_entities": _num_of_entities,
-                    "base_income": base_config["base_income"],
-                    "income": 0,
-                    "building": {
-                        "small": {
-                            key: "" for key in base_config["buildings"]["small"]
-                        },
-                        "big": False
-                    }
-                }
-                _warriors_status[self.generate_unique_id()] = {
-                    "owner": _player,
-                    "num_of_entities": _num_of_entities,
-                    "field": island
-                }
+                _player, quantity = next(iter(base_config["owner"].items()))
+                _islands_status[island] = Field(
+                    "island",
+                    _player,
+                    quantity,
+                    base_config["base_income"],
+                    {key: "" for key in base_config["buildings"]["small"]},
+                    False,
+                    0
+                )
+                _entities_status[self.generate_unique_id()] = Entity("warrior", _player, quantity, island)
             else:
-                _islands_status[island] = {
-                    "owner": "None",
-                    "num_of_entities": 0,
-                    "base_income": base_config["base_income"],
-                    "income": 0,
-                    "building": {
-                        "small": {
-                            key: "" for key in base_config["buildings"]["small"]
-                        },
-                        "big": False
-                    }
-                }
-        DataCache.set_value("ship_status", _ships_status)
+                _islands_status[island] = Field(
+                    "island",
+                    "None",
+                    0,
+                    base_config["base_income"],
+                    {key: "" for key in base_config["buildings"]["small"]},
+                    False,
+                    0
+                )
+        DataCache.set_value("entities_status", _entities_status)
         DataCache.set_value("islands_status", _islands_status)
-        DataCache.set_value("warriors_status", _warriors_status)
         DataCache.set_value("water_status", _water_status)
 
     def read_cache_values(self):
@@ -151,17 +129,11 @@ class PrepareStageManager(AbstractSubManager):
         DataCache.reset_stage(GameState.ROLL)
 
     @staticmethod
-    def calculate_income(_island_status, _water_status):
+    def calculate_income(_island_status: dict[int, Field], _water_status: dict[int, Field]):
         players_name = {f"p{num}": 0 for num in range(1, 6)}
         for filed_status in [_island_status, _water_status]:
             for _, field_data in filed_status.items():
-                if field_data["owner"] in players_name.keys():
-                    if "income" in field_data.keys():
-                        players_name[field_data["owner"]] += field_data["income"]
-                    players_name[field_data["owner"]] += field_data["base_income"]
+                if field_data.owner in players_name.keys():
+                    players_name[field_data.owner] += field_data.base_income
+                    players_name[field_data.owner] += field_data.income
         return players_name
-
-    @staticmethod
-    def check_win():
-        islands_status = DataCache.get_value("islands_status")
-        for island_id, island_data in islands_status:

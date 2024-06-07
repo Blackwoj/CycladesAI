@@ -2,14 +2,11 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Water:
+class Field:
+    type: str
     owner: str
-    num_of_entities: int
+    quantity: int
     base_income: int
-
-
-@dataclass
-class Island(Water):
-    income: int
-    small_building: dict
-    metropolis: bool
+    small_building: dict = None
+    metropolis: bool = False
+    income: int = 0

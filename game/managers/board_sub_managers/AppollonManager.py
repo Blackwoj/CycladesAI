@@ -5,6 +5,7 @@ from ...gui.common.Config import Config
 import math
 from typing import List
 from ..AbstractManager import AbstractManager
+from ...dataclasses.IncomeDataClass import Income
 
 
 class AppollonManager(AbstractManager):
@@ -41,23 +42,23 @@ class AppollonManager(AbstractManager):
                 self.new_place = field_id if temp_distance < distance else self.new_place
                 distance = temp_distance if temp_distance < distance else distance
         if self.new_place:
-            self._island_status[self.new_place]["income"] += 1
+            self._island_status[self.new_place].income += 1
             found = False
             for id, income_config in self._income_status.items():
-                if income_config["location"] == self.new_place:
-                    self._income_status[id]["num_of_entities"] += 1
+                if income_config.location == self.new_place:
+                    self._income_status[id].quantity += 1
                     found = True,
                     entity_to_update = DataCache.get_value("entity_update")
                     entity_to_update[id] = {
                         "location": self.fields_config[self.new_place],
-                        "num_of_entities": self._island_status[self.new_place]["income"]
+                        "num_of_entities": self._island_status[self.new_place].income
                     }
                     DataCache.set_value("entity_update", entity_to_update)
             if not found:
-                self._income_status[self.generate_unique_id()] = {
-                    "location": self.new_place,
-                    "num_of_entities": self._island_status[self.new_place]["income"]
-                }
+                self._income_status[self.generate_unique_id()] = Income(
+                    self.new_place,
+                    self._island_status[self.new_place].income
+                )
             entity_to_delete = DataCache.get_value("entity_delete")
             entity_to_delete.append(2)
             DataCache.set_value("entity_delete", entity_to_delete)

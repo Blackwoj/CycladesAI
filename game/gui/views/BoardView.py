@@ -15,6 +15,8 @@ from ..components.entities.IncomeEntity import IncomeEntity
 from ..components.MessageBoxes.WarriorMessageBox import WarriorMessageBox
 from ..components.MessageBoxes.ShipMessageBox import ShipMessageBox
 from .AbstractView import AbstractView
+from ...dataclasses.EntitiesDataClass import Entity
+from ...dataclasses.IncomeDataClass import Income
 
 
 class BoardView(AbstractView):
@@ -63,18 +65,33 @@ class BoardView(AbstractView):
         }
         self._income_icon = self.load_and_scale((Config.app.boards_items / "rog.png"), [30, 30])
 
-    def update_sprite(self):
-        self.load_warriors()
-        self.entities_sprite.update()
+    def load_hero(self):
         if (
             DataCache.get_value("new_player")
             and DataCache.get_value("act_stage") == GameState.BOARD
             and DataCache.get_value("act_hero")
         ):
-            self.load_hero_layout()
+            self._load_hero_layout()
             DataCache.set_value("new_player", False)
-        self.building_sprite.update()
+
+    def update_entity(self):
+        _entity_to_update = DataCache.get_value("entity_update")
+        if not _entity_to_update:
+            return
+        for sprite_group in [self.entities_sprite, self.income_sprite]:
+            for entity in sprite_group:
+                if entity.entity_id in _entity_to_update.keys():
+                    entity.update_data(
+                        _entity_to_update[entity.entity_id]["location"],
+                        _entity_to_update[entity.entity_id]["quantity"]
+                    )
+        DataCache.set_value("entity_update", {})
+
+    def draw_entities(self):
         self.income_sprite.update()
+        self.building_sprite.update()
+        self.entities_sprite.update()
+
         self.income_sprite.draw(self.screen)
         self.building_sprite.draw(self.screen)
         self.entities_sprite.draw(self.screen)
@@ -84,13 +101,14 @@ class BoardView(AbstractView):
         self.build_nav_bar()
         self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [60, 0])
         self.screen.blit(self._play_order, [1140, 0])
-        self.load_entity_to_buy()
         self.delete_entity()
-        self.add_building()
-        self.load_ships()
+        self.load_entity_to_buy()
+        self.load_entities()
         self.load_income()
+        self.add_building()
         self.update_entity()
-        self.update_sprite()
+        self.draw_entities()
+        self.load_hero()
         self.build_message_box()
         self.buy_card_button()
         if DataCache.get_value("act_stage") == GameState.BOARD:
@@ -121,37 +139,6 @@ class BoardView(AbstractView):
     def draw_center(self, screen, color, center, radius):
         pygame.draw.circle(screen, color, tuple(center), radius)
 
-    def load_warriors(self):
-        _warriors_points = Config.boards.warriors_points[str(DataCache.get_value("num_of_players"))]
-        for _warrior_id, warrior_stats in DataCache.get_value("warriors_status").items():
-            if _warrior_id in self._loaded_entities:
-                continue
-            self._loaded_entities.append(_warrior_id)
-            warrior_entity = WarriorEntity(
-                _warrior_id,
-                self.screen,
-                _warriors_points[warrior_stats["field"]],
-                warrior_stats["num_of_entities"],
-                warrior_stats["owner"],
-                self._warriors_icon[warrior_stats["owner"]],
-                self.ownership_icon[warrior_stats["owner"]],
-                self._multiplayer_icon
-            )
-            self.entities_sprite.add(warrior_entity)
-
-    def update_entity(self):
-        _entity_to_update = DataCache.get_value("entity_update")
-        if not _entity_to_update:
-            return
-        for sprite_group in [self.entities_sprite, self.income_sprite]:
-            for entity in sprite_group:
-                if entity.entity_id in _entity_to_update.keys():
-                    entity.update_data(
-                        _entity_to_update[entity.entity_id]["location"],
-                        _entity_to_update[entity.entity_id]["num_of_entities"]
-                    )
-        DataCache.set_value("entity_update", {})
-
     def delete_entity(self):
         delete_entity = DataCache.get_value("entity_delete")
         if not delete_entity:
@@ -162,52 +149,50 @@ class BoardView(AbstractView):
                     sprite_group.remove(entity)
         DataCache.set_value("entity_delete", [])
 
-    def load_ships(self):
-        _warriors_points = Config.boards.warriors_points[str(DataCache.get_value("num_of_players"))]
-        for _warrior_id, warrior_stats in DataCache.get_value("warriors_status").items():
-            if _warrior_id in self._loaded_entities:
+    @property
+    def entities_icons(self) -> dict[str, dict[str, pygame.Surface]]:
+        _entities_icons = {
+            "warrior": self._warriors_icon,
+            "ship": self._ships_icon
+        }
+        return _entities_icons
+
+    @property
+    def entities_class(self) -> dict[str, Callable]:
+        _entities_class = {
+            "warrior": WarriorEntity,
+            "ship": ShipEntity
+        }
+        return _entities_class
+
+    def load_entities(self):
+        for _entity_id, _entirety_data in DataCache.get_value("entities_status").items():
+            if _entity_id in self._loaded_entities:
                 continue
-            self._loaded_entities.append(_warrior_id)
-            warrior_entity = WarriorEntity(
-                _warrior_id,
+            self._loaded_entities.append(_entity_id)
+            entity = self.entities_class[_entirety_data._type](
+                _entity_id,
                 self.screen,
-                _warriors_points[warrior_stats["field"]],
-                warrior_stats["num_of_entities"],
-                warrior_stats["owner"],
-                self._warriors_icon[warrior_stats["owner"]],
-                self.ownership_icon[warrior_stats["owner"]],
+                _entirety_data,
+                self.entities_icons,
+                self.ownership_icon,
                 self._multiplayer_icon
             )
-            self.entities_sprite.add(warrior_entity)
-        _ships_points = Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))]
-        for _ship_id, ship_stats in DataCache.get_value("ship_status").items():
-            if _ship_id in self._loaded_entities:
-                continue
-            self._loaded_entities.append(_ship_id)
-            ship_entity = ShipEntity(
-                _ship_id,
-                self.screen,
-                _ships_points[ship_stats["field"]],
-                ship_stats["num_of_entities"],
-                ship_stats["owner"],
-                self._ships_icon[ship_stats["owner"]],
-                self.ownership_icon[ship_stats["owner"]],
-                self._multiplayer_icon
-            )
-            self.entities_sprite.add(ship_entity)
+            self.entities_sprite.add(entity)
 
     def load_income(self):
         _income_points = Config.boards.income_point[str(DataCache.get_value("num_of_players"))]
         income_status = DataCache.get_value("income_status")
-        for id, income_config in income_status.items():
+        for id, income_data in income_status.items():
             if id in self._loaded_entities:
                 continue
             self._loaded_entities.append(id)
             income_entity = IncomeEntity(
                 id,
                 self.screen,
+                income_data
                 _income_points[income_config["location"]],
-                income_config["num_of_entities"],
+                income_config["quantity"],
                 self._income_icon,
                 self._multiplayer_icon,
                 allow_drag=False
@@ -245,16 +230,16 @@ class BoardView(AbstractView):
             for building in self.building_sprite:
                 if building._id == 2:
                     self.building_sprite.remove(building)
-            self.load_hero_layout()
+            self._load_hero_layout()
 
         elif DataCache.get_value("reset_building"):
             DataCache.set_value("reset_building", False)
             for building in self.building_sprite:
                 if building._id == 1:
                     self.building_sprite.remove(building)
-            self.load_hero_layout()
+            self._load_hero_layout()
 
-    def load_hero_layout(self):
+    def _load_hero_layout(self):
         if DataCache.get_value("act_hero"):
             self.heros_layout[DataCache.get_value("act_hero")]()
 
@@ -294,6 +279,14 @@ class BoardView(AbstractView):
         else:
             return -1
 
+    @property
+    def entity_hero(self) -> str:
+        _entity_hero = {
+            "ares": "warrior",
+            "posejdon": "ship"
+        }
+        return _entity_hero[DataCache.get_value("act_hero")]
+
     def load_entity_to_buy(self):
         new_entity_price = DataCache.get_value("new_entity_price")
         if new_entity_price < self.max_entity_price:
@@ -302,14 +295,16 @@ class BoardView(AbstractView):
                     return
                 if int(entity._id) == 0 or int(entity._id) * -1 + 1 == new_entity_price:
                     self.entities_sprite.remove(entity)
-            entity_to_but = self.entity_type(
+            entity_to_but = self.entities_class[self.entity_hero](
                 new_entity_price * -1,
                 self.screen,
-                Config.boards.new_special_event_loc,
-                1,
-                DataCache.get_value("act_player"),
-                self.entity_icon[DataCache.get_value("act_player")],
-                self.ownership_icon[DataCache.get_value("act_player")],
+                Entity(
+                    self.entity_hero,
+                    DataCache.get_value("act_player"),
+                    1,
+                ),
+                self.entities_icons,
+                self.ownership_icon,
                 self._multiplayer_icon
             )
             self.entities_sprite.add(entity_to_but)

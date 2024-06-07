@@ -6,4 +6,4 @@ class Entity:
     _type: str
     owner: str
     quantity: int
-    location: str
+    location: str = ""
