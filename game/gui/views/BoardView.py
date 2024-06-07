@@ -190,9 +190,7 @@ class BoardView(AbstractView):
             income_entity = IncomeEntity(
                 id,
                 self.screen,
-                income_data
-                _income_points[income_config["location"]],
-                income_config["quantity"],
+                income_data,
                 self._income_icon,
                 self._multiplayer_icon,
                 allow_drag=False
@@ -219,8 +217,8 @@ class BoardView(AbstractView):
                 building = BuildingEntity(
                     building_id,
                     self.screen,
-                    buildings[building_id]["loc"],
-                    self._buildings[buildings[building_id]["hero"]],
+                    buildings[building_id].location,
+                    self._buildings[buildings[building_id].hero],
                     False
                 )
                 self.building_sprite.add(building)
@@ -347,8 +345,7 @@ class BoardView(AbstractView):
         base_income = IncomeEntity(
             2,
             self.screen,
-            Config.boards.new_building_icon_loc,
-            1,
+            Income(1),
             self._income_icon,
             self._multiplayer_icon,
             True
@@ -425,11 +422,11 @@ class BoardView(AbstractView):
 
         card_status = DataCache.get_value(self.card_hero[0])
         coins_status = DataCache.get_value("coins")
+        if coins_status[DataCache.get_value("act_player")] >=4:
+            DataCache.set_value(self.card_hero[1], False)
 
-        DataCache.set_value(self.card_hero[1], False)
+            card_status[DataCache.get_value("act_player")] += 1
+            coins_status[DataCache.get_value("act_player")] -= 4
 
-        card_status[DataCache.get_value("act_player")] += 1
-        coins_status[DataCache.get_value("act_player")] -= 4
-
-        DataCache.set_value(self.card_hero[0], card_status)
-        DataCache.set_value("coins", coins_status)
+            DataCache.set_value(self.card_hero[0], card_status)
+            DataCache.set_value("coins", coins_status)

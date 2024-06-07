@@ -102,7 +102,7 @@ class BoardManager(AbstractManager):
         for island_id, island_data in self._islands_status.items():
             if island_data.owner == self._act_player:
                 for i in range(len(buildings_center[island_id]["small"])):
-                    if not island_data.small[str(i + 1)]:
+                    if not island_data.small_building[str(i + 1)]:
                         temp_loc = self.calc_len(building_location, buildings_center[island_id]["small"][i])
                         new_loc = [island_id, str(i + 1)] if temp_loc < closest_loc else new_loc
                         closest_loc = temp_loc if temp_loc < closest_loc else closest_loc
@@ -113,7 +113,7 @@ class BoardManager(AbstractManager):
                 self._act_hero,
                 buildings_center[new_loc[0]]["small"][int(new_loc[1]) - 1]
             )
-            self._islands_status[new_loc[0]].small[new_loc[1]] = self._act_hero
+            self._islands_status[new_loc[0]].small_building[new_loc[1]] = self._act_hero
             DataCache.set_value("buildings_status", buildings_status)
         else:
             DataCache.set_value("reset_building", True)

@@ -3,6 +3,6 @@ from dataclasses import dataclass
 
 @dataclass
 class Income:
-    location: str
     quantity: int
+    location: str = ""
     _type = "income"
