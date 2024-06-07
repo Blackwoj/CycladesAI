@@ -138,7 +138,7 @@ class PrepareStageManager(AbstractSubManager):
         return players_name
 
     @property
-    def check_win(self):
+    def check_win(self) -> list[str]:
         players_status = {}
         for island_id, island_data in DataCache.get_value("islands_status"):
             if island_data.metropolis:

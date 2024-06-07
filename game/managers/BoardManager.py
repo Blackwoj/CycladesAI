@@ -120,6 +120,8 @@ class BoardManager(AbstractManager):
         else:
             DataCache.set_value("reset_building", True)
 
+    def new_metro_decider(self):
+
     def calc_len(self, dest_loc: List[int], point_loc: List[int]):
         return math.sqrt(
             (dest_loc[0] - point_loc[0])**2 + (dest_loc[1] - point_loc[1])**2
@@ -130,4 +132,4 @@ class BoardManager(AbstractManager):
         for player, quantity in athens_cards:
             if quantity >= 4: 
                 athens_cards[player] -= 4
-            self._bu
+            self.
