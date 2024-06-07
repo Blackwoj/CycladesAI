@@ -17,6 +17,7 @@ from ..components.MessageBoxes.ShipMessageBox import ShipMessageBox
 from .AbstractView import AbstractView
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.IncomeDataClass import Income
+from ...static.EventConfig import EventConfig
 
 
 class BoardView(AbstractView):
@@ -127,9 +128,6 @@ class BoardView(AbstractView):
                 self.draw_center(self.screen, (255, 0, 0), location, 10)
 
     def draw_all_points(self):
-        # water = Config.boards.warriors_points[str(DataCache.get_value("num_of_players"))]
-        # for key, loc in water.items():
-        #     self.draw_center(self.screen, "red", loc, 5)
         water = Config.boards.buildings_centers[str(DataCache.get_value("num_of_players"))]
         for _, loc in water.items():
             for center in loc["small"]:
@@ -181,7 +179,6 @@ class BoardView(AbstractView):
             self.entities_sprite.add(entity)
 
     def load_income(self):
-        _income_points = Config.boards.income_point[str(DataCache.get_value("num_of_players"))]
         income_status = DataCache.get_value("income_status")
         for id, income_data in income_status.items():
             if id in self._loaded_entities:
@@ -250,9 +247,6 @@ class BoardView(AbstractView):
             True
         )
         self.building_sprite.add(base_building)
-
-    # def build_price_list(self, building_price: int, special_price: int):
-    #     building_price_loc = []
 
     @property
     def entity_type(self) -> Callable:
@@ -422,10 +416,12 @@ class BoardView(AbstractView):
 
         card_status = DataCache.get_value(self.card_hero[0])
         coins_status = DataCache.get_value("coins")
-        if coins_status[DataCache.get_value("act_player")] >=4:
+        if coins_status[DataCache.get_value("act_player")] >= 4:
             DataCache.set_value(self.card_hero[1], False)
 
             card_status[DataCache.get_value("act_player")] += 1
+            if DataCache.get_value("act_hero") == "atena":
+                pygame.event.post(pygame.event.Event(EventConfig.CHECK_ATHENS))
             coins_status[DataCache.get_value("act_player")] -= 4
 
             DataCache.set_value(self.card_hero[0], card_status)

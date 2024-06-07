@@ -20,7 +20,6 @@ class PrepareStageManager(AbstractSubManager):
         self.read_cache_values()
         player_order = DataCache.get_value("play_order")
         player_hero = DataCache.get_value("hero_players")
-        print(player_order)
         if player_order and not self._act_player:
             self._act_player = player_order[0]
             DataCache.set_value("play_order", player_order[1:])
@@ -137,3 +136,18 @@ class PrepareStageManager(AbstractSubManager):
                     players_name[field_data.owner] += field_data.base_income
                     players_name[field_data.owner] += field_data.income
         return players_name
+
+    @property
+    def check_win(self):
+        players_status = {}
+        for island_id, island_data in DataCache.get_value("islands_status"):
+            if island_data.metropolis:
+                if island_data.owner in players_status.keys():
+                    players_status[island_data.owner] += 1
+                else:
+                    players_status[island_data.owner] = 1
+        wining_players = []
+        for player, num_of_metro in players_status.items():
+            if num_of_metro == 2:
+                wining_players.append(player)
+        return wining_players

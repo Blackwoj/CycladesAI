@@ -62,6 +62,8 @@ class BoardManager(AbstractManager):
             self.read_cache_values()
             self.new_building_decider()
             self.save_cache_values()
+        if event.type == EventConfig.CHECK_ATHENS:
+            self.check_athens_card()
 
     def read_cache_values(self):
         self._islands_status = DataCache.get_value("islands_status")
@@ -122,3 +124,10 @@ class BoardManager(AbstractManager):
         return math.sqrt(
             (dest_loc[0] - point_loc[0])**2 + (dest_loc[1] - point_loc[1])**2
         )
+
+    def check_athens_card(self):
+        athens_cards = DataCache.get_value("philosophers")
+        for player, quantity in athens_cards:
+            if quantity >= 4: 
+                athens_cards[player] -= 4
+            self._bu
