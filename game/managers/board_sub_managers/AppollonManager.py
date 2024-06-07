@@ -56,8 +56,8 @@ class AppollonManager(AbstractManager):
                     DataCache.set_value("entity_update", entity_to_update)
             if not found:
                 self._income_status[self.generate_unique_id()] = Income(
-                    self.new_place,
-                    self._island_status[self.new_place].income
+                    self._island_status[self.new_place].income,
+                    self.new_place
                 )
             entity_to_delete = DataCache.get_value("entity_delete")
             entity_to_delete.append(2)
