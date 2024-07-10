@@ -39,6 +39,7 @@ class BoardView(AbstractView):
             str(i): self.load_and_scale((Config.app.boards_path / f"{i}.png"), [800, 800])
             for i in range(2, 6)
         }
+        self._action_bg = self.load_and_scale((Config.app.boards_path / "extra_bg.png"), [268, 800])
         self._player_icon_20 = {
             _player: self.load_and_scale((Config.app.players_icons / f"{_player}.png"), [20, 20])
             for _player in ["p1", "p2", "p3", "p4", "p5"]
@@ -65,6 +66,7 @@ class BoardView(AbstractView):
             for building in ["atena", "ares", "posejdon", "zeus", "metro"]
         }
         self._income_icon = self.load_and_scale((Config.app.boards_items / "rog.png"), [30, 30])
+        self.next_icon = self.org_hov((Config.app.boards_items / "next_player"), [240, 60])
 
     def load_hero(self):
         if (
@@ -101,6 +103,7 @@ class BoardView(AbstractView):
         self.fill_bg()
         self.build_nav_bar()
         self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [60, 0])
+        self.screen.blit(self._action_bg, [860, 0])
         self.screen.blit(self._play_order, [1140, 0])
         self.delete_entity()
         self.load_entity_to_buy()
@@ -114,7 +117,6 @@ class BoardView(AbstractView):
         self.buy_card_button()
         if DataCache.get_value("act_stage") == GameState.BOARD:
             self.next_player_button()
-        # self.draw_all_points()
 
     def build_message_box(self):
         message = DataCache.get_value("message_board")
@@ -352,8 +354,8 @@ class BoardView(AbstractView):
     def next_player_button(self):
         next_player_button = Button(
             self.screen,
-            self.board_icon,
-            pygame.Rect(1080, 0, 60, 60),
+            self.next_icon,
+            pygame.Rect(900, 0, 240, 60),
             self.clear_player
         )
         next_player_button.update()

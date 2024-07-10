@@ -37,7 +37,7 @@ class RollManager(AbstractManager):
     def handle_events(self, event: pygame.event.Event):
         self.read_cache_values()
         if self._act_stage == self.stage_type:
-            if not self._bid_order and not self._act_player and not self._heros_per_row["row_1"]:
+            if not self._act_player and (not self._heros_per_row["row_1"] or not self._bid_order):
                 self.config_stage()
             if not self._act_player:
                 self.next_player()
@@ -94,8 +94,9 @@ class RollManager(AbstractManager):
             self._bid_order = self._bid_order[1:]
 
     def config_stage(self):
-        self._bid_order = Config.app.players_names[0:DataCache.get_value("num_of_players")]
-        random.shuffle(self._bid_order)
+        if not self._bid_order:
+            self._bid_order = Config.app.players_names[0:DataCache.get_value("num_of_players")]
+            random.shuffle(self._bid_order)
         self._withdraw_heros()
 
     def _withdraw_heros(self):

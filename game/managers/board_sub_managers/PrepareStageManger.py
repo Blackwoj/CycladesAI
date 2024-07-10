@@ -125,6 +125,15 @@ class PrepareStageManager(AbstractSubManager):
             _coins[player] += income
         DataCache.set_value("coins", _coins)
         DataCache.set_value("act_stage", GameState.ROLL)
+        bid_order = []
+        for row, bid in DataCache.get_value("bids_value").items():
+            if row != "row_5":
+                bid_order.append(bid["player"])
+            elif row == "row_5":
+                for player_appollon_bid in bid:
+                    bid_order.append(player_appollon_bid)
+        DataCache.set_value("bid_order", bid_order)
+
         DataCache.reset_stage(GameState.ROLL)
 
     @staticmethod
