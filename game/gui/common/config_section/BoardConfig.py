@@ -47,3 +47,11 @@ class BoardConfig:
 
     ares_pricing = [0, 2, 3, 4]
     posejdon_pricing = [0, 1, 2, 3]
+
+    default_max_len = 2**64
+
+    calc_buildings_help_dict = {
+        player: {
+            building: 0 for building in ["ares", "atena", "zeus", "ares", "posejdon"]
+        } for player in ["p" + str(i) for i in range(1, 6)]
+    }

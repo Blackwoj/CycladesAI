@@ -38,7 +38,6 @@ class PrepareStageManager(AbstractSubManager):
                 self._add_zeus_card(self._act_player)
                 DataCache.set_value("zeus_card", True)
             else:
-                print(self._act_player)
                 self._calc_apollon_money(self._act_player)
         self.save_cache_values()
 
@@ -127,7 +126,7 @@ class PrepareStageManager(AbstractSubManager):
         DataCache.set_value("act_stage", GameState.ROLL)
         bid_order = []
         for row, bid in DataCache.get_value("bids_value").items():
-            if row != "row_5":
+            if row != "row_5" and bid:
                 bid_order.append(bid["player"])
             elif row == "row_5":
                 for player_appollon_bid in bid:

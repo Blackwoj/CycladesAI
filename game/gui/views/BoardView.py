@@ -362,6 +362,7 @@ class BoardView(AbstractView):
 
     def clear_player(self):
         DataCache.set_value("act_player", "")
+        DataCache.set_value("act_hero", "")
         for sprite_group in [self.building_sprite, self.entities_sprite, self.income_sprite]:
             for sprite in sprite_group:
                 if sprite._id in [2, 0, -1, -2, -3, -4]:

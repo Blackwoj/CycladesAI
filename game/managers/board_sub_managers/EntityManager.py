@@ -6,10 +6,9 @@ from ...DataCache import DataCache
 from ...gui.common.Config import Config
 from abc import abstractmethod
 import logging
-import math
 from ...graph import Graph
-from typing import List
 from ...dataclasses.EntitiesDataClass import Entity
+from ...utilities.utilities import calc_distance
 
 
 class EntityManager(AbstractSubManager):
@@ -79,7 +78,7 @@ class EntityManager(AbstractSubManager):
         self.read_cache_values()
         centers_loc = Config.boards.circles_centers[self._num_of_players]
 
-        distance = 1300000
+        distance = Config.boards.default_max_len
         self.moving_entity_id = ""
         self.new_place = ""
 
@@ -92,7 +91,7 @@ class EntityManager(AbstractSubManager):
                 else:
                     filed_to_check.append(field_id)
                 for center in filed_to_check:
-                    temp_distance = self.calc_len(location["location"], centers_loc[center])
+                    temp_distance = calc_distance(location["location"], centers_loc[center])
                     self.new_place = field_id if temp_distance < distance else self.new_place
                     distance = temp_distance if temp_distance < distance else distance
 
@@ -122,11 +121,6 @@ class EntityManager(AbstractSubManager):
                 DataCache.set_value("entity_update", update_entity)
                 logging.info("No enough money to move %s!", self.entity_type)
             self.clear_message()
-
-    def calc_len(self, dest_loc: List[int], point_loc: List[int]):
-        return math.sqrt(
-            (dest_loc[0] - point_loc[0])**2 + (dest_loc[1] - point_loc[1])**2
-        )
 
     def update_graph_colors(self):
         _water_config = DataCache.get_value("water_status")

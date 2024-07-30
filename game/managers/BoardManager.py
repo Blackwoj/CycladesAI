@@ -1,4 +1,3 @@
-import math
 import logging
 
 import pygame
@@ -6,15 +5,13 @@ from pygame.event import Event
 
 from ..DataCache import DataCache
 from ..enums.GameState import GameState
-from ..gui.common.Config import Config
 from ..static.EventConfig import EventConfig
 from .AbstractManager import AbstractManager
-from typing import List
 from .board_sub_managers.PrepareStageManger import PrepareStageManager
 from .board_sub_managers.WarriorEntityManager import WarriorEntityManager
 from .board_sub_managers.ShipEntityManager import ShipEntityManager
 from .board_sub_managers.AppollonManager import AppollonManager
-from ..dataclasses.BuildingDataClass import Building
+from .board_sub_managers.BuildingsEntityManager import BuildingsEntityManager
 
 
 class BoardManager(AbstractManager):
@@ -25,7 +22,8 @@ class BoardManager(AbstractManager):
         self.entity_manager = {
             "warrior": WarriorEntityManager(self._screen, self.stage_type),
             "ship": ShipEntityManager(self._screen, self.stage_type),
-            "income": AppollonManager(self._screen)
+            "income": AppollonManager(self._screen),
+            "building": BuildingsEntityManager(self._screen, self.stage_type)
         }
         self.StageManager.setup_board_first_stage()
         self.read_cache_values()
@@ -59,8 +57,7 @@ class BoardManager(AbstractManager):
             self.define_message("ship", "Select how many ship you want to move")
             self.save_cache_values()
         if event.type == EventConfig.NEW_BUILDING:
-            self.read_cache_values()
-            self.new_building_decider()
+            self.entity_manager["building"].new_building_decider()
             self.save_cache_values()
         if event.type == EventConfig.CHECK_ATHENS:
             self.check_athens_card()
@@ -95,39 +92,9 @@ class BoardManager(AbstractManager):
             }
         )
 
-    def new_building_decider(self):
-        building_location = DataCache.get_value("new_building")
-        buildings_center = Config.boards.buildings_centers[self._num_of_players]
-        buildings_status = DataCache.get_value("buildings_status")
-        new_loc = ["IS1", "1"]
-        closest_loc = 100000
-        for island_id, island_data in self._islands_status.items():
-            if island_data.owner == self._act_player:
-                for i in range(len(buildings_center[island_id]["small"])):
-                    if not island_data.small_building[str(i + 1)]:
-                        temp_loc = self.calc_len(building_location, buildings_center[island_id]["small"][i])
-                        new_loc = [island_id, str(i + 1)] if temp_loc < closest_loc else new_loc
-                        closest_loc = temp_loc if temp_loc < closest_loc else closest_loc
-        if closest_loc < 50 and self._coins[self._act_player] >= 2:
-            self._coins[self._act_player] -= 2
-            temp_id = self.generate_unique_id()
-            buildings_status[temp_id] = Building(
-                self._act_hero,
-                buildings_center[new_loc[0]]["small"][int(new_loc[1]) - 1]
-            )
-            self._islands_status[new_loc[0]].small_building[new_loc[1]] = self._act_hero
-            DataCache.set_value("buildings_status", buildings_status)
-        else:
-            DataCache.set_value("reset_building", True)
-
-    def calc_len(self, dest_loc: List[int], point_loc: List[int]):
-        return math.sqrt(
-            (dest_loc[0] - point_loc[0])**2 + (dest_loc[1] - point_loc[1])**2
-        )
-
     def check_athens_card(self):
         athens_cards = DataCache.get_value("philosophers")
-        for player, quantity in athens_cards:
+        for player, quantity in athens_cards.items():
             if quantity >= 4:
                 athens_cards[player] -= 4
             # self.pass

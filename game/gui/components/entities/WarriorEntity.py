@@ -41,10 +41,13 @@ class WarriorEntity(AbstractEntity):
 
     @property
     def handle_mouse_validator(self) -> bool:
-        return (
-            DataCache.get_value("act_stage") != GameState.BOARD
-            or self.entity_data.quantity == 0
-            or DataCache.get_value("message_board")
-            or DataCache.get_value("act_player") != self.entity_data.owner
-            or DataCache.get_value("act_hero") != "ares"
-        )
+        if isinstance(self.entity_data, Entity):
+            return (
+                DataCache.get_value("act_stage") != GameState.BOARD
+                or self.entity_data.quantity == 0
+                or DataCache.get_value("message_board")
+                or DataCache.get_value("act_player") != self.entity_data.owner
+                or DataCache.get_value("act_hero") != "ares"
+            )
+        else:
+            return False
