@@ -29,7 +29,7 @@ class AbstractView(ABC):
         }
         self.coins_icon = {
             str(i): self.load_and_scale((Config.app.nav_bar / "coins" / f"{i}.png"), [60, 60])
-            for i in range(0, 11)
+            for i in range(0, 30)
         }
         self.philosophers = {
             str(i): self.load_and_scale((Config.app.nav_bar / "philosophers" / f"{i}.png"), [60, 60])
