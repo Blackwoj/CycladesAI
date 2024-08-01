@@ -1,10 +1,13 @@
 import math
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, Union
 
 import pygame
 
 from ....DataCache import DataCache
+from ....dataclasses.EntitiesDataClass import Entity
+from ....dataclasses.IncomeDataClass import Income
+from ...common.Config import Config
 
 
 class AbstractEntity(pygame.sprite.Sprite):
@@ -13,29 +16,38 @@ class AbstractEntity(pygame.sprite.Sprite):
         self,
         entity_id: int,
         screen: pygame.Surface,
-        map_point: list[int],
-        num_of_entities: int,
+        entity_data: Union[Entity, Income],
         entity_icon: pygame.Surface,
         multiply_icon: dict[int, pygame.Surface],
         ownership_icon: Optional[pygame.Surface] = None,
-        allow_drag: bool = False
     ):
         self._id = entity_id
         self.screen = screen
-        self._map_point = map_point
+        self.entity_data = entity_data
+        if not self.entity_data.location:
+            self._map_point = Config.boards.new_special_event_loc
+        else:
+            self._map_point = self.entities_map_points
         self._act_location = (self._map_point[0] - self.icon_size, self._map_point[1] - self.icon_size)
-        self._num_of_entities = num_of_entities
         self._entity_icon = entity_icon
         self._ownership_icon = ownership_icon
         self._multiply_icon = multiply_icon
         self.is_dragging = False
         self.drag_offset_x = 0
         self.drag_offset_y = 0
-        self._allow_drag = allow_drag
         super().__init__()
         self.image = self.get_image()
         self.rect = self.image.get_rect()
         self.rect.topleft = self._act_location
+
+    @property
+    def entities_map_points(self) -> list[int]:
+        map_points = {
+            "warrior": Config.boards.warriors_points[str(DataCache.get_value("num_of_players"))],
+            "ship": Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))],
+            "income": Config.boards.income_point[str(DataCache.get_value("num_of_players"))]
+        }
+        return map_points[self.entity_data._type][self.entity_data.location]
 
     @property
     def entity_id(self) -> int:
@@ -59,9 +71,9 @@ class AbstractEntity(pygame.sprite.Sprite):
             self.validate_move()
 
     def get_image(self):
-        if self._num_of_entities > 0:
+        if self.entity_data.quantity > 0:
             entity_image = self._entity_icon.copy()
-            multiply_image = self._multiply_icon[self._num_of_entities]
+            multiply_image = self._multiply_icon[self.entity_data.quantity]
             entity_image.blit(multiply_image, (entity_image.get_width() - multiply_image.get_width(), 0))
         elif self._ownership_icon:
             entity_image = self._ownership_icon.copy()
@@ -98,9 +110,9 @@ class AbstractEntity(pygame.sprite.Sprite):
     def handle_mouse_validator(self) -> bool:
         raise NotImplementedError
 
-    def update_data(self, new_place, num_of_entity):
+    def update_data(self, new_place, quantity):
         self._map_point = new_place
-        self._num_of_entities = num_of_entity
+        self.entity_data.quantity = quantity
         self._act_location = (self._map_point[0] - self.icon_size, self._map_point[1] - self.icon_size)
         self.image = self.get_image()
         self.rect.topleft = self._act_location

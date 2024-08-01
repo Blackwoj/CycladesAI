@@ -5,6 +5,7 @@ from .DataCacheSection.CommonCache import CommonCache
 from .DataCacheSection.PlayerCache import PlayerCache
 from .DataCacheSection.RollCache import RollCacheSection
 from .enums.GameState import GameState
+from copy import deepcopy
 
 
 class DataCache:
@@ -37,9 +38,8 @@ class DataCache:
         "board_row",
         "player_god",
         "water_status",
-        "ship_status",
         "islands_status",
-        "warriors_status",
+        "entities_status",
         "is_dragging",
         "new_warrior_location",
         "new_ship_location",
@@ -87,4 +87,4 @@ class DataCache:
     @classmethod
     def reset_stage(cls, stage):
         for _cache_setting, _cache_value in cls._cache_sections[stage]._base_values.items():
-            cls._data_cache[_cache_setting] = _cache_value
+            cls._data_cache[_cache_setting] = deepcopy(_cache_value)

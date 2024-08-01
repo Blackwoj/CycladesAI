@@ -51,5 +51,4 @@ class RollCacheSection:
             },
             "row_5": []
         },
-        "bid_order": [],
     }

@@ -2,8 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Entity:
-    _type: str
-    owner: str
+class Income:
     quantity: int
     location: str = ""
+    _type = "income"

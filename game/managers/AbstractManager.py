@@ -35,4 +35,6 @@ class AbstractManager(ABC):
     def generate_unique_id(self) -> int:
         randomize_int = random.randint(-1000, 1000)
         current_time_microseconds = int(time.time() * 1000000) + randomize_int
+        if current_time_microseconds in [2, 0, -1, -2, -3, -4]:
+            current_time_microseconds = self.generate_unique_id()
         return current_time_microseconds

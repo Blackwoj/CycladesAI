@@ -21,7 +21,7 @@ class WarriorMessageBox(AbstractMessageBox):
         self.write_text(message, [windows_size[0] // 2, windows_size[1] // 2])
         warrior_config = DataCache.get_value("new_warrior_location")
         warriors_id = list(warrior_config.keys())[0]
-        num_of_av_war = warrior_config[warriors_id]["num_of_entities"]
+        num_of_av_war = warrior_config[warriors_id]["quantity"]
         self.build_button(num_of_av_war, self.locations(num_of_av_war, [80, 80], [windows_size[0] // 2, windows_size[1] // 2], box_size))
 
     def write_text(self, message, message_box_center):
@@ -40,7 +40,7 @@ class WarriorMessageBox(AbstractMessageBox):
             if pygame.mouse.get_pressed()[0] == 1 and hit:
                 warriors_data = DataCache.get_value("new_warrior_location")
                 for key, data in warriors_data.items():
-                    warriors_data[key]["num_of_entities"] = i
+                    warriors_data[key]["quantity"] = i
                 DataCache.set_value("new_warrior_location", warriors_data)
                 pygame.event.post(pygame.event.Event(EventConfig.UPDATE_WARRIOR_POS))
 

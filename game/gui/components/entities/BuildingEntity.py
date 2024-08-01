@@ -76,6 +76,7 @@ class BuildingEntity(pygame.sprite.Sprite):
             "new_building",
             loc
         )
+        print("aaaaaaaaaaaaaaaaa")
         pygame.event.post(pygame.event.Event(EventConfig.NEW_BUILDING))
 
     def update_data(self, new_place):

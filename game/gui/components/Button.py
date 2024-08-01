@@ -1,5 +1,5 @@
 from typing import Callable, Optional
-
+from ...DataCache import DataCache
 import pygame
 
 
@@ -22,7 +22,7 @@ class Button:
         click = pygame.mouse.get_pressed()
         hit = self.rect.collidepoint(pos)
 
-        if hit:
+        if hit and not DataCache.get_value("is_dragging"):
             self.screen.blit(self.icons["hov"], self.rect)
         else:
             self.screen.blit(self.icons["org"], self.rect)

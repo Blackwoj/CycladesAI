@@ -1,15 +1,13 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
-class Water:
+class Field:
+    type: str
     owner: str
-    num_of_entities: int
+    quantity: int
     base_income: int
-
-
-@dataclass
-class Island(Water):
-    income: int
-    small_building: dict
-    metropolis: bool
+    small_building: Optional[dict[str, str]] = None
+    metropolis: bool = False
+    income: int = 0
