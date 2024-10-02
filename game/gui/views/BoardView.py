@@ -62,11 +62,19 @@ class BoardView(AbstractView):
         }
         self._play_order = self.load_and_scale((Config.app.boards_items / "order.png"), [60, 250])
         self._buildings = {
-            building: self.load_and_scale((Config.app.building_icons / f"{building}.png"), [40, 40])
+            building: [
+                self.load_and_scale((Config.app.building_icons / f"{building}.png"), [40, 40]),
+                self.load_and_scale((Config.app.building_icons / f"{building}_del.png"), [40, 40])
+            ]
             for building in ["atena", "ares", "posejdon", "zeus", "metro"]
         }
         self._income_icon = self.load_and_scale((Config.app.boards_items / "rog.png"), [30, 30])
         self.next_icon = self.org_hov((Config.app.boards_items / "next_player"), [240, 60])
+        self.metro_building = {
+            "not": self.load_and_scale((Config.app.background_dir / "metro_req.png"), [300, 300]),
+            "yes": self.load_and_scale((Config.app.background_dir / "metro_req_not.png"), [300, 300])
+        }
+        self.yes = self.load_and_scale((Config.app.background_dir / "yes.png"), [40, 40])
 
     def load_hero(self):
         if (
@@ -117,6 +125,15 @@ class BoardView(AbstractView):
         self.buy_card_button()
         if DataCache.get_value("act_stage") == GameState.BOARD:
             self.next_player_button()
+        if DataCache.get_value("metro_building") is True:
+            self.build_metro_decider()
+
+    def build_metro_decider(self):
+        self.screen.blit(self.metro_building["not"], (900, 250))
+        self.screen.blit(self.yes, (950, 285))
+        self.screen.blit(self.yes, (950, 350))
+        self.screen.blit(self.yes, (950, 415))
+        self.screen.blit(self.yes, (950, 480))
 
     def build_message_box(self):
         message = DataCache.get_value("message_board")
@@ -218,7 +235,8 @@ class BoardView(AbstractView):
                     self.screen,
                     buildings[building_id].location,
                     self._buildings[buildings[building_id].hero],
-                    False
+                    False,
+                    buildings[building_id].hero
                 )
                 self.building_sprite.add(building)
                 self._loaded_entities.append(building_id)
@@ -246,7 +264,8 @@ class BoardView(AbstractView):
             self.screen,
             Config.boards.new_building_icon_loc,
             self._buildings["ares"],
-            True
+            True,
+            "ares"
         )
         self.building_sprite.add(base_building)
 
@@ -313,7 +332,8 @@ class BoardView(AbstractView):
             self.screen,
             Config.boards.new_building_icon_loc,
             self._buildings["posejdon"],
-            True
+            True,
+            "posejdon"
         )
         self.building_sprite.add(base_building)
 
@@ -323,7 +343,8 @@ class BoardView(AbstractView):
             self.screen,
             Config.boards.new_building_icon_loc,
             self._buildings["atena"],
-            True
+            True,
+            "atena"
         )
         self.building_sprite.add(base_building)
 
@@ -333,7 +354,8 @@ class BoardView(AbstractView):
             self.screen,
             Config.boards.new_building_icon_loc,
             self._buildings["zeus"],
-            True
+            True,
+            "zeus"
         )
         self.building_sprite.add(base_building)
 

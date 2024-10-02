@@ -14,8 +14,10 @@ class BuildingEntity(pygame.sprite.Sprite):
         entity_id: int,
         screen: pygame.Surface,
         map_point: list[int],
-        entity_icon: pygame.Surface,
-        if_dragging: bool
+        entity_icons: list[pygame.Surface],
+        if_dragging: bool,
+        champion: str,
+        island: str = ""
     ):
         self._id = entity_id
         self.screen = screen
@@ -26,9 +28,14 @@ class BuildingEntity(pygame.sprite.Sprite):
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         super().__init__()
-        self.image = entity_icon
+        self._act_img = 0
+        self._entity_icons = entity_icons
+        self.image = self._entity_icons[self._act_img]
         self.rect = self.image.get_rect()
         self.rect.topleft = self._act_location
+        self.already_clicked = False
+        self._champion = champion
+        self._island = island
 
     @property
     def entity_id(self) -> int:
@@ -37,6 +44,8 @@ class BuildingEntity(pygame.sprite.Sprite):
     def update(self):
         if self._if_dragging:
             self.handle_mouse()
+        elif DataCache.get_value("metro_building"):
+            self._handle_build_delete()
         self.rect.topleft = self._act_location
         if (
             not pygame.mouse.get_pressed()[0]
@@ -70,13 +79,62 @@ class BuildingEntity(pygame.sprite.Sprite):
             mouse_x, mouse_y = mouse_pos
             self._act_location = (mouse_x + self.drag_offset_x, mouse_y + self.drag_offset_y)
 
+    def _handle_build_delete(self):
+        if (
+            DataCache.get_value("act_stage") != GameState.BOARD
+            or DataCache.get_value("message_board")
+            or DataCache.get_value("is_dragging")
+        ):
+            return
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_clicked = pygame.mouse.get_pressed()[0]
+        self._reset_status_clicked()
+        if mouse_clicked:
+            if self.validate_click(mouse_pos):
+                _selected_buildings = DataCache.get_value("building_to_delete")
+                self._act_img = 1 if self._act_img == 0 else 0
+                _selected_buildings[self._champion] = self._id if self._act_img else -1
+                self.already_clicked = True
+                self.image = self._entity_icons[self._act_img]
+                DataCache.set_value("building_to_delete", _selected_buildings)
+        else:
+            self.already_clicked = False
+
+    def validate_click(self, mouse_pos):
+        buildings_status = DataCache.get_value("buildings_status")[self._id]
+        _island_status = DataCache.get_value("islands_status")
+        _act_player = DataCache.get_value("act_player")
+        _selected_buildings = DataCache.get_value("building_to_delete")
+        return (
+            _island_status[buildings_status.island].owner == _act_player
+            and not self.already_clicked
+            and self.rect.collidepoint(mouse_pos)
+            and (
+                self._champion not in _selected_buildings.keys()
+                or _selected_buildings[self._champion] == self._id
+                or _selected_buildings[self._champion] == -1
+            )
+        )
+
+    def _reset_status_clicked(self):
+        buildings_status = DataCache.get_value("buildings_status")[self._id]
+        _island_status = DataCache.get_value("islands_status")
+        _act_player = DataCache.get_value("act_player")
+        _selected_buildings = DataCache.get_value("building_to_delete")
+        if _island_status[buildings_status.island].owner != _act_player and self._act_img == 1:
+            self._act_img = 0
+            if self._champion in _selected_buildings.keys() and _selected_buildings[self._champion] == self._id:
+                _selected_buildings[self._champion] = -1
+            self.already_clicked = False
+            self.image = self._entity_icons[self._act_img]
+        DataCache.set_value("building_to_delete", _selected_buildings)
+
     def validate_move(self):
         loc = [self._act_location[0] + 20, self._act_location[1] + 20]
         DataCache.set_value(
             "new_building",
             loc
         )
-        print("aaaaaaaaaaaaaaaaa")
         pygame.event.post(pygame.event.Event(EventConfig.NEW_BUILDING))
 
     def update_data(self, new_place):

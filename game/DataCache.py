@@ -55,6 +55,9 @@ class DataCache:
         "new_entity_price",
         "zeus_card",
         "athena_card",
+
+        "metro_building",
+        "building_to_delete",
     ]
 
     _data_cache: dict = {}

@@ -20,6 +20,8 @@ class BoardCacheSection:
         "new_entity_price": 0,
         "zeus_card": False,
         "athena_card": False,
+        "metro_building": True,
+        "building_to_delete": {}
     }
 
     _cache_data_functions: dict = {
@@ -42,6 +44,8 @@ class BoardCacheSection:
         "new_entity_price": lambda x: x,
         "zeus_card": lambda x: x,
         "athena_card": lambda x: x,
+        "metro_building": lambda x: x,
+        "building_to_delete": lambda x: x,
     }
 
     _base_values: dict = {}

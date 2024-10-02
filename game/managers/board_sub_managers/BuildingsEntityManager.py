@@ -67,11 +67,13 @@ class BuildingsEntityManager(AbstractManager):
             temp_id = self.generate_unique_id()
             self.buildings_status[temp_id] = Building(
                 self._act_hero,
-                self.field_config[new_loc[0]]["small"][int(new_loc[1]) - 1]
+                self.field_config[new_loc[0]]["small"][int(new_loc[1]) - 1],
+                new_loc[0]
             )
             if self._islands_status[new_loc[0]].small_building is not None:
                 self._islands_status[new_loc[0]].small_building[new_loc[1]] = self._act_hero  # type: ignore
-            self.check_if_metro()
+            if self.check_if_metro():
+                DataCache.set_value("metro_building", True)
         else:
             DataCache.set_value("reset_building", True)
         self.save_cache_values()
@@ -86,4 +88,4 @@ class BuildingsEntityManager(AbstractManager):
                     building_status[island_data.owner][building] += 1
         for player, buildings_counted in building_status.items():
             if all(buildings_counted.values()) >= 1:
-                print("new_merto_for_player", player)
+                return player

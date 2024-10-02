@@ -5,3 +5,4 @@ from dataclasses import dataclass
 class Building:
     hero: str
     location: list
+    island: str
