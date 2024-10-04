@@ -61,6 +61,8 @@ class BoardManager(AbstractManager):
             self.save_cache_values()
         if event.type == EventConfig.CHECK_ATHENS:
             self.check_athens_card()
+        if self.entity_manager["building"].check_if_metro():
+            DataCache.set_value("metro_building", True)
 
     def read_cache_values(self):
         self._islands_status = DataCache.get_value("islands_status")

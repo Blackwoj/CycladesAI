@@ -32,6 +32,7 @@ class BoardView(AbstractView):
             "ship": ShipMessageBox(self.screen)
         }
         self._loaded_entities = []
+        self.metro_placing_exist = False
         self.pull_img()
 
     def pull_img(self):
@@ -66,13 +67,17 @@ class BoardView(AbstractView):
                 self.load_and_scale((Config.app.building_icons / f"{building}.png"), [40, 40]),
                 self.load_and_scale((Config.app.building_icons / f"{building}_del.png"), [40, 40])
             ]
-            for building in ["atena", "ares", "posejdon", "zeus", "metro"]
+            for building in ["atena", "ares", "posejdon", "zeus"]
         }
+        self._buildings["metro"] = [
+            self.load_and_scale((Config.app.building_icons / "metro.png"), [40, 40]),
+            self.load_and_scale((Config.app.building_icons / "metro.png"), [40, 40])
+        ]
         self._income_icon = self.load_and_scale((Config.app.boards_items / "rog.png"), [30, 30])
         self.next_icon = self.org_hov((Config.app.boards_items / "next_player"), [240, 60])
         self.metro_building = {
-            "not": self.load_and_scale((Config.app.background_dir / "metro_req.png"), [300, 300]),
-            "yes": self.load_and_scale((Config.app.background_dir / "metro_req_not.png"), [300, 300])
+            "not": self.load_and_scale((Config.app.background_dir / "metro_req_not.png"), [300, 300]),
+            "yes": self.load_and_scale((Config.app.background_dir / "metro_req_place.png"), [300, 300])
         }
         self.yes = self.load_and_scale((Config.app.background_dir / "yes.png"), [40, 40])
 
@@ -113,7 +118,10 @@ class BoardView(AbstractView):
         self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [60, 0])
         self.screen.blit(self._action_bg, [860, 0])
         self.screen.blit(self._play_order, [1140, 0])
+
         self.delete_entity()
+        if DataCache.get_value("metro_building") is True:
+            self.build_metro_decider()
         self.load_entity_to_buy()
         self.load_entities()
         self.load_income()
@@ -125,15 +133,45 @@ class BoardView(AbstractView):
         self.buy_card_button()
         if DataCache.get_value("act_stage") == GameState.BOARD:
             self.next_player_button()
-        if DataCache.get_value("metro_building") is True:
-            self.build_metro_decider()
 
     def build_metro_decider(self):
-        self.screen.blit(self.metro_building["not"], (900, 250))
-        self.screen.blit(self.yes, (950, 285))
-        self.screen.blit(self.yes, (950, 350))
-        self.screen.blit(self.yes, (950, 415))
-        self.screen.blit(self.yes, (950, 480))
+        _selected_status = DataCache.get_value("building_to_delete")
+        if all(location != -1 for location in _selected_status.values()) and len(_selected_status.keys()) == 4:
+            self.build_metro_building()
+            self.screen.blit(self.metro_building["yes"], (900, 250))
+        else:
+            self.screen.blit(self.metro_building["not"], (900, 250))
+            delete_entity = DataCache.get_value("entity_delete")
+            for building in self.building_sprite:
+                if building._id == -1000:
+                    self.building_sprite.remove(building)
+                    if delete_entity:
+                        delete_entity.append(-1000)
+                    else:
+                        delete_entity = [-1000]
+                    DataCache.set_value("entity_delete", delete_entity)
+                    self.metro_placing_exist = False
+                    self.delete_entity()
+        if "ares" in _selected_status.keys() and _selected_status["ares"] != -1:
+            self.screen.blit(self.yes, (950, 285))
+        if "atena" in _selected_status.keys() and _selected_status["atena"] != -1:
+            self.screen.blit(self.yes, (950, 350))
+        if "posejdon" in _selected_status.keys() and _selected_status["posejdon"] != -1:
+            self.screen.blit(self.yes, (950, 415))
+        if "zeus" in _selected_status.keys() and _selected_status["zeus"] != -1:
+            self.screen.blit(self.yes, (950, 480))
+
+    def build_metro_building(self):
+        if not self.metro_placing_exist:
+            self.metro_placing_exist = True
+            self.building_sprite.add(BuildingEntity(
+                -1000,
+                self.screen,
+                [1128, 395],
+                self._buildings["metro"],
+                True,
+                "metro",
+            ))
 
     def build_message_box(self):
         message = DataCache.get_value("message_board")
@@ -160,10 +198,12 @@ class BoardView(AbstractView):
         delete_entity = DataCache.get_value("entity_delete")
         if not delete_entity:
             return
-        for sprite_group in [self.entities_sprite, self.income_sprite]:
+        for sprite_group in [self.entities_sprite, self.income_sprite, self.building_sprite]:
             for entity in sprite_group:
                 if entity.entity_id in delete_entity:
+                    self._loaded_entities.remove(entity.entity_id)
                     sprite_group.remove(entity)
+
         DataCache.set_value("entity_delete", [])
 
     @property
@@ -245,6 +285,9 @@ class BoardView(AbstractView):
             for building in self.building_sprite:
                 if building._id == 2:
                     self.building_sprite.remove(building)
+                if building._id == -1000:
+                    self.building_sprite.remove(building)
+                    self.metro_placing_exist = False
             self._load_hero_layout()
 
         elif DataCache.get_value("reset_building"):
@@ -383,13 +426,14 @@ class BoardView(AbstractView):
         next_player_button.update()
 
     def clear_player(self):
-        DataCache.set_value("act_player", "")
-        DataCache.set_value("act_hero", "")
-        for sprite_group in [self.building_sprite, self.entities_sprite, self.income_sprite]:
-            for sprite in sprite_group:
-                if sprite._id in [2, 0, -1, -2, -3, -4]:
-                    sprite_group.remove(sprite)
-        DataCache.set_value("new_player", True)
+        if not DataCache.get_value("metro_building"):
+            DataCache.set_value("act_player", "")
+            DataCache.set_value("act_hero", "")
+            for sprite_group in [self.building_sprite, self.entities_sprite, self.income_sprite]:
+                for sprite in sprite_group:
+                    if sprite._id in [2, 0, -1, -2, -3, -4]:
+                        sprite_group.remove(sprite)
+            DataCache.set_value("new_player", True)
         time.sleep(0.5)
 
     @property

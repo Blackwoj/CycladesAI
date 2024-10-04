@@ -22,7 +22,8 @@ class BuildingEntity(pygame.sprite.Sprite):
         self._id = entity_id
         self.screen = screen
         self._map_point = map_point
-        self._act_location = (self._map_point[0] - 20, self._map_point[1] - 20)
+        self._shift = 20 if champion == "metro" else 20
+        self._act_location = (self._map_point[0] - self._shift, self._map_point[1] - self._shift)
         self._if_dragging = if_dragging
         self.is_dragging = False
         self.drag_offset_x = 0
@@ -44,7 +45,7 @@ class BuildingEntity(pygame.sprite.Sprite):
     def update(self):
         if self._if_dragging:
             self.handle_mouse()
-        elif DataCache.get_value("metro_building"):
+        elif DataCache.get_value("metro_building") and self._champion != "metro":
             self._handle_build_delete()
         self.rect.topleft = self._act_location
         if (
@@ -60,6 +61,8 @@ class BuildingEntity(pygame.sprite.Sprite):
         if (
             DataCache.get_value("act_stage") != GameState.BOARD
             or DataCache.get_value("message_board")
+            or DataCache.get_value("metro_building")
+            and self._champion != "metro"
         ):
             return
         mouse_pos = pygame.mouse.get_pos()
@@ -130,7 +133,7 @@ class BuildingEntity(pygame.sprite.Sprite):
         DataCache.set_value("building_to_delete", _selected_buildings)
 
     def validate_move(self):
-        loc = [self._act_location[0] + 20, self._act_location[1] + 20]
+        loc = [self._act_location[0] + self._shift, self._act_location[1] + self._shift]
         DataCache.set_value(
             "new_building",
             loc
@@ -139,7 +142,7 @@ class BuildingEntity(pygame.sprite.Sprite):
 
     def update_data(self, new_place):
         self._map_point = new_place
-        self._act_location = (self._map_point[0] - 20, self._map_point[1] - 20)
+        self._act_location = (self._map_point[0] - self._shift, self._map_point[1] - self._shift)
         self.rect.topleft = self._act_location
 
     @property

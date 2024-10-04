@@ -20,7 +20,7 @@ class BoardCacheSection:
         "new_entity_price": 0,
         "zeus_card": False,
         "athena_card": False,
-        "metro_building": True,
+        "metro_building": False,
         "building_to_delete": {}
     }
 

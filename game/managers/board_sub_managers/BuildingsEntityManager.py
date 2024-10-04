@@ -53,7 +53,9 @@ class BuildingsEntityManager(AbstractManager):
 
         new_loc = ["", ""]
         closest_distance = Config.boards.default_max_len
-
+        if DataCache.get_value("metro_building"):
+            self.new_metro_decider()
+            return
         for island_id, island_data in self._islands_status.items():
             if island_data.owner == self._act_player:
                 for i in range(len(self.field_config[island_id]["small"])):
@@ -61,24 +63,47 @@ class BuildingsEntityManager(AbstractManager):
                         temp_loc = calc_distance(self.building_location, self.field_config[island_id]["small"][i])
                         new_loc = [island_id, str(i + 1)] if temp_loc < closest_distance else new_loc
                         closest_distance = temp_loc if temp_loc < closest_distance else closest_distance
-
         if closest_distance < 50 and self._coins[self._act_player] >= 2:
             self._coins[self._act_player] -= 2
             temp_id = self.generate_unique_id()
             self.buildings_status[temp_id] = Building(
                 self._act_hero,
                 self.field_config[new_loc[0]]["small"][int(new_loc[1]) - 1],
-                new_loc[0]
+                new_loc[0],
+                new_loc[1]
             )
             if self._islands_status[new_loc[0]].small_building is not None:
                 self._islands_status[new_loc[0]].small_building[new_loc[1]] = self._act_hero  # type: ignore
-            if self.check_if_metro():
-                DataCache.set_value("metro_building", True)
+        else:
+            DataCache.set_value("reset_building", True)
+        self.save_cache_values()
+
+    def new_metro_decider(self):
+        new_loc = ""
+        closest_distance = Config.boards.default_max_len
+
+        for island_id, island_data in self._islands_status.items():
+            if island_data.owner == self._act_player:
+                if not island_data.metropolis:
+                    temp_loc = calc_distance(self.building_location, self.field_config[island_id]["big"])
+                    new_loc = island_id if temp_loc < closest_distance else new_loc
+                    closest_distance = temp_loc if temp_loc < closest_distance else closest_distance
+
+        if closest_distance < 50:
+            temp_id = self.generate_unique_id()
+            self.delete_buildings()
+            self.buildings_status[temp_id] = Building(
+                "metro",
+                self.field_config[new_loc]["big"],
+                new_loc
+            )
+            self._islands_status[new_loc].metropolis = True
         else:
             DataCache.set_value("reset_building", True)
         self.save_cache_values()
 
     def check_if_metro(self):
+        self.read_cache_values()
         building_status: dict[str, dict[str, int]] = deepcopy(Config.boards.calc_buildings_help_dict)
         for _, island_data in self._islands_status.items():
             if not island_data.small_building:
@@ -88,4 +113,20 @@ class BuildingsEntityManager(AbstractManager):
                     building_status[island_data.owner][building] += 1
         for player, buildings_counted in building_status.items():
             if all(buildings_counted.values()) >= 1:
-                return player
+                if player == self._act_player:
+                    return True
+                else:
+                    return False
+        self.save_cache_values()
+
+    def delete_buildings(self):
+        buildings_to_delete: dict[str, int] = DataCache.get_value("building_to_delete")
+        DataCache.set_value("entity_delete", list(buildings_to_delete.values()))
+        delete_buildings_id = list(buildings_to_delete.values())
+        for building_id, building_data in self.buildings_status.items():
+            if building_id in delete_buildings_id:
+                self._islands_status[building_data.island].small_building[building_data.place] = ""  # type: ignore
+        for building_id in buildings_to_delete.values():
+            self.buildings_status.pop(building_id)
+        DataCache.set_value("building_to_delete", {})
+        DataCache.set_value("metro_building", False)

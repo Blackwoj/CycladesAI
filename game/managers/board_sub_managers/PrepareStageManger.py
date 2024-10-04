@@ -132,7 +132,8 @@ class PrepareStageManager(AbstractSubManager):
                 for player_appollon_bid in bid:
                     bid_order.append(player_appollon_bid)
         DataCache.set_value("bid_order", bid_order)
-
+        if self.check_win:
+            print(self.check_win)
         DataCache.reset_stage(GameState.ROLL)
 
     @staticmethod
@@ -148,7 +149,7 @@ class PrepareStageManager(AbstractSubManager):
     @property
     def check_win(self) -> list[str]:
         players_status = {}
-        for island_id, island_data in DataCache.get_value("islands_status"):
+        for island_id, island_data in DataCache.get_value("islands_status").items():
             if island_data.metropolis:
                 if island_data.owner in players_status.keys():
                     players_status[island_data.owner] += 1

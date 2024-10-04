@@ -7,6 +7,7 @@ from ...DataCache import DataCache
 from ...static.EventConfig import EventConfig
 from ..common.Config import Config
 from ..components.Button import Button
+from ...dataclasses.BuildingDataClass import Building
 
 
 class AbstractView(ABC):
@@ -119,7 +120,39 @@ class AbstractView(ABC):
         pygame.event.post(pygame.event.Event(EventConfig.SHOW_BOARD))
 
     def switch_to_menu(self):
-        pygame.event.post(pygame.event.Event(EventConfig.SHOW_MENU))
+        # pygame.event.post(pygame.event.Event(EventConfig.SHOW_MENU))
+        filed_config = Config.boards.buildings_centers["5"]
+        islands_status = DataCache.get_value("islands_status")
+        buildings_status = DataCache.get_value("buildings_status")
+        buildings_status[1111] = Building(
+            "ares",
+            filed_config["IS12"]["small"][0],
+            "IS12",
+            '1'
+        )
+        islands_status["IS12"].small_building['1'] = "ares"
+        buildings_status[1112] = Building(
+            "atena",
+            filed_config["IS12"]["small"][1],
+            "IS12",
+            "2"
+        )
+        islands_status["IS12"].small_building['2'] = "atena"
+        buildings_status[1113] = Building(
+            "posejdon",
+            filed_config["IS12"]["small"][2],
+            "IS12",
+            "3"
+        )
+        islands_status["IS12"].small_building['3'] = "posejdon"
+        buildings_status[1114] = Building(
+            "zeus",
+            filed_config["IS2"]["small"][1],
+            "IS2",
+            "2"
+        )
+        islands_status["IS2"].small_building['2'] = "zeus"
+        DataCache.set_value("buildings_status", buildings_status)
 
     @abstractmethod
     def render_view(self):
