@@ -17,11 +17,9 @@ class ShipEntityManager(EntityManager):
         pass
 
     def read_cache_values(self):
-        self._water_status = DataCache.get_value("water_status")
         return super().read_cache_values()
 
     def save_cache_values(self):
-        DataCache.set_value("water_status", self._water_status)
         return super().save_cache_values()
 
     @property
@@ -39,10 +37,6 @@ class ShipEntityManager(EntityManager):
     @property
     def entities_points(self):
         return Config.boards.circles_centers[self._num_of_players]
-
-    @property
-    def field_status(self):
-        return self._water_status
 
     @property
     def valid_entity_move(self) -> bool:
@@ -72,8 +66,7 @@ class ShipEntityManager(EntityManager):
             self.moving_entity,
             self.moving_entity_id,
             self.new_place,
-            self.entities_points,
-            self.entity_status
+            self.entities_points
         )
 
     def add_new_entity(self):

@@ -6,7 +6,7 @@ from ...DataCache import DataCache
 from ...gui.common.Config import Config
 from ...dataclasses.BuildingDataClass import Building
 from ...utilities.utilities import calc_distance
-from ...dataclasses.FieldDataClass import Field
+from ...dataclasses.FieldDataClass import Fieldv2
 from copy import deepcopy
 
 
@@ -24,14 +24,14 @@ class BuildingsEntityManager(AbstractManager):
 
     def read_cache_values(self):
         self._coins = DataCache.get_value("coins")
-        self._islands_status: dict[str, Field] = DataCache.get_value("islands_status")
+        self.fields_status: dict[str, Fieldv2] = DataCache.get_value("fields_status")
         self.building_location = DataCache.get_value("new_building")
         self.buildings_status = DataCache.get_value("buildings_status")
         return super().read_cache_values()
 
     def save_cache_values(self):
         DataCache.set_value("coins", self._coins)
-        DataCache.set_value("islands_status", self._islands_status)
+        DataCache.set_value("fields_status", self.fields_status)
         DataCache.set_value("new_building", self.building_location)
         DataCache.set_value("buildings_status", self.buildings_status)
         return super().save_cache_values()
@@ -56,13 +56,14 @@ class BuildingsEntityManager(AbstractManager):
         if DataCache.get_value("metro_building"):
             self.new_metro_decider()
             return
-        for island_id, island_data in self._islands_status.items():
-            if island_data.owner == self._act_player:
-                for i in range(len(self.field_config[island_id]["small"])):
-                    if island_data.small_building and not island_data.small_building[str(i + 1)]:
+        for field_id, field_data in self.fields_status.items():
+            if field_data.owner == self._act_player:
+                for i in range(len(self.field_config[field_id]["small"])):
+                    if field_data.small_building and not field_data.small_building[str(i + 1)]:
                         temp_loc = calc_distance(self.building_location, self.field_config[island_id]["small"][i])
-                        new_loc = [island_id, str(i + 1)] if temp_loc < closest_distance else new_loc
+                        new_loc = [field_id, str(i + 1)] if temp_loc < closest_distance else new_loc
                         closest_distance = temp_loc if temp_loc < closest_distance else closest_distance
+
         if closest_distance < 50 and self._coins[self._act_player] >= 2:
             self._coins[self._act_player] -= 2
             temp_id = self.generate_unique_id()
@@ -72,8 +73,8 @@ class BuildingsEntityManager(AbstractManager):
                 new_loc[0],
                 new_loc[1]
             )
-            if self._islands_status[new_loc[0]].small_building is not None:
-                self._islands_status[new_loc[0]].small_building[new_loc[1]] = self._act_hero  # type: ignore
+            if self.fields_status[new_loc[0]].small_building is not None:
+                self.fields_status[new_loc[0]].small_building[new_loc[1]] = self._act_hero  # type: ignore
         else:
             DataCache.set_value("reset_building", True)
         self.save_cache_values()
@@ -105,12 +106,12 @@ class BuildingsEntityManager(AbstractManager):
     def check_if_metro(self):
         self.read_cache_values()
         building_status: dict[str, dict[str, int]] = deepcopy(Config.boards.calc_buildings_help_dict)
-        for _, island_data in self._islands_status.items():
-            if not island_data.small_building:
+        for _, field_data in self.fields_status.items():
+            if not field_data.buildings:
                 continue
-            for _, building in island_data.small_building.items():
+            for _, building in field_data.buildings.items():
                 if building:
-                    building_status[island_data.owner][building] += 1
+                    building_status[field_data.owner][building.hero] += 1
         for player, buildings_counted in building_status.items():
             if all(buildings_counted.values()) >= 1:
                 if player == self._act_player:

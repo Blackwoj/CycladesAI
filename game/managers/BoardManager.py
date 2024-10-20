@@ -65,12 +65,12 @@ class BoardManager(AbstractManager):
             DataCache.set_value("metro_building", True)
 
     def read_cache_values(self):
-        self._islands_status = DataCache.get_value("islands_status")
+        self._fields_status = DataCache.get_value("fields_status")
         self._coins = DataCache.get_value("coins")
         super().read_cache_values()
 
     def save_cache_values(self):
-        DataCache.set_value("islands_status", self._islands_status)
+        DataCache.set_value("fields_status", self._fields_status)
         DataCache.set_value("coins", self._coins)
         super().save_cache_values()
 
@@ -78,12 +78,12 @@ class BoardManager(AbstractManager):
     def new_entity(self) -> dict[str, DataCache.AvailableSections]:
         return {
             "warrior": "new_warrior_location",
-            "ship": "new_ship_location"  # rename to ship
+            "ship": "new_ship_location"
         }
 
     def define_message(self, property: str, msg: str):
         moving_entity = DataCache.get_value(self.new_entity[property])
-        if moving_entity[list(moving_entity.keys())[0]]["quantity"] == 1:
+        if moving_entity["quantity"] == 1:
             self.entity_manager[property].valid_new_position()
             return
         DataCache.set_value(

@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Optional
+
 
 @dataclass
 class Building:
+    _id: int
     hero: str
-    location: list
-    island: str
-    place: Optional[str] = None
+    gui_location: list

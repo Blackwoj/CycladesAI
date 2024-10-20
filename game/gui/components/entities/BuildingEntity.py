@@ -104,12 +104,11 @@ class BuildingEntity(pygame.sprite.Sprite):
             self.already_clicked = False
 
     def validate_click(self, mouse_pos):
-        buildings_status = DataCache.get_value("buildings_status")[self._id]
-        _island_status = DataCache.get_value("islands_status")
         _act_player = DataCache.get_value("act_player")
         _selected_buildings = DataCache.get_value("building_to_delete")
+        _filed_status = DataCache.get_value("fields_status")
         return (
-            _island_status[buildings_status.island].owner == _act_player
+            _filed_status[self._island].owner == _act_player
             and not self.already_clicked
             and self.rect.collidepoint(mouse_pos)
             and (
@@ -120,11 +119,10 @@ class BuildingEntity(pygame.sprite.Sprite):
         )
 
     def _reset_status_clicked(self):
-        buildings_status = DataCache.get_value("buildings_status")[self._id]
-        _island_status = DataCache.get_value("islands_status")
         _act_player = DataCache.get_value("act_player")
         _selected_buildings = DataCache.get_value("building_to_delete")
-        if _island_status[buildings_status.island].owner != _act_player and self._act_img == 1:
+        _field_status = DataCache.get_value("fields_status")
+        if _field_status[self._island].owner != _act_player and self._act_img == 1:
             self._act_img = 0
             if self._champion in _selected_buildings.keys() and _selected_buildings[self._champion] == self._id:
                 _selected_buildings[self._champion] = -1

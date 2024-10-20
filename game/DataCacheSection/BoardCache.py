@@ -1,9 +1,7 @@
 class BoardCacheSection:
 
     _data_cache: dict = {
-        "water_status": {},
-        "islands_status": {},
-        "entities_status": {},
+        "fields_status": {},
         "buildings_status": {},
         "new_warrior_location": (),
         "new_ship_location": (),
@@ -25,9 +23,7 @@ class BoardCacheSection:
     }
 
     _cache_data_functions: dict = {
-        "water_status": lambda x: x,
-        "islands_status": lambda x: x,
-        "entities_status": lambda x: x,
+        "fields_status": lambda x: x,
         "new_warrior_location": lambda x: x,
         "message_board": lambda x: x,
         "entity_update": lambda x: x,

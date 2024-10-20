@@ -1,6 +1,6 @@
 import time
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Any
 
 import pygame
 
@@ -18,6 +18,8 @@ from .AbstractView import AbstractView
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.IncomeDataClass import Income
 from ...static.EventConfig import EventConfig
+from ...dataclasses.FieldDataClass import Fieldv2
+import logging
 
 
 class BoardView(AbstractView):
@@ -91,12 +93,18 @@ class BoardView(AbstractView):
             DataCache.set_value("new_player", False)
 
     def update_entity(self):
-        _entity_to_update = DataCache.get_value("entity_update")
+        _entity_to_update: dict[str, Any] = DataCache.get_value("entity_update")
         if not _entity_to_update:
             return
+        logging.info("Update entities: %s", _entity_to_update.keys())
         for sprite_group in [self.entities_sprite, self.income_sprite]:
             for entity in sprite_group:
                 if entity.entity_id in _entity_to_update.keys():
+                    logging.info(
+                        "Updated entity: %s with values %s",
+                        entity.entity_id,
+                        _entity_to_update[entity.entity_id]
+                    )
                     entity.update_data(
                         _entity_to_update[entity.entity_id]["location"],
                         _entity_to_update[entity.entity_id]["quantity"]
@@ -223,14 +231,17 @@ class BoardView(AbstractView):
         return _entities_class
 
     def load_entities(self):
-        for _entity_id, _entirety_data in DataCache.get_value("entities_status").items():
-            if _entity_id in self._loaded_entities:
+        _fields_data: dict[str, Fieldv2] = DataCache.get_value("fields_status")
+        for _field_id, _field_data in _fields_data.items():
+            if not _field_data.entity._type or _field_data.entity._id in self._loaded_entities:
                 continue
-            self._loaded_entities.append(_entity_id)
-            entity = self.entities_class[_entirety_data._type](
-                _entity_id,
+            self._loaded_entities.append(_field_data.entity._id)
+            entity = self.entities_class[_field_data.entity._type](
+                _field_data.entity._id,
                 self.screen,
-                _entirety_data,
+                _field_data.entity,
+                _field_data.owner,
+                _field_id,
                 self.entities_icons,
                 self.ownership_icon,
                 self._multiplayer_icon
@@ -355,10 +366,12 @@ class BoardView(AbstractView):
                 new_entity_price * -1,
                 self.screen,
                 Entity(
+                    new_entity_price * -1,
                     self.entity_hero,
-                    DataCache.get_value("act_player"),
                     1,
                 ),
+                DataCache.get_value("act_player"),
+                "",
                 self.entities_icons,
                 self.ownership_icon,
                 self._multiplayer_icon

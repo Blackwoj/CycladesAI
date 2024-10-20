@@ -14,6 +14,8 @@ class WarriorEntity(AbstractEntity):
         entity_id: int,
         screen: pygame.Surface,
         entity_data: Entity,
+        entity_owner: str,
+        entity_location: str,
         warriors_icons: dict[str, dict[str, pygame.Surface]],
         ownership_icon: dict[str, pygame.Surface],
         multiply_icon: dict[int, pygame.Surface],
@@ -22,9 +24,11 @@ class WarriorEntity(AbstractEntity):
             entity_id,
             screen,
             entity_data,
-            warriors_icons[str(entity_data._type)][entity_data.owner],
+            entity_owner,
+            entity_location,
+            warriors_icons[str(entity_data._type)][entity_owner],
             multiply_icon,
-            ownership_icon[str(entity_data.owner)]
+            ownership_icon[str(entity_owner)]
         )
 
     @property
@@ -35,7 +39,12 @@ class WarriorEntity(AbstractEntity):
         loc = (self._act_location[0] + self.icon_size, self._act_location[1] + self.icon_size)
         DataCache.set_value(
             "new_warrior_location",
-            {self._id: {"location": loc, "quantity": self.entity_data.quantity}}
+            {
+                "moving_entity_id": self._id,
+                "previous_location": self.entity_location,
+                "map_location": loc,
+                "quantity": self.entity_data.quantity
+            }
         )
         pygame.event.post(pygame.event.Event(EventConfig.SHOW_MULTIPLY_OPTIONS_WAR))
 
@@ -46,7 +55,7 @@ class WarriorEntity(AbstractEntity):
                 DataCache.get_value("act_stage") != GameState.BOARD
                 or self.entity_data.quantity == 0
                 or DataCache.get_value("message_board")
-                or DataCache.get_value("act_player") != self.entity_data.owner
+                or DataCache.get_value("act_player") != self.entity_owner
                 or DataCache.get_value("act_hero") != "ares"
             )
         else:

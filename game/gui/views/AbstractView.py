@@ -122,36 +122,29 @@ class AbstractView(ABC):
     def switch_to_menu(self):
         # pygame.event.post(pygame.event.Event(EventConfig.SHOW_MENU))
         filed_config = Config.boards.buildings_centers["5"]
-        islands_status = DataCache.get_value("islands_status")
+        # islands_status = DataCache.get_value("islands_status")
+        fields_status = DataCache.get_value("field_status")
         buildings_status = DataCache.get_value("buildings_status")
-        buildings_status[1111] = Building(
-            "ares",
+        fields_status["IS12"].buildings["1"] = Building(
+            1111,
+            'ares',
             filed_config["IS12"]["small"][0],
-            "IS12",
-            '1'
         )
-        islands_status["IS12"].small_building['1'] = "ares"
-        buildings_status[1112] = Building(
-            "atena",
+        fields_status["IS12"].buildings["2"] = Building(
+            1112,
+            'atena',
             filed_config["IS12"]["small"][1],
-            "IS12",
-            "2"
         )
-        islands_status["IS12"].small_building['2'] = "atena"
-        buildings_status[1113] = Building(
-            "posejdon",
+        fields_status["IS12"].buildings["3"] = Building(
+            1113,
+            'buildings_status',
             filed_config["IS12"]["small"][2],
-            "IS12",
-            "3"
         )
-        islands_status["IS12"].small_building['3'] = "posejdon"
-        buildings_status[1114] = Building(
-            "zeus",
-            filed_config["IS2"]["small"][1],
-            "IS2",
-            "2"
-        )
-        islands_status["IS2"].small_building['2'] = "zeus"
+        fields_status["IS12"].buildings["2"] = Building(
+            1114,
+            'zeus',
+            filed_config["IS12"]["small"][1],
+        )   
         DataCache.set_value("buildings_status", buildings_status)
 
     @abstractmethod

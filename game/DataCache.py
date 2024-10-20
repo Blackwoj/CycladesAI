@@ -35,11 +35,9 @@ class DataCache:
         "left_heros",
         "play_order",
 
+        "fields_status",
         "board_row",
         "player_god",
-        "water_status",
-        "islands_status",
-        "entities_status",
         "is_dragging",
         "new_warrior_location",
         "new_ship_location",

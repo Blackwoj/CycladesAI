@@ -17,6 +17,8 @@ class AbstractEntity(pygame.sprite.Sprite):
         entity_id: int,
         screen: pygame.Surface,
         entity_data: Union[Entity, Income],
+        entity_owner: str,
+        entity_location: str,
         entity_icon: pygame.Surface,
         multiply_icon: dict[int, pygame.Surface],
         ownership_icon: Optional[pygame.Surface] = None,
@@ -24,10 +26,12 @@ class AbstractEntity(pygame.sprite.Sprite):
         self._id = entity_id
         self.screen = screen
         self.entity_data = entity_data
-        if not self.entity_data.location:
+        self.entity_owner = entity_owner
+        self.entity_location = entity_location
+        if not entity_location:
             self._map_point = Config.boards.new_special_event_loc
         else:
-            self._map_point = self.entities_map_points
+            self._map_point = self.entities_map_points(entity_data._type, entity_location)
         self._act_location = (self._map_point[0] - self.icon_size, self._map_point[1] - self.icon_size)
         self._entity_icon = entity_icon
         self._ownership_icon = ownership_icon
@@ -40,14 +44,14 @@ class AbstractEntity(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = self._act_location
 
-    @property
-    def entities_map_points(self) -> list[int]:
+    @staticmethod
+    def entities_map_points(_type, location) -> list[int]:
         map_points = {
             "warrior": Config.boards.warriors_points[str(DataCache.get_value("num_of_players"))],
             "ship": Config.boards.circles_centers[str(DataCache.get_value("num_of_players"))],
             "income": Config.boards.income_point[str(DataCache.get_value("num_of_players"))]
         }
-        return map_points[self.entity_data._type][self.entity_data.location]
+        return map_points[_type][location]
 
     @property
     def entity_id(self) -> int:
@@ -56,7 +60,7 @@ class AbstractEntity(pygame.sprite.Sprite):
     @property
     @abstractmethod
     def icon_size(self) -> int:
-        return NotImplementedError
+        raise NotImplementedError
 
     def update(self):
         self.handle_mouse()
@@ -71,7 +75,7 @@ class AbstractEntity(pygame.sprite.Sprite):
             self.validate_move()
 
     def get_image(self):
-        if self.entity_data.quantity > 0:
+        if self.entity_data.quantity and self.entity_data.quantity > 0:
             entity_image = self._entity_icon.copy()
             multiply_image = self._multiply_icon[self.entity_data.quantity]
             entity_image.blit(multiply_image, (entity_image.get_width() - multiply_image.get_width(), 0))

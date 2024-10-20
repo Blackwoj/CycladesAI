@@ -8,7 +8,9 @@ from abc import abstractmethod
 import logging
 from ...graph import Graph
 from ...dataclasses.EntitiesDataClass import Entity
+from ...dataclasses.FieldDataClass import Fieldv2
 from ...utilities.utilities import calc_distance
+from typing import Optional, Any
 
 
 class EntityManager(AbstractSubManager):
@@ -24,16 +26,18 @@ class EntityManager(AbstractSubManager):
     @abstractmethod
     def read_cache_values(self):
         self._coins = DataCache.get_value("coins")
-        self.moving_entity = DataCache.get_value(self.new_entity_tag)
+        self.moving_entity: dict[str, Any] = DataCache.get_value(
+            self.new_entity_tag
+        )
         self.entity_to_delete = DataCache.get_value("entity_delete")
-        self.entity_status = DataCache.get_value("entities_status")
+        self._fields_status: dict[str, Fieldv2] = DataCache.get_value("fields_status")
         return super().read_cache_values()
 
     @abstractmethod
     def save_cache_values(self):
-        DataCache.set_value("entities_status", self.entity_status)
         DataCache.set_value("coins", self._coins)
         DataCache.set_value("entity_delete", self.entity_to_delete)
+        DataCache.set_value("fields_status", self._fields_status)
         return super().save_cache_values()
 
     @abstractmethod
@@ -62,11 +66,6 @@ class EntityManager(AbstractSubManager):
 
     @property
     @abstractmethod
-    def field_status(self):
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
     def valid_entity_move(self) -> bool:
         raise NotImplementedError
 
@@ -75,58 +74,59 @@ class EntityManager(AbstractSubManager):
         raise NotImplementedError
 
     def valid_new_position(self):
+        logging.info("Finding new location for entity")
         self.read_cache_values()
         centers_loc = Config.boards.circles_centers[self._num_of_players]
 
         distance = Config.boards.default_max_len
-        self.moving_entity_id = ""
+        self.moving_entity_id = self.moving_entity["moving_entity_id"]
+        _previous_location = self.moving_entity["previous_location"]
+        _new_map_location = self.moving_entity["map_location"]
         self.new_place = ""
 
-        for _id, location in self.moving_entity.items():
-            self.moving_entity_id = _id
-            for field_id, field_config in self.filed_config[self._num_of_players].items():
-                filed_to_check = []
-                if "location" in field_config.keys():
-                    filed_to_check = field_config["location"]
-                else:
-                    filed_to_check.append(field_id)
-                for center in filed_to_check:
-                    temp_distance = calc_distance(location["location"], centers_loc[center])
-                    self.new_place = field_id if temp_distance < distance else self.new_place
-                    distance = temp_distance if temp_distance < distance else distance
+        for field_id, field_config in self.filed_config[self._num_of_players].items():
+            filed_to_check = []
+            if "location" in field_config.keys():
+                filed_to_check = field_config["location"]
+            else:
+                filed_to_check.append(field_id)
+            for center in filed_to_check:
+                temp_distance = calc_distance(_new_map_location, centers_loc[center])
+                self.new_place = field_id if temp_distance < distance else self.new_place
+                distance = temp_distance if temp_distance < distance else distance
+        if not self.new_place:
+            logging.info("No place found for entity!")
+            return
+        logging.info("Found place: %s for entity", self.new_place)
 
         if self.moving_entity_id in [0, -1, -2, -3, -4]:
             self.add_new_entity()
             return
 
         if self.new_place:
-            self.update_graph_colors()
-            if self._coins[self.entity_status[self.moving_entity_id].owner] >= 1:
+            if self._coins[self._fields_status[_previous_location].owner] >= 1:
                 if self.valid_entity_move:
                     self.entity_move_prepare()
                 else:
                     update_entity = DataCache.get_value("entity_update")
                     update_entity[self.moving_entity_id] = {
-                        "location": self.entities_points[self.entity_status[self.moving_entity_id].location],
-                        "quantity": self.entity_status[self.moving_entity_id].quantity
+                        "location": self.entities_points[_previous_location],
+                        "quantity": self._fields_status[_previous_location].entity.quantity
                     }
                     DataCache.set_value("entity_update", update_entity)
                     logging.info("Wrong entity move", self.entity_type)
             else:
                 update_entity = DataCache.get_value("entity_update")
                 update_entity[self.moving_entity_id] = {
-                    "location": self.entities_points[self.entity_status[self.moving_entity_id].location],
-                    "quantity": self.entity_status[self.moving_entity_id].quantity
+                    "location": self.entities_points[_previous_location],
+                    "quantity": self._fields_status[_previous_location].entity.quantity
                 }
                 DataCache.set_value("entity_update", update_entity)
                 logging.info("No enough money to move %s!", self.entity_type)
             self.clear_message()
 
     def update_graph_colors(self):
-        _water_config = DataCache.get_value("water_status")
-        fields_colors = {key: values.owner for key, values in self.field_status.items()}
-        water_colors = {key: values.owner for key, values in _water_config.items()}
-        fields_colors = fields_colors | water_colors
+        fields_colors = {key: values.owner for key, values in self._fields_status.items()}
         if self.graph_warrior.colors != fields_colors:
             for key, color in fields_colors.items():
                 self.graph_warrior.set_vertex_color(key, color)
@@ -147,77 +147,65 @@ class EntityManager(AbstractSubManager):
     def clear_message(self):
         DataCache.set_value("message_board", "")
 
-    def move_entity_define(
-        self,
-        moving_entity,
-        moving_entity_id,
-        new_place,
-        entity_map_points,
-        entity_status
-    ):
+    def move_entity_define(self):
+        _previous_location = self.moving_entity["previous_location"]
         entity_split = self.split_entity_number(
-            moving_entity[moving_entity_id],
-            self.entity_status[moving_entity_id]
+            self.moving_entity,
+            self._fields_status[_previous_location].entity,
         )
         self.send_update(
-            moving_entity_id,
-            entity_map_points,
+            self.moving_entity_id,
+            self.entities_points,
             entity_split[1],
-            self.entity_status[moving_entity_id].location
+            _previous_location
         )
-        if self.entity_type == "ship" and entity_split[1] == 0:
-            self.entity_to_delete.append(moving_entity_id)
-            self.field_status[self.entity_status[moving_entity_id].location].owner = "None"
-            self.field_status[self.entity_status[moving_entity_id].location].quantity = 0
-        else:
-            self.field_status[
-                self.entity_status[moving_entity_id].location
-            ].quantity = entity_split[1]
-        if self.field_status[new_place].owner == "None":
-            self.entity_status[self.generate_unique_id()] = Entity(
-                self.entity_type,
-                entity_status[moving_entity_id].owner,
-                entity_split[0],
-                new_place
-            )
-            self.field_status[new_place].owner = entity_status[moving_entity_id].owner
-        elif self.field_status[new_place].owner == entity_status[moving_entity_id].owner:
-            for id, entity_data in self.entity_status.items():
-                if entity_data.location == new_place:
 
-                    self.send_update(
-                        id,
-                        entity_map_points,
-                        entity_data.quantity + entity_split[0],
-                        new_place
-                    )
+        if self.entity_type == "ship" and entity_split[1] == 0:
+            self.entity_to_delete.append(self.moving_entity_id)
+            self._fields_status[_previous_location].entity = Entity(None, None, 0)
+            self._fields_status[_previous_location].owner = "None"
+        else:
+            self._fields_status[_previous_location].entity.quantity = entity_split[1]
+
+        if self._fields_status[self.new_place].owner == "None":
+            self._fields_status[self.new_place].entity = Entity(
+                self.generate_unique_id(),
+                self.entity_type,
+                entity_split[0]
+            )
+            self._fields_status[self.new_place].owner = self._fields_status[_previous_location].owner
+        elif self._fields_status[self.new_place].owner == self._fields_status[_previous_location].owner:
+            self.send_update(
+                self._fields_status[self.new_place].entity._id,
+                self.entities_points,
+                self._fields_status[self.new_place].entity.quantity + entity_split[0],
+                self.new_place
+            )
         else:
             attacker_entity_count = entity_split[0]
-            war_diff = attacker_entity_count - self.field_status[new_place].quantity
+            war_diff = attacker_entity_count - self._fields_status[self.new_place].entity.quantity
             defensive_entity_id = ""
-            for id, entity_data in self.entity_status.items():
-                if entity_data.location == new_place:
-                    defensive_entity_id = id
+            defensive_entity_id = self._fields_status[self.new_place].entity._id
             if war_diff > 0:
-                self.entity_status[self.generate_unique_id()] = Entity(
+                self._fields_status[self.new_place].entity = Entity(
+                    self.generate_unique_id(),
                     self.entity_type,
-                    entity_status[moving_entity_id].owner,
-                    war_diff,
-                    new_place
+                    war_diff
                 )
-                self.field_status[new_place].owner = entity_status[moving_entity_id].owner
+                self._fields_status[self.new_place].owner = self._fields_status[_previous_location].owner
                 self.entity_to_delete.append(defensive_entity_id)
             elif war_diff <= 0:
                 war_diff = abs(war_diff)
                 self.send_update(
                     defensive_entity_id,
-                    entity_map_points,
+                    self.entities_points,
                     war_diff,
-                    new_place
+                    self.new_place
                 )
             if war_diff == 0 and self.entity_type == "ship":
                 self.entity_to_delete.append(defensive_entity_id)
-            self.field_status[new_place].quantity = war_diff
+                self._fields_status[self.new_place].owner = ""
+            self._fields_status[self.new_place].entity.quantity = war_diff
         self.save_cache_values()
 
     @staticmethod
@@ -233,7 +221,13 @@ class EntityManager(AbstractSubManager):
             "location": map_points[new_place],
             "quantity": entity_num_value
         }
-        self.entity_status[entity_id].location = new_place
-        self.entity_status[entity_id].quantity = entity_num_value
-        self.field_status[new_place].quantity = entity_num_value
+        for _, field_data in self._fields_status.items():
+            if field_data.entity._id == entity_id:
+                field_data.entity.quantity = entity_num_value
         DataCache.set_value("entity_update", update_entity)
+
+    def essential_entity_data(self, entity_id: str) -> Optional[tuple[str, str, Entity]]:
+        for _field_id, _field_data in self._fields_status.items():
+            if not _field_data.entity or _field_data.entity._id != entity_id:
+                continue
+            return _field_id, _field_data.owner, _field_data.entity
