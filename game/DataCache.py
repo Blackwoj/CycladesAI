@@ -49,7 +49,6 @@ class DataCache:
         "new_building",
         "buildings_status",
         "reset_building",
-        "income_status",
         "new_entity_price",
         "zeus_card",
         "athena_card",

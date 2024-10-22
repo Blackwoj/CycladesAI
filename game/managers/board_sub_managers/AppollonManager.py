@@ -5,9 +5,9 @@ from pygame import Surface
 from pygame.event import Event
 
 from ...DataCache import DataCache
-from ...dataclasses.IncomeDataClass import Income
 from ...gui.common.Config import Config
 from ..AbstractManager import AbstractManager
+from ...dataclasses.FieldDataClass import Fieldv2
 
 
 class AppollonManager(AbstractManager):
@@ -22,14 +22,11 @@ class AppollonManager(AbstractManager):
         pass
 
     def read_cache_values(self):
-        self._income_status = DataCache.get_value("income_status")
-        self._island_status = DataCache.get_value("islands_status")
-        self._water_status = DataCache.get_value("water_status")
+        self._field_status: dict[str, Fieldv2] = DataCache.get_value("fields_status")
         return super().read_cache_values()
 
     def save_cache_values(self):
-        DataCache.set_value("income_status", self._income_status)
-        DataCache.set_value("islands_status", self._island_status)
+        DataCache.set_value("fields_status", self._field_status)
         return super().save_cache_values()
 
     def valid_new_position(self):
@@ -37,30 +34,22 @@ class AppollonManager(AbstractManager):
         distance = 1300000
         self.new_place = ""
         self.moving_entity_id = ""
-        for _id, location in self.moving_entity.items():
-            self.moving_entity_id = _id
-            for field_id, field_center in self.fields_config.items():
-                temp_distance = self.calc_len(location["location"], field_center)
-                self.new_place = field_id if temp_distance < distance else self.new_place
-                distance = temp_distance if temp_distance < distance else distance
+        self.moving_entity_id = self.moving_entity["moving_entity_id"]
+        for field_id, field_center in self.fields_config.items():
+            temp_distance = self.calc_len(self.moving_entity["map_location"], field_center)
+            self.new_place = field_id if temp_distance < distance else self.new_place
+            distance = temp_distance if temp_distance < distance else distance
         if self.new_place:
-            self._island_status[self.new_place].income += 1
-            found = False
-            for id, income_config in self._income_status.items():
-                if income_config.location == self.new_place:
-                    self._income_status[id].quantity += 1
-                    found = True,
-                    entity_to_update = DataCache.get_value("entity_update")
-                    entity_to_update[id] = {
-                        "location": self.fields_config[self.new_place],
-                        "num_of_entities": self._island_status[self.new_place].income
-                    }
-                    DataCache.set_value("entity_update", entity_to_update)
-            if not found:
-                self._income_status[self.generate_unique_id()] = Income(
-                    self._island_status[self.new_place].income,
-                    self.new_place
-                )
+            self._field_status[self.new_place].income.quantity += 1
+            if self._field_status[self.new_place].income._id == 2:
+                self._field_status[self.new_place].income._id = self.generate_unique_id()
+            else:
+                entity_to_update = DataCache.get_value("entity_update")
+                entity_to_update[self._field_status[self.new_place].income._id] = {
+                    "location": self.fields_config[self.new_place],
+                    "quantity": self._field_status[self.new_place].income.quantity
+                }
+                DataCache.set_value("entity_update", entity_to_update)
             entity_to_delete = DataCache.get_value("entity_delete")
             entity_to_delete.append(2)
             DataCache.set_value("entity_delete", entity_to_delete)

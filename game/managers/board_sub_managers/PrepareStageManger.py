@@ -2,8 +2,10 @@ from pygame import Surface
 from pygame.event import Event
 
 from ...DataCache import DataCache
+
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.FieldDataClass import Fieldv2
+from ...dataclasses.IncomeDataClass import Income
 from ...enums.GameState import GameState
 from ...gui.common.Config import Config
 from .AbstractSubManager import AbstractSubManager
@@ -106,17 +108,17 @@ class PrepareStageManager(AbstractSubManager):
                     ),
                     {key: None for key in base_config["buildings"]["small"]},
                     False,
-                    None
+                    Income(0)
                 )
             else:
                 _field_status[island] = Fieldv2(
                     "island",
                     "None",
                     base_config["base_income"],
-                    Entity(None, None, None),
+                    Entity(None, None, 0),
                     {key: None for key in base_config["buildings"]["small"]},
                     False,
-                    None
+                    Income(0)
                 )
         DataCache.set_value("fields_status", _field_status)
 

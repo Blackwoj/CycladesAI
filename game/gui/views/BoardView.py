@@ -249,15 +249,16 @@ class BoardView(AbstractView):
             self.entities_sprite.add(entity)
 
     def load_income(self):
-        income_status = DataCache.get_value("income_status")
-        for id, income_data in income_status.items():
-            if id in self._loaded_entities:
+        fields_status: dict[str, Fieldv2] = DataCache.get_value("fields_status")
+        for field_id, field_data in fields_status.items():
+            if field_data.income._id in self._loaded_entities or field_data.income._id == 2:
                 continue
-            self._loaded_entities.append(id)
+            self._loaded_entities.append(field_data.income._id)
             income_entity = IncomeEntity(
-                id,
+                field_data.income._id,
                 self.screen,
-                income_data,
+                field_data.income,
+                field_id,
                 self._income_icon,
                 self._multiplayer_icon,
                 allow_drag=False
@@ -419,11 +420,13 @@ class BoardView(AbstractView):
         base_income = IncomeEntity(
             2,
             self.screen,
-            Income(1),
+            Income(1, 2),
+            "",
             self._income_icon,
             self._multiplayer_icon,
             True
         )
+        self._loaded_entities.append(2)
         self.income_sprite.add(base_income)
 
     def load_small_apollon(self):
