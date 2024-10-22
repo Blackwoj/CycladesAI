@@ -1,11 +1,12 @@
 from pygame import Surface
 from pygame.event import Event
-from .AbstractSubManager import AbstractSubManager
-from ...enums.GameState import GameState
+
 from ...DataCache import DataCache
-from ...gui.common.Config import Config
-from ...dataclasses.FieldDataClass import Fieldv2
 from ...dataclasses.EntitiesDataClass import Entity
+from ...dataclasses.FieldDataClass import Fieldv2
+from ...enums.GameState import GameState
+from ...gui.common.Config import Config
+from .AbstractSubManager import AbstractSubManager
 
 
 class PrepareStageManager(AbstractSubManager):

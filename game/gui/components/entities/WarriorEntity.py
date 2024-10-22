@@ -1,10 +1,10 @@
 import pygame
 
 from ....DataCache import DataCache
+from ....dataclasses.EntitiesDataClass import Entity
+from ....enums.GameState import GameState
 from ....static.EventConfig import EventConfig
 from .AbstractEntity import AbstractEntity
-from ....enums.GameState import GameState
-from ....dataclasses.EntitiesDataClass import Entity
 
 
 class WarriorEntity(AbstractEntity):

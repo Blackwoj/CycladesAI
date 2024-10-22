@@ -1,5 +1,7 @@
-from game.cyclades import GameManager
 import logging
+
+from game.cyclades import GameManager
+
 
 logging.getLogger(__name__)
 logging.basicConfig(

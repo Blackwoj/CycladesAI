@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
-import time
-import pygame
 import random
+import time
+from abc import ABC, abstractmethod
+
+import pygame
+
 from ..DataCache import DataCache
 
 

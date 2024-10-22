@@ -20,8 +20,7 @@ class ShipMessageBox(AbstractMessageBox):
         self._screen.blit(self._loaded_bg[box_size], window_center_setoff_box_size)
         self.write_text(message, [windows_size[0] // 2, windows_size[1] // 2])
         ship_config = DataCache.get_value("new_ship_location")
-        ship_id = list(ship_config.keys())[0]
-        num_of_av_war = ship_config[ship_id]["num_of_entities"]
+        num_of_av_war = ship_config["quantity"]
         self.build_button(num_of_av_war, self.locations(num_of_av_war, [80, 80], [windows_size[0] // 2, windows_size[1] // 2], box_size))
 
     def write_text(self, message, message_box_center):
@@ -40,7 +39,7 @@ class ShipMessageBox(AbstractMessageBox):
             if pygame.mouse.get_pressed()[0] == 1 and hit:
                 ship_data = DataCache.get_value("new_ship_location")
                 for key, data in ship_data.items():
-                    ship_data[key]["num_of_entities"] = i
+                    ship_data["quantity"] = i
                 DataCache.set_value("new_ship_location", ship_data)
                 pygame.event.post(pygame.event.Event(EventConfig.UPDATE_SHIP_POS))
 

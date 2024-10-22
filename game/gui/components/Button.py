@@ -1,6 +1,8 @@
 from typing import Callable, Optional
-from ...DataCache import DataCache
+
 import pygame
+
+from ...DataCache import DataCache
 
 
 class Button:

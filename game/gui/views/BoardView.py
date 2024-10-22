@@ -1,25 +1,25 @@
+import logging
 import time
 from pathlib import Path
-from typing import Callable, Any
+from typing import Any, Callable
 
 import pygame
 
 from ...DataCache import DataCache
+from ...dataclasses.EntitiesDataClass import Entity
+from ...dataclasses.FieldDataClass import Fieldv2
+from ...dataclasses.IncomeDataClass import Income
 from ...enums.GameState import GameState
+from ...static.EventConfig import EventConfig
 from ..common.Config import Config
 from ..components.Button import Button
 from ..components.entities.BuildingEntity import BuildingEntity
-from ..components.entities.WarriorEntity import WarriorEntity
-from ..components.entities.ShipEntity import ShipEntity
 from ..components.entities.IncomeEntity import IncomeEntity
-from ..components.MessageBoxes.WarriorMessageBox import WarriorMessageBox
+from ..components.entities.ShipEntity import ShipEntity
+from ..components.entities.WarriorEntity import WarriorEntity
 from ..components.MessageBoxes.ShipMessageBox import ShipMessageBox
+from ..components.MessageBoxes.WarriorMessageBox import WarriorMessageBox
 from .AbstractView import AbstractView
-from ...dataclasses.EntitiesDataClass import Entity
-from ...dataclasses.IncomeDataClass import Income
-from ...static.EventConfig import EventConfig
-from ...dataclasses.FieldDataClass import Fieldv2
-import logging
 
 
 class BoardView(AbstractView):

@@ -1,16 +1,18 @@
+import logging
+from abc import abstractmethod
+from typing import Any, Optional
+
 from pygame import Surface
 from pygame.event import Event
-from .AbstractSubManager import AbstractSubManager
-from ...enums.GameState import GameState
+
 from ...DataCache import DataCache
-from ...gui.common.Config import Config
-from abc import abstractmethod
-import logging
-from ...graph import Graph
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.FieldDataClass import Fieldv2
+from ...enums.GameState import GameState
+from ...graph import Graph
+from ...gui.common.Config import Config
 from ...utilities.utilities import calc_distance
-from typing import Optional, Any
+from .AbstractSubManager import AbstractSubManager
 
 
 class EntityManager(AbstractSubManager):
@@ -84,7 +86,7 @@ class EntityManager(AbstractSubManager):
         _new_map_location = self.moving_entity["map_location"]
         self.new_place = ""
 
-        for field_id, field_config in self.filed_config[self._num_of_players].items():
+        for field_id, field_config in self.filed_config.items():
             filed_to_check = []
             if "location" in field_config.keys():
                 filed_to_check = field_config["location"]
@@ -114,7 +116,7 @@ class EntityManager(AbstractSubManager):
                         "quantity": self._fields_status[_previous_location].entity.quantity
                     }
                     DataCache.set_value("entity_update", update_entity)
-                    logging.info("Wrong entity move", self.entity_type)
+                    logging.info("Wrong %s move", self.entity_type)
             else:
                 update_entity = DataCache.get_value("entity_update")
                 update_entity[self.moving_entity_id] = {
@@ -153,19 +155,13 @@ class EntityManager(AbstractSubManager):
             self.moving_entity,
             self._fields_status[_previous_location].entity,
         )
-        self.send_update(
-            self.moving_entity_id,
-            self.entities_points,
-            entity_split[1],
-            _previous_location
-        )
-
-        if self.entity_type == "ship" and entity_split[1] == 0:
-            self.entity_to_delete.append(self.moving_entity_id)
-            self._fields_status[_previous_location].entity = Entity(None, None, 0)
-            self._fields_status[_previous_location].owner = "None"
-        else:
-            self._fields_status[_previous_location].entity.quantity = entity_split[1]
+        if not self.entity_type == "ship" and not entity_split[1] == 0:
+            self.send_update(
+                self.moving_entity_id,
+                self.entities_points,
+                entity_split[1],
+                _previous_location
+            )
 
         if self._fields_status[self.new_place].owner == "None":
             self._fields_status[self.new_place].entity = Entity(
@@ -194,7 +190,7 @@ class EntityManager(AbstractSubManager):
                 )
                 self._fields_status[self.new_place].owner = self._fields_status[_previous_location].owner
                 self.entity_to_delete.append(defensive_entity_id)
-            elif war_diff <= 0:
+            elif war_diff < 0 or war_diff == 0 and self.entity_type == "warrior":
                 war_diff = abs(war_diff)
                 self.send_update(
                     defensive_entity_id,
@@ -202,10 +198,24 @@ class EntityManager(AbstractSubManager):
                     war_diff,
                     self.new_place
                 )
-            if war_diff == 0 and self.entity_type == "ship":
+            elif war_diff == 0 and self.entity_type == "ship":
                 self.entity_to_delete.append(defensive_entity_id)
+                self.entity_to_delete.append(self._fields_status[self.new_place].entity._id)
                 self._fields_status[self.new_place].owner = ""
+                self._fields_status[self.new_place].entity = Entity(None, None, 0)
             self._fields_status[self.new_place].entity.quantity = war_diff
+        if self.entity_type == "ship" and entity_split[1] == 0:
+            self.entity_to_delete.append(self.moving_entity_id)
+            self._fields_status[_previous_location].entity = Entity(None, None, 0)
+            self._fields_status[_previous_location].owner = "None"
+        else:
+            self._fields_status[_previous_location].entity.quantity = entity_split[1]
+            self.send_update(
+                self.moving_entity_id,
+                self.entities_points,
+                entity_split[1],
+                _previous_location
+            )
         self.save_cache_values()
 
     @staticmethod

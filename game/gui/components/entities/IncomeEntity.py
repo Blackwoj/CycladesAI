@@ -1,10 +1,10 @@
 import pygame
 
 from ....DataCache import DataCache
-from ....enums.GameState import GameState
-from .AbstractEntity import AbstractEntity
-from ....static.EventConfig import EventConfig
 from ....dataclasses.IncomeDataClass import Income
+from ....enums.GameState import GameState
+from ....static.EventConfig import EventConfig
+from .AbstractEntity import AbstractEntity
 
 
 class IncomeEntity(AbstractEntity):

@@ -2,8 +2,8 @@ from abc import abstractmethod
 
 import pygame
 
-from ..AbstractManager import AbstractManager
 from ...enums.GameState import GameState
+from ..AbstractManager import AbstractManager
 
 
 class AbstractSubManager(AbstractManager):

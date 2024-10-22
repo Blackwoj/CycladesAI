@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Literal, Union
 
 from .DataCacheSection.BoardCache import BoardCacheSection
@@ -5,7 +6,6 @@ from .DataCacheSection.CommonCache import CommonCache
 from .DataCacheSection.PlayerCache import PlayerCache
 from .DataCacheSection.RollCache import RollCacheSection
 from .enums.GameState import GameState
-from copy import deepcopy
 
 
 class DataCache:

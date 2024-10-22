@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import pygame
 from pygame.event import Event
@@ -7,11 +8,11 @@ from ..DataCache import DataCache
 from ..enums.GameState import GameState
 from ..static.EventConfig import EventConfig
 from .AbstractManager import AbstractManager
-from .board_sub_managers.PrepareStageManger import PrepareStageManager
-from .board_sub_managers.WarriorEntityManager import WarriorEntityManager
-from .board_sub_managers.ShipEntityManager import ShipEntityManager
 from .board_sub_managers.AppollonManager import AppollonManager
 from .board_sub_managers.BuildingsEntityManager import BuildingsEntityManager
+from .board_sub_managers.PrepareStageManger import PrepareStageManager
+from .board_sub_managers.ShipEntityManager import ShipEntityManager
+from .board_sub_managers.WarriorEntityManager import WarriorEntityManager
 
 
 class BoardManager(AbstractManager):
@@ -82,7 +83,7 @@ class BoardManager(AbstractManager):
         }
 
     def define_message(self, property: str, msg: str):
-        moving_entity = DataCache.get_value(self.new_entity[property])
+        moving_entity: dict[str, Any] = DataCache.get_value(self.new_entity[property])
         if moving_entity["quantity"] == 1:
             self.entity_manager[property].valid_new_position()
             return

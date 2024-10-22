@@ -1,13 +1,16 @@
-from pygame import Surface
-from game.enums.GameState import GameState
-from ..AbstractManager import AbstractManager
-from pygame.event import Event
-from ...DataCache import DataCache
-from ...gui.common.Config import Config
-from ...dataclasses.BuildingDataClass import Building
-from ...utilities.utilities import calc_distance
-from ...dataclasses.FieldDataClass import Fieldv2
 from copy import deepcopy
+
+from pygame import Surface
+from pygame.event import Event
+
+from game.enums.GameState import GameState
+
+from ...DataCache import DataCache
+from ...dataclasses.BuildingDataClass import Building
+from ...dataclasses.FieldDataClass import Fieldv2
+from ...gui.common.Config import Config
+from ...utilities.utilities import calc_distance
+from ..AbstractManager import AbstractManager
 
 
 class BuildingsEntityManager(AbstractManager):

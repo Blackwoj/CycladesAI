@@ -1,7 +1,8 @@
 from pygame import Surface
 from pygame.event import Event
-from ...enums.GameState import GameState
+
 from ...DataCache import DataCache
+from ...enums.GameState import GameState
 from ...gui.common.Config import Config
 from .EntityManager import EntityManager
 
@@ -26,7 +27,7 @@ class WarriorEntityManager(EntityManager):
 
     @property
     def filed_config(self):
-        return Config.boards.islands_config
+        return Config.boards.islands_config[self._num_of_players]
 
     @property
     def new_entity_tag(self) -> str:

@@ -1,10 +1,10 @@
 import pygame
 
 from ....DataCache import DataCache
+from ....dataclasses.EntitiesDataClass import Entity
+from ....enums.GameState import GameState
 from ....static.EventConfig import EventConfig
 from .AbstractEntity import AbstractEntity
-from ....enums.GameState import GameState
-from ....dataclasses.EntitiesDataClass import Entity
 
 
 class ShipEntity(AbstractEntity):
@@ -16,7 +16,7 @@ class ShipEntity(AbstractEntity):
         entity_data: Entity,
         entity_owner: str,
         entity_location: str,
-        warriors_icons: dict[str, dict[str, pygame.Surface]],
+        ship_icon: dict[str, dict[str, pygame.Surface]],
         ownership_icon: dict[str, pygame.Surface],
         multiply_icon: dict[int, pygame.Surface],
     ):
@@ -26,7 +26,7 @@ class ShipEntity(AbstractEntity):
             entity_data,
             entity_owner,
             entity_location,
-            warriors_icons[str(entity_data._type)][entity_owner],
+            ship_icon[str(entity_data._type)][entity_owner],
             multiply_icon,
             ownership_icon[str(entity_owner)]
         )
@@ -39,7 +39,12 @@ class ShipEntity(AbstractEntity):
         loc = (self._act_location[0] + self.icon_size, self._act_location[1] + self.icon_size)
         DataCache.set_value(
             "new_ship_location",
-            {self._id: {"location": loc, "quantity": self.entity_data.quantity}}
+            {
+                "moving_entity_id": self._id,
+                "previous_location": self.entity_location,
+                "map_location": loc,
+                "quantity": self.entity_data.quantity
+            }
         )
         pygame.event.post(pygame.event.Event(EventConfig.SHOW_MULTIPLY_OPTIONS_SHIP))
 

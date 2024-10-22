@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+
 from .BuildingDataClass import Building
 from .EntitiesDataClass import Entity
 from .IncomeDataClass import Income

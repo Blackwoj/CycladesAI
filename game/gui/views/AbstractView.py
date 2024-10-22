@@ -4,10 +4,10 @@ from pathlib import Path
 import pygame
 
 from ...DataCache import DataCache
+from ...dataclasses.BuildingDataClass import Building
 from ...static.EventConfig import EventConfig
 from ..common.Config import Config
 from ..components.Button import Button
-from ...dataclasses.BuildingDataClass import Building
 
 
 class AbstractView(ABC):

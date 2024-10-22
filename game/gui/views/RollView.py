@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pygame
@@ -8,7 +9,6 @@ from ...static.EventConfig import EventConfig
 from ..common.Config import Config
 from ..components.BidRow import BidRow
 from .AbstractView import AbstractView
-import time
 
 
 class RollView(AbstractView):

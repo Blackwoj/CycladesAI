@@ -1,11 +1,13 @@
-from pygame import Surface
-from pygame.event import Event
-from ...DataCache import DataCache
-from ...gui.common.Config import Config
 import math
 from typing import List
-from ..AbstractManager import AbstractManager
+
+from pygame import Surface
+from pygame.event import Event
+
+from ...DataCache import DataCache
 from ...dataclasses.IncomeDataClass import Income
+from ...gui.common.Config import Config
+from ..AbstractManager import AbstractManager
 
 
 class AppollonManager(AbstractManager):
