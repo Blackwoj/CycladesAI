@@ -9,6 +9,7 @@ from ...DataCache import DataCache
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.FieldDataClass import Fieldv2
 from ...dataclasses.IncomeDataClass import Income
+from ...dataclasses.BuildingDataClass import Building
 from ...enums.GameState import GameState
 from ...static.EventConfig import EventConfig
 from ..common.Config import Config
@@ -278,20 +279,37 @@ class BoardView(AbstractView):
                 self.draw_center(self.screen, (0, 0, 255), big_buildings, 3)
 
     def add_building(self):
-        buildings = DataCache.get_value("buildings_status")
         _if_new = False
-        for building_id in buildings.keys():
-            if building_id and building_id not in self._loaded_entities:
+        fields_data: dict[str, Fieldv2] = DataCache.get_value("fields_status")
+        for field_id, field_data in fields_data.items():
+            if not isinstance(field_data.buildings, dict) or field_data.type != "island":
+                continue
+            for building_place, building_value in field_data.buildings.items():
+                if isinstance(building_value, Building) and building_value._id not in self._loaded_entities:
+                    building = BuildingEntity(
+                        building_value._id,
+                        self.screen,
+                        Config.boards.buildings_centers[str(DataCache.get_value("num_of_players"))][field_id]["small"][int(building_place) - 1],
+                        self._buildings[building_value.hero],
+                        False,
+                        building_value.hero,
+                        field_id
+                    )
+                    self.building_sprite.add(building)
+                    self._loaded_entities.append(building_value._id)
+                    _if_new = True
+            if field_data.metropolis[0] and field_data.metropolis[1]._id not in self._loaded_entities:
                 building = BuildingEntity(
-                    building_id,
+                    field_data.metropolis[1]._id,
                     self.screen,
-                    buildings[building_id].location,
-                    self._buildings[buildings[building_id].hero],
+                    field_data.metropolis[1].gui_location,
+                    self._buildings[field_data.metropolis[1].hero],
                     False,
-                    buildings[building_id].hero
+                    field_data.metropolis[1].hero,
+                    field_id
                 )
                 self.building_sprite.add(building)
-                self._loaded_entities.append(building_id)
+                self._loaded_entities.append(field_data.metropolis[1]._id)
                 _if_new = True
         if _if_new:
             for building in self.building_sprite:
@@ -305,7 +323,7 @@ class BoardView(AbstractView):
         elif DataCache.get_value("reset_building"):
             DataCache.set_value("reset_building", False)
             for building in self.building_sprite:
-                if building._id == 1:
+                if building._id == 2:
                     self.building_sprite.remove(building)
             self._load_hero_layout()
 
@@ -498,7 +516,6 @@ class BoardView(AbstractView):
         return hero_card[DataCache.get_value("act_hero")]
 
     def add_card_to_player(self):
-
         card_status = DataCache.get_value(self.card_hero[0])
         coins_status = DataCache.get_value("coins")
         if coins_status[DataCache.get_value("act_player")] >= 4:

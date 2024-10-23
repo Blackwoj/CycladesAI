@@ -120,32 +120,29 @@ class AbstractView(ABC):
         pygame.event.post(pygame.event.Event(EventConfig.SHOW_BOARD))
 
     def switch_to_menu(self):
-        # pygame.event.post(pygame.event.Event(EventConfig.SHOW_MENU))
         filed_config = Config.boards.buildings_centers["5"]
-        # islands_status = DataCache.get_value("islands_status")
-        fields_status = DataCache.get_value("field_status")
-        buildings_status = DataCache.get_value("buildings_status")
-        fields_status["IS12"].buildings["1"] = Building(
+        fields_status = DataCache.get_value("fields_status")
+        fields_status["IS13"].buildings["1"] = Building(
             1111,
             'ares',
             filed_config["IS12"]["small"][0],
         )
-        fields_status["IS12"].buildings["2"] = Building(
+        fields_status["IS13"].buildings["2"] = Building(
             1112,
             'atena',
             filed_config["IS12"]["small"][1],
         )
-        fields_status["IS12"].buildings["3"] = Building(
+        fields_status["IS13"].buildings["3"] = Building(
             1113,
-            'buildings_status',
+            'posejdon',
             filed_config["IS12"]["small"][2],
         )
-        fields_status["IS12"].buildings["2"] = Building(
+        fields_status["IS4"].buildings["2"] = Building(
             1114,
             'zeus',
             filed_config["IS12"]["small"][1],
-        )   
-        DataCache.set_value("buildings_status", buildings_status)
+        )
+        DataCache.set_value("fields_status", fields_status)
 
     @abstractmethod
     def render_view(self):

@@ -24,7 +24,7 @@ class Fieldv2:
     base_income: int = 0
     entity: Entity = Entity(None, None, 0)
     buildings: Optional[dict[str, Optional[Building]]] = None
-    metropolis: bool = False
+    metropolis: tuple[bool, Building] = (False, Building(2, "", []))
     income: Income = Income(0, 2)
 
     def to_binary(self):

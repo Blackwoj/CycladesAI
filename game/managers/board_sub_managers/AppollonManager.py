@@ -33,7 +33,6 @@ class AppollonManager(AbstractManager):
         self.read_cache_values()
         distance = 1300000
         self.new_place = ""
-        self.moving_entity_id = ""
         self.moving_entity_id = self.moving_entity["moving_entity_id"]
         for field_id, field_center in self.fields_config.items():
             temp_distance = self.calc_len(self.moving_entity["map_location"], field_center)
