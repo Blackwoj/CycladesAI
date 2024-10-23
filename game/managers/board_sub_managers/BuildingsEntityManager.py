@@ -66,7 +66,7 @@ class BuildingsEntityManager(AbstractManager):
                         new_loc = [field_id, str(i + 1)] if temp_loc < closest_distance else new_loc
                         closest_distance = temp_loc if temp_loc < closest_distance else closest_distance
 
-        if closest_distance < 50 and self._coins[self._act_player] >= 2:
+        if closest_distance < 50 and self._coins[self._act_player] >= 2 and self._if_place_free(new_loc):
             self._coins[self._act_player] -= 2
             self.fields_status[new_loc[0]].buildings[new_loc[1]] = Building(  # type: ignore
                 self.generate_unique_id(),
@@ -148,4 +148,11 @@ class BuildingsEntityManager(AbstractManager):
                 entity_to_delete.append(self.fields_status[field_id].buildings[place]._id)  # type: ignore
                 self.fields_status[field_id].buildings[place] = None  # type: ignore
                 continue
+        return True
+
+    def _if_place_free(self, new_place: list):
+        islands_config = Config.boards.islands_config[str(DataCache.get_value("num_of_players"))]
+        metro_place_on_island = islands_config[new_place[0]]["buildings"]["big"][0]
+        if new_place[1] in metro_place_on_island:
+            return False
         return True
