@@ -55,7 +55,7 @@ class BuildingsEntityManager(AbstractManager):
 
         new_loc = ["", ""]
         closest_distance = Config.boards.default_max_len
-        if DataCache.get_value("metro_building"):
+        if DataCache.get_value("metro_building_philo") or DataCache.get_value("metro_building_build"):
             self.new_metro_decider()
             return
         for field_id, field_data in self.fields_status.items():
@@ -135,7 +135,8 @@ class BuildingsEntityManager(AbstractManager):
                     if building and building._id in delete_buildings_id:
                         field_data.buildings[place] = None
         DataCache.set_value("building_to_delete", {})
-        DataCache.set_value("metro_building", False)
+        DataCache.set_value("metro_building_philo", False)
+        DataCache.set_value("metro_building_build", False)
 
     def check_if_build_metro_possible(self, field_id, building_to_delete_ids) -> bool:
         islands_config = Config.boards.islands_config[str(DataCache.get_value("num_of_players"))]

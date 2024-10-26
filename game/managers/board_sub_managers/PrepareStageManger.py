@@ -163,7 +163,7 @@ class PrepareStageManager(AbstractSubManager):
     def check_win(self) -> list[str]:
         players_status = {}
         for _, field_data in DataCache.get_value("fields_status").items():
-            if field_data.type == "island" and field_data.metropolis:
+            if field_data.type == "island" and field_data.metropolis[0]:
                 if field_data.owner in players_status.keys():
                     players_status[field_data.owner] += 1
                 else:

@@ -63,7 +63,7 @@ class BoardManager(AbstractManager):
         if event.type == EventConfig.CHECK_ATHENS:
             self.check_athens_card()
         if self.entity_manager["building"].check_if_metro():
-            DataCache.set_value("metro_building", True)
+            DataCache.set_value("metro_building_build", True)
 
     def read_cache_values(self):
         self._fields_status = DataCache.get_value("fields_status")
@@ -99,9 +99,6 @@ class BoardManager(AbstractManager):
         athens_cards = DataCache.get_value("philosophers")
         for player, quantity in athens_cards.items():
             if quantity >= 4:
+                DataCache.set_value("metro_building_philo", True)
                 athens_cards[player] -= 4
-            # self.pass
                 pass
-
-    def check_buildings_to_metro(self):
-        pass

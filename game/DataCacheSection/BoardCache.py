@@ -17,7 +17,8 @@ class BoardCacheSection:
         "new_entity_price": 0,
         "zeus_card": False,
         "athena_card": False,
-        "metro_building": False,
+        "metro_building_build": False,
+        "metro_building_philo": False,
         "building_to_delete": {}
     }
 
@@ -38,7 +39,8 @@ class BoardCacheSection:
         "new_entity_price": lambda x: x,
         "zeus_card": lambda x: x,
         "athena_card": lambda x: x,
-        "metro_building": lambda x: x,
+        "metro_building_build": lambda x: x,
+        "metro_building_philo": lambda x: x,
         "building_to_delete": lambda x: x,
     }
 

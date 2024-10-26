@@ -53,7 +53,8 @@ class DataCache:
         "zeus_card",
         "athena_card",
 
-        "metro_building",
+        "metro_building_build",
+        "metro_building_philo",
         "building_to_delete",
     ]
 

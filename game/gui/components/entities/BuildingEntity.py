@@ -45,7 +45,7 @@ class BuildingEntity(pygame.sprite.Sprite):
     def update(self):
         if self._if_dragging:
             self.handle_mouse()
-        elif DataCache.get_value("metro_building") and self._champion != "metro":
+        elif (DataCache.get_value("metro_building_build") or DataCache.get_value("metro_building_philo")) and self._champion != "metro":
             self._handle_build_delete()
         self.rect.topleft = self._act_location
         if (
@@ -58,10 +58,14 @@ class BuildingEntity(pygame.sprite.Sprite):
             self.validate_move()
 
     def handle_mouse(self):
+        print(DataCache.get_value("metro_building_build"))
         if (
             DataCache.get_value("act_stage") != GameState.BOARD
             or DataCache.get_value("message_board")
-            or DataCache.get_value("metro_building")
+            or (
+                DataCache.get_value("metro_building_build")
+                or DataCache.get_value("metro_building_philo")
+            )
             and self._champion != "metro"
         ):
             return

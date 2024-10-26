@@ -80,7 +80,8 @@ class BoardView(AbstractView):
         self.next_icon = self.org_hov((Config.app.boards_items / "next_player"), [240, 60])
         self.metro_building = {
             "not": self.load_and_scale((Config.app.background_dir / "metro_req_not.png"), [300, 300]),
-            "yes": self.load_and_scale((Config.app.background_dir / "metro_req_place.png"), [300, 300])
+            "yes": self.load_and_scale((Config.app.background_dir / "metro_req_place.png"), [300, 300]),
+            "philo": self.load_and_scale((Config.app.background_dir / "metro_aten_place.png"), [300, 300])
         }
         self.yes = self.load_and_scale((Config.app.background_dir / "yes.png"), [40, 40])
 
@@ -129,8 +130,10 @@ class BoardView(AbstractView):
         self.screen.blit(self._play_order, [1140, 0])
 
         self.delete_entity()
-        if DataCache.get_value("metro_building") is True:
-            self.build_metro_decider()
+        if DataCache.get_value("metro_building_build") is True:
+            self.build_metro_decider_build()
+        if DataCache.get_value("metro_building_philo") is True:
+            self.build_metro_decider_philo()
         self.load_entity_to_buy()
         self.load_entities()
         self.load_income()
@@ -143,7 +146,7 @@ class BoardView(AbstractView):
         if DataCache.get_value("act_stage") == GameState.BOARD:
             self.next_player_button()
 
-    def build_metro_decider(self):
+    def build_metro_decider_build(self):
         _selected_status = DataCache.get_value("building_to_delete")
         if all(location != -1 for location in _selected_status.values()) and len(_selected_status.keys()) == 4:
             self.build_metro_building()
@@ -169,6 +172,10 @@ class BoardView(AbstractView):
             self.screen.blit(self.yes, (950, 415))
         if "zeus" in _selected_status.keys() and _selected_status["zeus"] != -1:
             self.screen.blit(self.yes, (950, 480))
+
+    def build_metro_decider_philo(self):
+        self.build_metro_building()
+        self.screen.blit(self.metro_building["philo"], (900, 250))
 
     def build_metro_building(self):
         if not self.metro_placing_exist:
@@ -460,7 +467,7 @@ class BoardView(AbstractView):
         next_player_button.update()
 
     def clear_player(self):
-        if not DataCache.get_value("metro_building"):
+        if not DataCache.get_value("metro_building_philo") and not DataCache.get_value("metro_building_build"):
             DataCache.set_value("act_player", "")
             DataCache.set_value("act_hero", "")
             for sprite_group in [self.building_sprite, self.entities_sprite, self.income_sprite]:
