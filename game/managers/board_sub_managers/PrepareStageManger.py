@@ -2,11 +2,11 @@ from pygame import Surface
 from pygame.event import Event
 
 from ...DataCache import DataCache
-
+from ...dataclasses.BuildingDataClass import Building
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.FieldDataClass import Fieldv2
 from ...dataclasses.IncomeDataClass import Income
-from ...dataclasses.BuildingDataClass import Building
+from ...dataclasses.PlayerDataClass import PlayerDataclass
 from ...enums.GameState import GameState
 from ...gui.common.Config import Config
 from .AbstractSubManager import AbstractSubManager
@@ -47,29 +47,29 @@ class PrepareStageManager(AbstractSubManager):
 
     @staticmethod
     def _calc_apollon_money(act_player):
-        _fields_status = DataCache.get_value("fields_status")
+        _fields_status: dict[str, Fieldv2] = DataCache.get_value("fields_status")
+        _player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
         num_of_is = 0
-        coins_for_player = DataCache.get_value("coins")
         for _, field_data in _fields_status.items():
             if field_data.type == "island" and field_data.owner == act_player:
                 num_of_is += 1
         if num_of_is > 1:
-            coins_for_player[act_player] += 1
+            _player_status[act_player].coins += 1
         else:
-            coins_for_player[act_player] += 4
-        DataCache.set_value("coins", coins_for_player)
+            _player_status[act_player].coins += 4
+        DataCache.set_value("player_data", _player_status)
 
     @staticmethod
     def _add_zeus_card(act_player):
-        priest_per_player = DataCache.get_value("priests")
-        priest_per_player[act_player] += 1
-        DataCache.set_value("priests", priest_per_player)
+        _player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
+        _player_status[act_player].priests += 1
+        DataCache.set_value("player_data", _player_status)
 
     @staticmethod
     def _add_atena_card(act_player):
-        philosophers_per_player = DataCache.get_value("philosophers")
-        philosophers_per_player[act_player] += 1
-        DataCache.set_value("philosophers", philosophers_per_player)
+        _player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
+        _player_status[act_player].philosophers += 1
+        DataCache.set_value("player_data", _player_status)
 
     def setup_board_first_stage(self):
         _water_config = Config.boards.water_config[str(DataCache.get_value("num_of_players"))]
@@ -130,11 +130,11 @@ class PrepareStageManager(AbstractSubManager):
         return super().save_cache_values()
 
     def end_stage(self):
-        _coins = DataCache.get_value("coins")
+        _player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
         income_pre_round = self.calculate_income()
         for player, income in income_pre_round.items():
-            _coins[player] += income
-        DataCache.set_value("coins", _coins)
+            _player_status[player].coins += income
+        DataCache.set_value("player_data", _player_status)
         DataCache.set_value("act_stage", GameState.ROLL)
         bid_order = []
         for row, bid in DataCache.get_value("bids_value").items():

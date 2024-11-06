@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 
 from pygame import Surface
@@ -8,10 +9,10 @@ from game.enums.GameState import GameState
 from ...DataCache import DataCache
 from ...dataclasses.BuildingDataClass import Building
 from ...dataclasses.FieldDataClass import Fieldv2
+from ...dataclasses.PlayerDataClass import PlayerDataclass
 from ...gui.common.Config import Config
 from ...utilities.utilities import calc_distance
 from ..AbstractManager import AbstractManager
-import logging
 
 
 class BuildingsEntityManager(AbstractManager):
@@ -27,13 +28,13 @@ class BuildingsEntityManager(AbstractManager):
         pass
 
     def read_cache_values(self):
-        self._coins = DataCache.get_value("coins")
+        self._player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
         self.fields_status: dict[str, Fieldv2] = DataCache.get_value("fields_status")
         self.building_location = DataCache.get_value("new_building")
         return super().read_cache_values()
 
     def save_cache_values(self):
-        DataCache.set_value("coins", self._coins)
+        DataCache.set_value("player_data", self._player_status)
         DataCache.set_value("fields_status", self.fields_status)
         DataCache.set_value("new_building", self.building_location)
         return super().save_cache_values()
@@ -66,8 +67,12 @@ class BuildingsEntityManager(AbstractManager):
                         new_loc = [field_id, str(i + 1)] if temp_loc < closest_distance else new_loc
                         closest_distance = temp_loc if temp_loc < closest_distance else closest_distance
 
-        if closest_distance < 50 and self._coins[self._act_player] >= 2 and self._if_place_free(new_loc):
-            self._coins[self._act_player] -= 2
+        if (
+            closest_distance < 50
+            and self._player_status[self._act_player].coins >= 2
+            and self._if_place_free(new_loc)
+        ):
+            self._player_status[self._act_player].coins -= 2
             self.fields_status[new_loc[0]].buildings[new_loc[1]] = Building(  # type: ignore
                 self.generate_unique_id(),
                 self._act_hero,

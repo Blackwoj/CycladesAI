@@ -8,6 +8,7 @@ from pygame.event import Event
 from ...DataCache import DataCache
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.FieldDataClass import Fieldv2
+from ...dataclasses.PlayerDataClass import PlayerDataclass
 from ...enums.GameState import GameState
 from ...graph import Graph
 from ...gui.common.Config import Config
@@ -27,7 +28,7 @@ class EntityManager(AbstractSubManager):
 
     @abstractmethod
     def read_cache_values(self):
-        self._coins = DataCache.get_value("coins")
+        self._player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
         self.moving_entity: dict[str, Any] = DataCache.get_value(
             self.new_entity_tag
         )
@@ -37,7 +38,7 @@ class EntityManager(AbstractSubManager):
 
     @abstractmethod
     def save_cache_values(self):
-        DataCache.set_value("coins", self._coins)
+        DataCache.set_value("player_data", self._player_status)
         DataCache.set_value("entity_delete", self.entity_to_delete)
         DataCache.set_value("fields_status", self._fields_status)
         return super().save_cache_values()
@@ -106,7 +107,7 @@ class EntityManager(AbstractSubManager):
             return
 
         if self.new_place:
-            if self._coins[self._fields_status[_previous_location].owner] >= 1:
+            if self._player_status[self._fields_status[_previous_location].owner].coins >= 1:
                 if self.valid_entity_move:
                     self.entity_move_prepare()
                 else:

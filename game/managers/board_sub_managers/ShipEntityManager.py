@@ -48,7 +48,7 @@ class ShipEntityManager(EntityManager):
 
     def entity_move_prepare(self):
         if self.available_posejdon_jumps == 0:
-            if self._coins[self._fields_status[self.moving_entity["previous_location"]].owner] == 0:
+            if self._player_status[self._fields_status[self.moving_entity["previous_location"]].owner].coins == 0:
                 self.send_update(
                     self.moving_entity_id,
                     self.entities_points,
@@ -56,7 +56,7 @@ class ShipEntityManager(EntityManager):
                     self.moving_entity["previous_location"]
                 )
                 return
-            self._coins[self._fields_status[self.moving_entity["previous_location"]].owner] -= 1
+            self._player_status[self._fields_status[self.moving_entity["previous_location"]].owner].coins -= 1
             DataCache.set_value("posejdon_move", 2)
         else:
             DataCache.set_value("posejdon_move", self.available_posejdon_jumps - 1)
@@ -70,7 +70,7 @@ class ShipEntityManager(EntityManager):
                 _is_valid_field = True
         if (
             _is_valid_field
-            and self._coins[self._act_player] >= int(self.moving_entity_id) * -1
+            and self._player_status[self._act_player].coins >= int(self.moving_entity_id) * -1
         ):
             _ship_added = False
             if self._fields_status[self.new_place].entity._id:
@@ -88,7 +88,7 @@ class ShipEntityManager(EntityManager):
                     1
                 )
                 self._fields_status[self.new_place].owner = self._act_player
-            self._coins[self._act_player] -= DataCache.get_value("new_entity_price")
+            self._player_status[self._act_player].coins -= DataCache.get_value("new_entity_price")
             if DataCache.get_value("new_entity_price") <= 3:
                 new_price = int(self.moving_entity_id) * (-1) + 1
                 DataCache.set_value("new_entity_price", new_price)

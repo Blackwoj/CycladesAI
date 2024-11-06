@@ -52,13 +52,13 @@ class WarriorEntityManager(EntityManager):
     def entity_move_prepare(self):
         for _, field_data in self._fields_status.items():
             if field_data.entity._id == self.moving_entity_id:
-                self._coins[field_data.owner] -= 1
+                self._player_status[self._act_player].coins -= 1
                 self.move_entity_define()
 
     def add_new_entity(self):
         if (
             self._fields_status[self.new_place].owner == self._act_player
-            and self._coins[self._act_player] >= int(self.moving_entity_id) * -1
+            and self._player_status[self._act_player].coins >= int(self.moving_entity_id) * -1
         ):
             self.send_update(
                 self._fields_status[self.new_place].entity._id,
@@ -67,7 +67,7 @@ class WarriorEntityManager(EntityManager):
                 self.new_place
             )
 
-            self._coins[self._act_player] -= DataCache.get_value("new_entity_price")
+            self._player_status[self._act_player].coins -= DataCache.get_value("new_entity_price")
 
             if DataCache.get_value("new_entity_price") <= 4:
                 new_price = int(self.moving_entity_id) * (-1) + 1

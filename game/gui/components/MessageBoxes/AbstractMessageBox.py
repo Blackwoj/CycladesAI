@@ -13,7 +13,7 @@ class AbstractMessageBox(ABC):
 
     def load_backgrounds(self):
         self._loaded_bg = {}
-        sizes = [(500, 300), (250, 150)]
+        sizes = [(500.0, 300.0), (250.0, 150.0)]
         message_bg_path = Config.app.background_dir / "message.png"
         loaded_img = pygame.image.load(message_bg_path).convert_alpha()
         for size in sizes:

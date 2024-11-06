@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from .AbstractDataClass import AbstractDataclass
 from .BuildingDataClass import Building
 from .EntitiesDataClass import Entity
 from .IncomeDataClass import Income
-from .AbstractDataClass import AbstractDataclass
 
 
 @dataclass

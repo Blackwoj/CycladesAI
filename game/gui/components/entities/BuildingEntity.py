@@ -58,7 +58,6 @@ class BuildingEntity(pygame.sprite.Sprite):
             self.validate_move()
 
     def handle_mouse(self):
-        print(DataCache.get_value("metro_building_build"))
         if (
             DataCache.get_value("act_stage") != GameState.BOARD
             or DataCache.get_value("message_board")

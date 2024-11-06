@@ -5,6 +5,7 @@ from enum import Enum
 import pygame
 
 from ..DataCache import DataCache
+from ..dataclasses.PlayerDataClass import PlayerDataclass
 from ..enums.GameState import GameState
 from ..gui.common.Config import Config
 from ..static.EventConfig import EventConfig
@@ -25,11 +26,11 @@ class RollManager(AbstractManager):
         self._bid_order = DataCache.get_value("bid_order")
         self._act_bids = DataCache.get_value("bids_value")
         self._heros_per_row = DataCache.get_value("heros_per_row")
-        self._players_coins = DataCache.get_value("coins")
-        self._players_priests = DataCache.get_value("priests")
+        self._player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
         super().read_cache_values()
 
     def save_cache_values(self):
+        DataCache.set_value("player_data", self._player_status)
         DataCache.set_value("bid_order", self._bid_order)
         DataCache.set_value("heros_per_row", self._heros_per_row)
         return super().save_cache_values()
@@ -52,8 +53,8 @@ class RollManager(AbstractManager):
         self.save_cache_values()
 
     def validate_bid(self, event):
-        player_coins = self._players_coins[self._act_player]
-        player_priests = self._players_priests[self._act_player]
+        player_coins = self._player_status[self._act_player].coins
+        player_priests = self._player_status[self._act_player].priests
         for row_name, row_event in EventConfig.ROWS.items():
             if event == row_event:
                 passed_bid = DataCache.get_value("temp_bid")
@@ -130,9 +131,9 @@ class RollManager(AbstractManager):
                         _player = self._act_bids[row]["player"]
                         board_game_order.append(_player)
                         price = self._act_bids[row]["bid"]
-                        pricer_without_priests = price - self._players_priests[_player]
+                        pricer_without_priests = price - self._player_status[_player].priests
                         final_cost = 1 if pricer_without_priests <= 0 else pricer_without_priests
-                        self._players_coins[_player] = self._players_coins[_player] - final_cost
+                        self._player_status[_player].coins = self._player_status[_player].coins - final_cost
                         players_heros[_player] = row_hero
                     else:
                         for i in range(len(self._act_bids[row])):

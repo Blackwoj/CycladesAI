@@ -6,10 +6,11 @@ from typing import Any, Callable
 import pygame
 
 from ...DataCache import DataCache
+from ...dataclasses.BuildingDataClass import Building
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.FieldDataClass import Fieldv2
 from ...dataclasses.IncomeDataClass import Income
-from ...dataclasses.BuildingDataClass import Building
+from ...dataclasses.PlayerDataClass import PlayerDataclass
 from ...enums.GameState import GameState
 from ...static.EventConfig import EventConfig
 from ..common.Config import Config
@@ -523,15 +524,13 @@ class BoardView(AbstractView):
         return hero_card[DataCache.get_value("act_hero")]
 
     def add_card_to_player(self):
-        card_status = DataCache.get_value(self.card_hero[0])
-        coins_status = DataCache.get_value("coins")
-        if coins_status[DataCache.get_value("act_player")] >= 4:
+        player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
+        if player_status[DataCache.get_value("act_player")].coins >= 4:
             DataCache.set_value(self.card_hero[1], False)
 
-            card_status[DataCache.get_value("act_player")] += 1
+            player_status[DataCache.get_value("act_player")].philosophers += 1
             if DataCache.get_value("act_hero") == "atena":
                 pygame.event.post(pygame.event.Event(EventConfig.CHECK_ATHENS))
-            coins_status[DataCache.get_value("act_player")] -= 4
+            player_status[DataCache.get_value("act_player")].coins -= 4
 
-            DataCache.set_value(self.card_hero[0], card_status)
-            DataCache.set_value("coins", coins_status)
+            DataCache.set_value("player_data", player_status)

@@ -89,17 +89,17 @@ class AbstractView(ABC):
             self.screen.blit(self.hero_icon[hero_player_name], [0, 500])
 
             philosophers_player_name = str(
-                DataCache.get_value("philosophers")[DataCache.get_value("act_player")]
+                DataCache.get_value("player_data")[DataCache.get_value("act_player")].philosophers
             )
             self.screen.blit(self.philosophers[philosophers_player_name], [0, 560])
 
             priests_player_name = str(
-                DataCache.get_value("priests")[DataCache.get_value("act_player")]
+                DataCache.get_value("player_data")[DataCache.get_value("act_player")].priests
             )
             self.screen.blit(self.priest_icon[str(priests_player_name)], [0, 620])
 
             coin_player_name = str(
-                DataCache.get_value("coins")[DataCache.get_value("act_player")]
+                DataCache.get_value("player_data")[DataCache.get_value("act_player")].coins
             )
             self.screen.blit(self.coins_icon[str(coin_player_name)], [0, 680])
 

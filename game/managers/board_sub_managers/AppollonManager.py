@@ -5,9 +5,9 @@ from pygame import Surface
 from pygame.event import Event
 
 from ...DataCache import DataCache
+from ...dataclasses.FieldDataClass import Fieldv2
 from ...gui.common.Config import Config
 from ..AbstractManager import AbstractManager
-from ...dataclasses.FieldDataClass import Fieldv2
 
 
 class AppollonManager(AbstractManager):

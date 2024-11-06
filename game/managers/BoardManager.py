@@ -5,6 +5,8 @@ import pygame
 from pygame.event import Event
 
 from ..DataCache import DataCache
+from ..dataclasses.FieldDataClass import Fieldv2
+from ..dataclasses.PlayerDataClass import PlayerDataclass
 from ..enums.GameState import GameState
 from ..static.EventConfig import EventConfig
 from .AbstractManager import AbstractManager
@@ -66,13 +68,13 @@ class BoardManager(AbstractManager):
             DataCache.set_value("metro_building_build", True)
 
     def read_cache_values(self):
-        self._fields_status = DataCache.get_value("fields_status")
-        self._coins = DataCache.get_value("coins")
+        self._fields_status: dict[str, Fieldv2] = DataCache.get_value("fields_status")
+        self._player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
         super().read_cache_values()
 
     def save_cache_values(self):
         DataCache.set_value("fields_status", self._fields_status)
-        DataCache.set_value("coins", self._coins)
+        DataCache.set_value("player_data", self._player_status)
         super().save_cache_values()
 
     @property
@@ -96,9 +98,7 @@ class BoardManager(AbstractManager):
         )
 
     def check_athens_card(self):
-        athens_cards = DataCache.get_value("philosophers")
-        for player, quantity in athens_cards.items():
-            if quantity >= 4:
+        for _, player_data in self._player_status.items():
+            if player_data.philosophers >= 4:
                 DataCache.set_value("metro_building_philo", True)
-                athens_cards[player] -= 4
-                pass
+                player_data.philosophers -= 4

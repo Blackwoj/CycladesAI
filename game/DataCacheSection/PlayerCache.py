@@ -1,3 +1,6 @@
+from ..dataclasses.PlayerDataClass import PlayerDataclass
+
+
 class PlayerCache:
 
     _data_cache: dict = {
@@ -8,34 +11,31 @@ class PlayerCache:
             "p4": "None",
             "p5": "None",
         },
-        "coins": {
-            "p1": 5,
-            "p2": 5,
-            "p3": 5,
-            "p4": 5,
-            "p5": 5
-        },
-        "priests": {
-            "p1": 0,
-            "p2": 0,
-            "p3": 0,
-            "p4": 0,
-            "p5": 0
-        },
-        "philosophers": {
-            "p1": 0,
-            "p2": 0,
-            "p3": 0,
-            "p4": 0,
-            "p5": 0
+        "player_data": {
+            "p1": PlayerDataclass(
+                "p1",
+                5,
+            ),
+            "p2": PlayerDataclass(
+                "p2",
+                5,
+            ),
+            "p3": PlayerDataclass(
+                "p3",
+                5,
+            ),
+            "p4": PlayerDataclass(
+                "p4",
+                5,
+            ),
+            "p5": PlayerDataclass(
+                "p5",
+                5,
+            )
         }
     }
 
     _cache_data_functions: dict = {
-        "coins": lambda x: x,
-        "priests": lambda x: x,
-        "philosophers": lambda x: x,
+        "player_data": lambda x: x,
         "hero_players": lambda x: x,
     }
-
-    _base_values: dict = {}
