@@ -9,3 +9,11 @@ class PosejdonReqModel(AbstractModelClass):
     @property
     def model_name(self):
         return "PosejdonReqModel"
+
+    @property
+    def action_outputs(self) -> list[int]:
+        """Returns number of outputs: 1
+        1. target water
+        """
+
+        return [61]

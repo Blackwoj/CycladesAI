@@ -12,10 +12,17 @@ class AbstractDecider(AbstractModelClass):
 
     @abstractmethod
     def load_model(self, location: Path):
-        self._build_model.load_model(location)
         super().load_model(location)
 
     @property
     @abstractmethod
     def model_name(self) -> str:
         raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def action_outputs(self):
+        raise NotImplementedError
+
+    def save_model(self, location: Path):
+        return super().save_model(location)

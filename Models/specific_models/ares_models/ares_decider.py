@@ -17,6 +17,21 @@ class AresModel(AbstractDecider):
         self._req_model.load_model(location)
         super().load_model(location)
 
+    def save_model(self, location: Path):
+        self._move_model.save_model(location)
+        self._req_model.save_model(location)
+        return super().save_model(location)
+
     @property
     def model_name(self):
         return "AresDeciderModel"
+
+    @property
+    def action_outputs(self) -> list[int]:
+        """Returns number of outputs
+        1. Move entity(0 - 1)
+        2. Recruit entity(0 - 1)
+        3. BuildBuilding(0 - 1)
+        4. End Round(0 - 1)
+        """
+        return [1, 1, 1, 1]

@@ -3,9 +3,15 @@ from ....abstract_models.abstract_base_model import AbstractModelClass
 
 class PosejdonMoveModel(AbstractModelClass):
 
-    def __init__(self):
-        self._model = None
-
     @property
     def model_name(self) -> str:
         return "PosejdonMoveModel"
+
+    @property
+    def action_outputs(self) -> list[int]:
+        """Returns number of outputs: 3
+        1. source water (1-61)
+        2. target water (1-61)
+        3. quantity (1-6)
+        """
+        return [61, 61, 6]

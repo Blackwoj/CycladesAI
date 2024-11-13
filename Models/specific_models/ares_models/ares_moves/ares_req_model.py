@@ -9,3 +9,11 @@ class AresReqModel(AbstractModelClass):
     @property
     def model_name(self):
         return "AresReqModel"
+
+    @property
+    def action_outputs(self) -> list[int]:
+        """Returns number of outputs: 1
+        1. target island (1-13)
+        """
+
+        return [13]
