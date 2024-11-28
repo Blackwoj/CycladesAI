@@ -10,9 +10,8 @@ class PlayerDataclass(AbstractDataclass):
     philosophers: int = 0
     priests: int = 0
 
-    def to_numbers(self):
+    def to_binary(self):
         return [
-            self._player_to_int(self._player_id),
             self.coins,
             self.philosophers,
             self.priests
@@ -21,7 +20,6 @@ class PlayerDataclass(AbstractDataclass):
     @staticmethod
     def columns_names():
         return [
-            "player",
             "coins",
             "philosophers_cards",
             "priests_cards"

@@ -13,3 +13,6 @@ class ApolloModel(AbstractModelClass):
         2. target island (1-13 )
         """
         return [13]
+
+    def get_action(self, state):
+        return self._choose_action(state)

@@ -31,6 +31,7 @@ class PlayerCache:
             "p5": PlayerDataclass(
                 "p5",
                 5,
+                2
             )
         }
     }

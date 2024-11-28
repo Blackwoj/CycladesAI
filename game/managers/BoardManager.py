@@ -62,6 +62,9 @@ class BoardManager(AbstractManager):
         if event.type == EventConfig.NEW_BUILDING:
             self.entity_manager["building"].new_building_decider()
             self.save_cache_values()
+        if event.type == EventConfig.ADD_CARD:
+            self.add_cards()
+            self.save_cache_values()
         if event.type == EventConfig.CHECK_ATHENS:
             self.check_athens_card()
         if self.entity_manager["building"].check_if_metro():
@@ -102,3 +105,24 @@ class BoardManager(AbstractManager):
             if player_data.philosophers >= 4:
                 DataCache.set_value("metro_building_philo", True)
                 player_data.philosophers -= 4
+
+    def add_cards(self):
+        if self._player_status[DataCache.get_value("act_player")].coins >= 4:
+            DataCache.set_value(self.card_hero[1], False)
+            if self._act_hero == "atena":
+                self._player_status[DataCache.get_value("act_player")].philosophers += 1
+                pygame.event.post(pygame.event.Event(EventConfig.CHECK_ATHENS))
+            elif self._act_hero == "zeus":
+                self._player_status[DataCache.get_value("act_player")].priests += 1
+            self._player_status[DataCache.get_value("act_player")].coins -= 4
+            DataCache.set_value("move_data", ["card"])
+        else:
+            DataCache.set_value("valid_ai_move", False)
+
+    @property
+    def card_hero(self) -> list:
+        hero_card = {
+            "atena": ["philosophers", "athena_card"],
+            "zeus": ["priests", "zeus_card"]
+        }
+        return hero_card[DataCache.get_value("act_hero")]

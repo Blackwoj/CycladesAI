@@ -66,13 +66,17 @@ class BuildingsEntityManager(AbstractManager):
                         temp_loc = calc_distance(self.building_location, self.field_config[field_id]["small"][i])
                         new_loc = [field_id, str(i + 1)] if temp_loc < closest_distance else new_loc
                         closest_distance = temp_loc if temp_loc < closest_distance else closest_distance
-
         if (
             closest_distance < 50
             and self._player_status[self._act_player].coins >= 2
-            and self._if_place_free(new_loc)
+            and (
+                not self.fields_status[new_loc[0]].metropolis[0]
+                or self._if_place_free(new_loc)
+            )
         ):
             self._player_status[self._act_player].coins -= 2
+            DataCache.set_value("move_data", ["build", new_loc[0], new_loc[1]])
+            DataCache.set_value("valid_ai_move", True)
             self.fields_status[new_loc[0]].buildings[new_loc[1]] = Building(  # type: ignore
                 self.generate_unique_id(),
                 self._act_hero,
@@ -80,6 +84,7 @@ class BuildingsEntityManager(AbstractManager):
             )
         else:
             DataCache.set_value("reset_building", True)
+            DataCache.set_value("valid_ai_move", False)
         self.save_cache_values()
 
     def new_metro_decider(self):
@@ -98,6 +103,11 @@ class BuildingsEntityManager(AbstractManager):
                 list(DataCache.get_value("building_to_delete").values())
             )
         ):
+            DataCache.set_value("move_data", [
+                "metro_build",
+                new_loc,
+                DataCache.get_value("building_to_delete")
+            ])
             self.delete_buildings()
             self.fields_status[new_loc].metropolis = (
                 True,
@@ -108,6 +118,7 @@ class BuildingsEntityManager(AbstractManager):
                 )
             )
         else:
+            DataCache.set_value("valid_ai_move", False)
             DataCache.set_value("reset_building", True)
         self.save_cache_values()
 

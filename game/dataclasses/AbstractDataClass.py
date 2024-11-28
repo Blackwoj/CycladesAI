@@ -6,6 +6,7 @@ class AbstractDataclass:
     @staticmethod
     def _player_to_int(player):
         player_id = {
+            "None": 0,
             "p1": 1,
             "p2": 2,
             "p3": 3,

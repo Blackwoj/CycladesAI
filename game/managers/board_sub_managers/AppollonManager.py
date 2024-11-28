@@ -38,7 +38,13 @@ class AppollonManager(AbstractManager):
             temp_distance = self.calc_len(self.moving_entity["map_location"], field_center)
             self.new_place = field_id if temp_distance < distance else self.new_place
             distance = temp_distance if temp_distance < distance else distance
-        if self.new_place:
+        if (
+            self.new_place
+            and distance < 80
+            and self._act_player == self._field_status[self.new_place].owner
+        ):
+            DataCache.set_value("move_data", ["income_place", self.new_place])
+            DataCache.set_value("valid_ai_move", True)
             self._field_status[self.new_place].income.quantity += 1
             if self._field_status[self.new_place].income._id == 2:
                 self._field_status[self.new_place].income._id = self.generate_unique_id()
@@ -52,6 +58,9 @@ class AppollonManager(AbstractManager):
             entity_to_delete = DataCache.get_value("entity_delete")
             entity_to_delete.append(2)
             DataCache.set_value("entity_delete", entity_to_delete)
+        else:
+            DataCache.set_value("reset_building", True)
+            DataCache.set_value("valid_ai_move", False)
 
     @property
     def moving_entity(self) -> dict:

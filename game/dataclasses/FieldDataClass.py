@@ -29,9 +29,9 @@ class Fieldv2(AbstractDataclass):
         income = self.base_income + self.income.quantity
         if self.buildings:
             buildings = [
-                self._hero_building_to_int(hero)
-                if hero else 0
-                for hero in self.buildings.keys()
+                self._hero_building_to_int(building.hero)
+                if building else 0
+                for building in self.buildings.values()
             ]
             while len(buildings) < 4:
                 buildings.append(-1)
@@ -41,7 +41,7 @@ class Fieldv2(AbstractDataclass):
             self._player_int,
             income,
             self.entity.quantity,
-            buildings,
+            *buildings,
             1 if self.metropolis[0] else 0,
         ]
 
@@ -83,3 +83,12 @@ class Fieldv2(AbstractDataclass):
             ]
         else:
             raise NotImplementedError
+
+    @property
+    def get_all_building(self) -> list[int]:
+        buildings = [0, 0, 0, 0]
+        if self.buildings:
+            for _, building in self.buildings.items():
+                if building and building.hero and building.hero != "None":
+                    buildings[self._hero_building_to_int(building.hero) - 1] += 1
+        return buildings

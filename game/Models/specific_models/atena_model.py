@@ -19,3 +19,13 @@ class AtenaModel(AbstractDecider):
         4. End Round(0 - 1)
         """
         return [1, 1, 1]
+
+    def get_action(self, state):
+        decision = self._choose_action(state)
+        if decision[0]:
+            return "Buy Card", []
+        elif decision[1]:
+            return self._build_model.model_name, self._build_model.get_action(state)
+        elif decision[2]:
+            return "End", []
+        raise NotImplementedError

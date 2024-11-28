@@ -1,3 +1,5 @@
+import logging
+
 from pygame import Surface
 from pygame.event import Event
 
@@ -49,6 +51,7 @@ class ShipEntityManager(EntityManager):
     def entity_move_prepare(self):
         if self.available_posejdon_jumps == 0:
             if self._player_status[self._fields_status[self.moving_entity["previous_location"]].owner].coins == 0:
+                DataCache.set_value("valid_ai_move", False)
                 self.send_update(
                     self.moving_entity_id,
                     self.entities_points,
@@ -71,7 +74,9 @@ class ShipEntityManager(EntityManager):
         if (
             _is_valid_field
             and self._player_status[self._act_player].coins >= int(self.moving_entity_id) * -1
+            and self.count_all_player_entity < 6
         ):
+            DataCache.set_value("move_data", ["req", self.new_place])
             _ship_added = False
             if self._fields_status[self.new_place].entity._id:
                 self.send_update(
@@ -94,8 +99,22 @@ class ShipEntityManager(EntityManager):
                 DataCache.set_value("new_entity_price", new_price)
         else:
             update_entity = DataCache.get_value("entity_update")
+            DataCache.set_value("valid_ai_move", False)
+            logging.info("Invalid recruit try!")
             update_entity[self.moving_entity_id] = {
                 "location": Config.boards.new_special_event_loc,
                 "quantity": 1
             }
             DataCache.set_value("entity_update", update_entity)
+
+    @property
+    def count_all_player_entity(self):
+        counter = 0
+        for _, field_data in self._fields_status.items():
+            if (
+                field_data.type == "water"
+                and field_data.owner == DataCache.get_value("act_player")
+                and field_data.entity.quantity > 0
+            ):
+                counter += field_data.entity.quantity
+        return counter

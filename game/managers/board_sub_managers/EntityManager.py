@@ -72,6 +72,11 @@ class EntityManager(AbstractSubManager):
     def valid_entity_move(self) -> bool:
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def count_all_player_entity(self):
+        raise NotImplementedError
+
     @abstractmethod
     def entity_move_prepare(self):
         raise NotImplementedError
@@ -99,6 +104,7 @@ class EntityManager(AbstractSubManager):
                 distance = temp_distance if temp_distance < distance else distance
         if not self.new_place:
             logging.info("No place found for entity!")
+            DataCache.set_value("valid_ai_move", False)
             return
         logging.info("Found place: %s for entity", self.new_place)
 
@@ -109,6 +115,15 @@ class EntityManager(AbstractSubManager):
         if self.new_place:
             if self._player_status[self._fields_status[_previous_location].owner].coins >= 1:
                 if self.valid_entity_move:
+                    DataCache.set_value(
+                        "move_data",
+                        [
+                            "move",
+                            self.moving_entity["previous_location"],
+                            self.new_place,
+                            self.moving_entity["quantity"],
+                        ]
+                    )
                     self.entity_move_prepare()
                 else:
                     update_entity = DataCache.get_value("entity_update")
@@ -117,6 +132,7 @@ class EntityManager(AbstractSubManager):
                         "quantity": self._fields_status[_previous_location].entity.quantity
                     }
                     DataCache.set_value("entity_update", update_entity)
+                    DataCache.set_value("valid_ai_move", False)
                     logging.info("Wrong %s move", self.entity_type)
             else:
                 update_entity = DataCache.get_value("entity_update")

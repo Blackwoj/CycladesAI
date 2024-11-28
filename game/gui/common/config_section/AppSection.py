@@ -17,3 +17,6 @@ class AppSection:
 
     players_names: list[str] = ["p1", "p2", "p3", "p4", "p5"]
     heros_names: list[str] = ["ares", "atena", "posejdon", "zeus"]
+
+    ai_player: list[str] = ["p5"]
+    train_ai_player: list[str] = ["p1", "p2", "p3", "p4"]

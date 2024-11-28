@@ -14,3 +14,6 @@ class RollModel(AbstractModelClass):
         3. Price(1- 100)
         """
         return [5, 100]
+
+    def get_action(self, state):
+        return self._choose_action(state)

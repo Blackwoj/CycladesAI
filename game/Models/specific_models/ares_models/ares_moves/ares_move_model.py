@@ -15,3 +15,6 @@ class AresMoveModel(AbstractModelClass):
         3. quantity(1-6)
         """
         return [13, 13, 6]
+
+    def get_action(self, state):
+        return self.model_name, self._choose_action(state)

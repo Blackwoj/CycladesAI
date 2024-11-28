@@ -8,6 +8,8 @@ from .gui.GameGui import ViewManager
 from .managers.BoardManager import BoardManager
 from .managers.RollManager import RollManager
 from .static.EventConfig import EventConfig
+from .gui.common.Config import Config
+from .connector.Model_connector import ConnectModel
 
 
 class GameManager:
@@ -20,6 +22,7 @@ class GameManager:
         self.RollManager = RollManager(self.screen)
         self.BoardManager = BoardManager(self.screen)
         self.current_state = GamePages.START
+        self.model_connector = ConnectModel()
         DataCache.set_value("act_stage", GameState.ROLL)
 
     @property
@@ -50,13 +53,25 @@ class GameManager:
 
     # Handle any input events
     def handle_events(self):
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        if not events and DataCache.get_value("act_player") in Config.app.ai_player:
+            # TODO add run algorithm for AI
+            self.model_connector.predict_state()
+            pass
+        if events and DataCache.get_value("act_player") in Config.app.train_ai_player and not DataCache.get_value("move_data"):
+            self.model_connector.save_pre_state()
+        for event in events:
             if event.type == pygame.QUIT:
                 self.quit_game()
             elif event.type in EventConfig.CHANGE_PAGE:
                 self._change_page(event)
             else:
                 self._handle_event_dict(event)
+        if DataCache.get_value("success"):
+            self.model_connector.train_on_state()
+            pass
+        if DataCache.get_value("move_data"):
+            self.model_connector.train_on_state()
 
     def _change_page(self, event: pygame.event.Event):
         """Handle change page event

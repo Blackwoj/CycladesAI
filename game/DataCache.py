@@ -5,6 +5,7 @@ from .DataCacheSection.BoardCache import BoardCacheSection
 from .DataCacheSection.CommonCache import CommonCache
 from .DataCacheSection.PlayerCache import PlayerCache
 from .DataCacheSection.RollCache import RollCacheSection
+from .DataCacheSection.AiCache import AiCacheSection
 from .enums.GameState import GameState
 
 
@@ -14,7 +15,8 @@ class DataCache:
         GameState.ROLL: RollCacheSection,
         "Common": CommonCache,
         "Player": PlayerCache,
-        GameState.BOARD: BoardCacheSection
+        GameState.BOARD: BoardCacheSection,
+        "Ai": AiCacheSection,
     }
 
     AvailableSections = Literal[
@@ -54,6 +56,10 @@ class DataCache:
         "metro_building_build",
         "metro_building_philo",
         "building_to_delete",
+
+        "success",
+        "move_data",
+        "valid_ai_move",
     ]
 
     _data_cache: dict = {}

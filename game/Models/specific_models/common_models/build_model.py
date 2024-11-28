@@ -14,3 +14,6 @@ class BuildModel(AbstractModelClass):
         2. Place on island (1-4)
         """
         return [13, 4]
+
+    def get_action(self, state):
+        return self.model_name, self._choose_action(state)

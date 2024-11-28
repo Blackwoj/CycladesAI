@@ -1,7 +1,9 @@
 from pygame import Surface
 from pygame.event import Event
+import pygame
 
 from ...DataCache import DataCache
+from ...static.EventConfig import EventConfig
 from ...dataclasses.BuildingDataClass import Building
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.FieldDataClass import Fieldv2
@@ -69,6 +71,7 @@ class PrepareStageManager(AbstractSubManager):
     def _add_atena_card(act_player):
         _player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
         _player_status[act_player].philosophers += 1
+        pygame.event.post(pygame.event.Event(EventConfig.CHECK_ATHENS))
         DataCache.set_value("player_data", _player_status)
 
     def setup_board_first_stage(self):
@@ -145,7 +148,11 @@ class PrepareStageManager(AbstractSubManager):
                     bid_order.append(player_appollon_bid)
         DataCache.set_value("bid_order", bid_order)
         if self.check_win:
-            print(self.check_win)
+            print(
+                "WINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWIN",
+                self.check_win,
+                "WINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWINWIN",
+            )
         DataCache.reset_stage(GameState.ROLL)
 
     @staticmethod

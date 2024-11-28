@@ -76,7 +76,11 @@ class AbstractModelClass:
         critic_model.compile(optimizer=optimizers.Adam(lr=0.001), loss="mse")  # type: ignore
         return critic_model
 
-    def choose_action(self, state):
+    @abstractmethod
+    def get_action(self):
+        raise NotImplementedError
+
+    def _choose_action(self, state):
         state = np.expand_dims(state, axis=0)
         if self._model_action is None:
             logging.error("No action model for %s", self.model_name)
@@ -129,7 +133,7 @@ class AbstractModelClass:
         return actor_loss.numpy(), critic_loss
 
     def predict(self, state):
-        return self.choose_action(state)
+        return self._choose_action(state)
 
     def save_model(self, location: Path):
         pass

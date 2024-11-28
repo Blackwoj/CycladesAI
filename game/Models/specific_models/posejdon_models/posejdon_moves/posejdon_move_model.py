@@ -15,3 +15,6 @@ class PosejdonMoveModel(AbstractModelClass):
         3. quantity (1-6)
         """
         return [61, 61, 6]
+
+    def get_action(self, state):
+        return self.model_name, self._choose_action(state)

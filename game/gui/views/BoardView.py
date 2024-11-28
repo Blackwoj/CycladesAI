@@ -443,17 +443,23 @@ class BoardView(AbstractView):
         self.building_sprite.add(base_building)
 
     def load_appollon(self):
-        base_income = IncomeEntity(
-            2,
-            self.screen,
-            Income(1, 2),
-            "",
-            self._income_icon,
-            self._multiplayer_icon,
-            True
-        )
-        self._loaded_entities.append(2)
-        self.income_sprite.add(base_income)
+        if DataCache.get_value("reset_building"):
+            for entity in self.income_sprite:
+                if entity.entity_id == 2:
+                    self.income_sprite.remove(entity)
+                    self._loaded_entities.remove(entity.entity_id)
+        if 2 not in self._loaded_entities:
+            base_income = IncomeEntity(
+                2,
+                self.screen,
+                Income(1, 2),
+                "",
+                self._income_icon,
+                self._multiplayer_icon,
+                True
+            )
+            self._loaded_entities.append(2)
+            self.income_sprite.add(base_income)
 
     def load_small_apollon(self):
         pass
@@ -515,22 +521,6 @@ class BoardView(AbstractView):
             )
             zeus_card.update()
 
-    @property
-    def card_hero(self) -> list:
-        hero_card = {
-            "atena": ["philosophers", "athena_card"],
-            "zeus": ["priests", "zeus_card"]
-        }
-        return hero_card[DataCache.get_value("act_hero")]
-
     def add_card_to_player(self):
-        player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
-        if player_status[DataCache.get_value("act_player")].coins >= 4:
-            DataCache.set_value(self.card_hero[1], False)
-
-            player_status[DataCache.get_value("act_player")].philosophers += 1
-            if DataCache.get_value("act_hero") == "atena":
-                pygame.event.post(pygame.event.Event(EventConfig.CHECK_ATHENS))
-            player_status[DataCache.get_value("act_player")].coins -= 4
-
-            DataCache.set_value("player_data", player_status)
+        pygame.event.post(pygame.event.Event(EventConfig.ADD_CARD))
+        time.sleep(0.5)

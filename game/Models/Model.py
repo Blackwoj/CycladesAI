@@ -46,13 +46,45 @@ class CycladesAI:
         pass
 
     @classmethod
-    def predict(cls):
+    def predict(
+        cls,
+        state: list[int],
+        stage,
+        extras
+    ):
+        if stage == "roll":
+            ares_move_reward = 0
+            zeus_move_reward = 0
+            posejdon_move_reward = 0
+            atena_move_reward = 0
+            apollo_move_reward = 0
+            state.extend(
+                [
+                    ares_move_reward,
+                    zeus_move_reward,
+                    posejdon_move_reward,
+                    atena_move_reward,
+                    apollo_move_reward
+                ]
+            )
+            output = cls.RollModel.predict(state)
+            pass
+        elif stage == "board":
+            pass
         pass
 
     @classmethod
-    def train_model(cls, path: Path = Config.models_path):
-        pass
-
-    @classmethod
-    def define_model(cls):
+    def train_model(
+        cls,
+        state: list[int],
+        next_state: list[int],
+        reward: int,
+        output: list[int],
+        stage,
+        extras
+    ):
+        if stage == "roll":
+            pass
+        elif stage == "board":
+            pass
         pass

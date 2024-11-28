@@ -35,3 +35,26 @@ class AresModel(AbstractDecider):
         4. End Round(0 - 1)
         """
         return [1, 1, 1, 1]
+
+    def get_action(self, state):
+        model_to_perform = self.output_move(self._choose_action(state))
+        if model_to_perform:
+            return model_to_perform.model_name, model_to_perform.get_action(state)
+        else:
+            return "End", []
+
+    def output_move(self, output: list):
+        for i in range(len(output) - 1):
+            if output[i] == 1:
+                return self.output_model[i]
+        if output[-1]:
+            return None
+        raise NotImplementedError
+
+    @property
+    def output_model(self):
+        return [
+            self._move_model,
+            self._req_model,
+            self._build_model
+        ]
