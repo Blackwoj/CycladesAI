@@ -4,35 +4,50 @@ from ..dataclasses.FieldDataClass import Fieldv2
 from ..dataclasses.BuildingDataClass import Building
 from ..dataclasses.EntitiesDataClass import Entity
 from ..dataclasses.PlayerDataClass import PlayerDataclass
-# from ..gui.common.Config import Config
 from .RewardCalculator import RewardCalculator
 from ..enums.GameState import GameState
-
+from typing import Union
+from copy import deepcopy
 
 class ConnectModel:
 
     def __init__(self):
-        # CycladesAI().load_model()
+        self.model = CycladesAI()
+        self.model.load_model()
         self._reward_calculator = RewardCalculator()
         self._pre_state: list[int] = []
         self._pre_reward_player: list[int] = [0, 0, 0, 0, 0]
 
     def train_on_state(self):
-        _move_data = DataCache.get_value("move_data")
-        print(self._pre_reward, _move_data)
-        _act_state = self._get_state
-        _act_reward = self._calculate_player_reward(_act_state)
-        _reward_diff = [
-            _act_reward[i] - self._pre_reward[i]
-            for i in range(len(self._pre_reward))
-        ]
-        print(_act_reward, _reward_diff)
+        # _move_data = DataCache.get_value("move_data")
+        # _act_state = self._get_state
+        # _act_reward = self._calculate_player_reward(_act_state)
+        # _reward_diff = [
+        #     _act_reward[i] - self._pre_reward[i]
+        #     for i in range(len(self._pre_reward))
+        # ]
         DataCache.set_value("move_data", [])
 
     def predict_state(self):
-        if DataCache.get_value("act_stage") == GameState.ROLL:
+        state = self._get_state
 
-            pass
+        if DataCache.get_value("act_stage") == GameState.ROLL:
+            hero_row: dict[str, str] = DataCache.get_value("heros_per_row")
+            bids: dict[str, dict[str, Union[str, int]]] = DataCache.get_value("bids_value")
+            hero_bid = {
+                "row_5": [
+                    "apollon",
+                    len(bids["row_5"]) - 1
+                ]
+            }
+            for row in hero_row.keys():
+                if "5" in row:
+                    continue
+                hero_bid[row] = [
+                    hero_row[row],
+                    0 if not bids[row] else bids[row]["bid"]
+                ]
+            self.model.RollModel.predict(state, hero_bid)
         elif DataCache.get_value("act_stage") == GameState.BOARD:
             pass
         pass
@@ -65,6 +80,19 @@ class ConnectModel:
             state.extend(field_data.to_binary())
         for _, player_data in players_data.items():
             state.extend(player_data.to_binary())
+        if DataCache.get_value("act_hero") == "ares":
+            state.append(DataCache.get_value("new_entity_price"))
+            state.append(-1)
+        if DataCache.get_value("act_hero") == "posejdon": 
+            state.append(-1)
+            state.append(DataCache.get_value("new_entity_price"))
+        state.extend(
+            [
+                int(DataCache.get_value("zeus_card")),
+                int(DataCache.get_value("athena_card"))
+            ]
+        )
+        state.append(self._player_to_id)
         return state
 
     def _calculate_player_reward(self, state: list[int] = []) -> list[int]:
@@ -145,3 +173,14 @@ class ConnectModel:
             "4": "zeus"
         }
         return hero_id[int_value]
+
+    @property
+    def _player_to_id(self):
+        player_id = {
+            "p1": 1,
+            "p2": 2,
+            "p3": 3,
+            "p4": 4,
+            "p5": 5
+        }
+        return player_id[DataCache.get_value("act_player")]

@@ -20,7 +20,7 @@ class DataCache:
     }
 
     AvailableSections = Literal[
-        "game_config",
+        # "game_config",
         "num_of_players",
         "act_player",
         "new_player",
@@ -36,8 +36,8 @@ class DataCache:
         "play_order",
 
         "fields_status",
-        "board_row",
-        "player_god",
+        # "board_row",
+        # "player_god",
         "is_dragging",
         "new_warrior_location",
         "new_ship_location",
@@ -47,7 +47,7 @@ class DataCache:
         "entity_delete",
         "posejdon_move",
         "new_building",
-        "buildings_status",
+        # "buildings_status",
         "reset_building",
         "new_entity_price",
         "zeus_card",

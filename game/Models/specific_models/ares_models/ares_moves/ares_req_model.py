@@ -1,10 +1,7 @@
-from ....abstract_models.abstract_base_model import AbstractModelClass
+from ....abstract_models.AbstractModelClassAC import AbstractModelClassAC
 
 
-class AresReqModel(AbstractModelClass):
-
-    def __init__(self):
-        self._model = None
+class AresReqModel(AbstractModelClassAC):
 
     @property
     def model_name(self):
@@ -15,7 +12,6 @@ class AresReqModel(AbstractModelClass):
         """Returns number of outputs: 1
         1. target island (1-13)
         """
-
         return [13]
 
     def get_action(self, state):

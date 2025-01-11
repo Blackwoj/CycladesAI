@@ -19,7 +19,15 @@ class CycladesAI:
     AtenaModel = AtenaModel(BuildModel)
     ZeusModel = ZeusModel(BuildModel)
     ApolloModel = ApolloModel()
-    RollModel = RollModel()
+    RollModel = RollModel(
+        {
+            "ares": AresModel,
+            "posejdon": PosejdonModel,
+            "atena": AtenaModel,
+            "zeus": ZeusModel,
+            "apollon": ApolloModel
+        }
+    )
     MetroCardModel = BuildMetroCardsModel()
     MetroBuildingModel = BuildMetroBuildingModel()
     submodels = [
@@ -28,54 +36,31 @@ class CycladesAI:
         AtenaModel,
         ZeusModel,
         ApolloModel,
-        RollModel,
         MetroBuildingModel,
         MetroCardModel,
         BuildModel
     ]
 
-    @classmethod
-    def load_model(cls, path: Path = Config.models_path):
-        for model in cls.submodels:
+    def load_model(self, path: Path = Config.models_path):
+        for model in self.submodels:
             model.load_model(path)
 
-    @classmethod
-    def save_model(cls, path: Path = Config.models_path):
-        for model in cls.submodels:
+    def save_model(self, path: Path = Config.models_path):
+        for model in self.submodels:
             model.save_model(path)
         pass
 
-    @classmethod
     def predict(
-        cls,
+        self,
         state: list[int],
-        stage,
-        extras
+        bids
     ):
-        if stage == "roll":
-            ares_move_reward = 0
-            zeus_move_reward = 0
-            posejdon_move_reward = 0
-            atena_move_reward = 0
-            apollo_move_reward = 0
-            state.extend(
-                [
-                    ares_move_reward,
-                    zeus_move_reward,
-                    posejdon_move_reward,
-                    atena_move_reward,
-                    apollo_move_reward
-                ]
-            )
-            output = cls.RollModel.predict(state)
-            pass
-        elif stage == "board":
-            pass
+        for key in bids.keys():
+            bids[key][1] += 1
         pass
 
-    @classmethod
     def train_model(
-        cls,
+        self,
         state: list[int],
         next_state: list[int],
         reward: int,

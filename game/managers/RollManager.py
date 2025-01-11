@@ -123,6 +123,7 @@ class RollManager(AbstractManager):
         if not self._bid_order and not self._act_player:
             board_game_order = DataCache.get_value("play_order")
             players_heros = DataCache.get_value("hero_players")
+            print(players_heros)
 
             for row in self._act_bids.keys():
                 if self._act_bids[row]:

@@ -2,6 +2,8 @@ import logging
 
 from game.cyclades import GameManager
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING logs
 
 logging.getLogger(__name__)
 logging.basicConfig(

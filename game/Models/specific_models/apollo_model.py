@@ -1,7 +1,7 @@
-from ..abstract_models.abstract_base_model import AbstractModelClass
+from ..abstract_models.AbstractModelClassAC import AbstractModelClassAC
 
 
-class ApolloModel(AbstractModelClass):
+class ApolloModel(AbstractModelClassAC):
 
     @property
     def model_name(self) -> str:

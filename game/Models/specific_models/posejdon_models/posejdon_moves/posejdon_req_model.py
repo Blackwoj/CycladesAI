@@ -1,10 +1,7 @@
-from ....abstract_models.abstract_base_model import AbstractModelClass
+from ....abstract_models.AbstractModelClassAC import AbstractModelClassAC
 
 
-class PosejdonReqModel(AbstractModelClass):
-
-    def __init__(self):
-        self._model = None
+class PosejdonReqModel(AbstractModelClassAC):
 
     @property
     def model_name(self):

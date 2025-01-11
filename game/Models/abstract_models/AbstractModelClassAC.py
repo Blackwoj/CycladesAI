@@ -7,11 +7,13 @@ import numpy as np
 import tensorflow as tf
 import logging
 from typing import Optional, cast
+from .AbstractModel import AbstractModel
 
 
-class AbstractModelClass:
+class AbstractModelClassAC(AbstractModel):
 
     def __init__(self):
+        super().__init__()
         self._model_action: Optional[models.Model] = None
         self._model_critic: Optional[models.Model] = None
 
@@ -25,12 +27,16 @@ class AbstractModelClass:
     def action_outputs(self) -> list[int]:
         raise NotImplementedError
 
+    @abstractmethod
+    def value_moves(self, state):
+        raise NotImplementedError
+
     @property
     def state_size(self):
-        return 300
+        return 305
 
     def common_input(self):
-        return keras.Input(shape=(300,))
+        return keras.Input(shape=(self.state_size,))
 
     def load_model(self, location: Path):
         """Ładowanie modeli Aktora i Krytyka z plików"""
@@ -51,7 +57,7 @@ class AbstractModelClass:
         return self._model_action, self._model_critic
 
     def build_actor(self):
-        state_input = self.common_input
+        state_input = self.common_input()
         x = layers.Dense(64, activation="relu")(state_input)
         x = layers.Dense(64, activation="relu")(x)
 
@@ -60,12 +66,15 @@ class AbstractModelClass:
             outputs.append(layers.Dense(output_size, activation="softmax")(x))
 
         actor_model = models.Model(inputs=state_input, outputs=outputs)
-        actor_model.compile(optimizer=optimizers.Adam(lr=0.001), loss="categorical_crossentropy")  # type: ignore
+        actor_model.compile(
+            optimizer=optimizers.Adam(learning_rate=0.001),  # type: ignore
+            loss="categorical_crossentropy"
+        )  # type: ignore
         return actor_model
 
     def build_critic(self):
-        state_input = self.common_input
-        action_input = layers.Input(shape=(sum(self.action_outputs),))
+        state_input = self.common_input()
+        action_input = layers.Input(shape=(len(self.action_outputs),))
 
         x = layers.Concatenate()([state_input, action_input])
         x = layers.Dense(64, activation="relu")(x)
@@ -73,11 +82,11 @@ class AbstractModelClass:
         value_output = layers.Dense(1, activation="linear")(x)
 
         critic_model = models.Model(inputs=[state_input, action_input], outputs=value_output)
-        critic_model.compile(optimizer=optimizers.Adam(lr=0.001), loss="mse")  # type: ignore
+        critic_model.compile(optimizer=optimizers.Adam(learning_rate=0.001), loss="mse")  # type: ignore
         return critic_model
 
     @abstractmethod
-    def get_action(self):
+    def get_action(self, state: list[int]):
         raise NotImplementedError
 
     def _choose_action(self, state):
@@ -88,41 +97,57 @@ class AbstractModelClass:
 
         predictions = self._model_action.predict(state)
 
-        action = []
-        for i, output in enumerate(predictions):
-            action.append(np.random.choice(range(self.action_outputs[i]), p=output[0]))
+        return predictions
 
-        return action
-
-    def train(self, state, action, reward, next_state, gamma=0.99):
-        if not self._model_action:
+    def train(self, state, reward, gamma=0.99):
+        """
+        Uczy zarówno aktora, jak i krytyka na podstawie rzeczywistych akcji.
+        """
+        if not self._model_action or not self._model_critic:
+            logging.error("One of the models is missing")
             return
+
+        # Dodanie wymiaru dla batcha
         state = np.expand_dims(state, axis=0)
-        next_state = np.expand_dims(next_state, axis=0)
 
-        action_one_hot = np.zeros(sum(self.action_outputs))
-        action_index = 0
-        for i, act in enumerate(action):
-            action_one_hot[action_index + act] = 1
-            action_index += self.action_outputs[i]
-        if self._model_critic is not models.Model:
-            logging.error("No action model for %s", self.model_name)
-            return None
+        # 1. Predykcja akcji za pomocą modelu aktora
+        action_probs = self._model_action.predict(state)  # Dystrybucja prawdopodobieństw
+        sampled_actions = [
+            np.random.choice(len(probs[0]), p=probs[0]) for probs in action_probs
+        ]
 
+        # 2. Tworzenie one-hot dla każdej przestrzeni akcji
+        action_one_hot = []
+        for i, act in enumerate(sampled_actions):
+            one_hot = np.zeros(self.action_outputs[i])  # Tworzenie one-hot
+            one_hot[act] = 1
+            action_one_hot.append(one_hot)
+        action_one_hot = np.concatenate(action_one_hot)
+
+        # 3. Obliczenie wartości stanu-akcji przez krytyka
         value = self._model_critic.predict([state, np.expand_dims(action_one_hot, axis=0)])
-        next_value = self._model_critic.predict([next_state, np.expand_dims(action_one_hot, axis=0)])
-        target_value = reward + gamma * next_value
 
-        critic_loss = self._model_critic.train_on_batch([state, np.expand_dims(action_one_hot, axis=0)], target_value)
+        # 4. Obliczenie wartości docelowej (target value)
+        target_value = reward + gamma * value
 
+        # 5. Trening krytyka
+        critic_loss = self._model_critic.train_on_batch(
+            [state, np.expand_dims(action_one_hot, axis=0)],
+            np.array([[target_value]])
+        )
+
+        # 6. Obliczanie przewagi (advantage)
         advantage = target_value - value
+
+        # 7. Trening aktora
         with tf.GradientTape() as tape:
             outputs = self._model_action(state, training=True)
-            log_probs = [tf.math.log(output[0, action[i]]) for i, output in enumerate(outputs)]
+            log_probs = [
+                tf.math.log(output[0, sampled_actions[i]]) for i, output in enumerate(outputs)
+            ]
             actor_loss = -tf.reduce_sum(log_probs) * advantage
 
         grads = tape.gradient(actor_loss, self._model_action.trainable_variables)
-
         if grads is not None and all(g is not None for g in grads):
             self._model_action.optimizer.apply_gradients(
                 zip(grads, self._model_action.trainable_variables)
@@ -132,8 +157,37 @@ class AbstractModelClass:
 
         return actor_loss.numpy(), critic_loss
 
-    def predict(self, state):
+    def predict(self, state: list[int]):
         return self._choose_action(state)
 
     def save_model(self, location: Path):
         pass
+
+    def predict_reward(self, state, action) -> Optional[int]:
+        if not self._model_action or not self._model_critic:
+            logging.error("One of the models is missing")
+            return None
+
+        state = np.expand_dims(state, axis=0)
+        if isinstance(action, list):
+            action_one_hot = []
+            for act_set in action:
+                for i, act in enumerate(act_set):
+                    max_value = max(act)
+                    for i in range(len(act)):
+                        if act[i] == max_value:
+                            action_one_hot.append(i + 1)
+        elif isinstance(action, np.ndarray):
+            action_one_hot = []
+            for i, act in enumerate(action):
+                max_value = max(act)
+                for i in range(len(act)):
+                    if act[i] == max_value:
+                        action_one_hot.append(i + 1)
+        else:
+            raise NotImplementedError
+        action_one_hot = np.expand_dims(action_one_hot, axis=0)
+
+        predicted_reward = self._model_critic.predict([state, action_one_hot])
+
+        return predicted_reward

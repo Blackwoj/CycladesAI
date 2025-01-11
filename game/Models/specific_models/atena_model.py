@@ -1,11 +1,13 @@
-from ..abstract_models.abstract_decider_model import AbstractDecider
+from ..abstract_models.AbstractModelClassAC import AbstractModelClassAC
 from .common_models.build_model import BuildModel
+from typing import Optional
 
 
-class AtenaModel(AbstractDecider):
+class AtenaModel(AbstractModelClassAC):
 
     def __init__(self, build_model: BuildModel) -> None:
-        super().__init__(build_model)
+        self._build_model = build_model
+        super().__init__()
 
     @property
     def model_name(self) -> str:
@@ -29,3 +31,6 @@ class AtenaModel(AbstractDecider):
         elif decision[2]:
             return "End", []
         raise NotImplementedError
+
+    def get_highest_reward(self, state: list[int]) -> Optional[int]:
+        return self.predict_reward(state, self._choose_action(state))
