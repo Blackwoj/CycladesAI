@@ -7,7 +7,7 @@ from ..dataclasses.PlayerDataClass import PlayerDataclass
 from .RewardCalculator import RewardCalculator
 from ..enums.GameState import GameState
 from typing import Union
-from copy import deepcopy
+
 
 class ConnectModel:
 
@@ -19,14 +19,14 @@ class ConnectModel:
         self._pre_reward_player: list[int] = [0, 0, 0, 0, 0]
 
     def train_on_state(self):
-        # _move_data = DataCache.get_value("move_data")
+        # _move_data = DataCache.get_value("move_train_data")
         # _act_state = self._get_state
         # _act_reward = self._calculate_player_reward(_act_state)
         # _reward_diff = [
         #     _act_reward[i] - self._pre_reward[i]
         #     for i in range(len(self._pre_reward))
         # ]
-        DataCache.set_value("move_data", [])
+        DataCache.set_value("move_train_data", [])
 
     def predict_state(self):
         state = self._get_state
@@ -83,7 +83,7 @@ class ConnectModel:
         if DataCache.get_value("act_hero") == "ares":
             state.append(DataCache.get_value("new_entity_price"))
             state.append(-1)
-        if DataCache.get_value("act_hero") == "posejdon": 
+        if DataCache.get_value("act_hero") == "posejdon":
             state.append(-1)
             state.append(DataCache.get_value("new_entity_price"))
         state.extend(

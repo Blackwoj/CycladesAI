@@ -58,7 +58,7 @@ class GameManager:
             # TODO add run algorithm for AI
             self.model_connector.predict_state()
             pass
-        if events and DataCache.get_value("act_player") in Config.app.train_ai_player and not DataCache.get_value("move_data"):
+        if events and DataCache.get_value("act_player") in Config.app.train_ai_player and not DataCache.get_value("move_train_data"):
             self.model_connector.save_pre_state()
         for event in events:
             if event.type == pygame.QUIT:
@@ -67,10 +67,10 @@ class GameManager:
                 self._change_page(event)
             else:
                 self._handle_event_dict(event)
-        if DataCache.get_value("success"):
+        if DataCache.get_value("ai_move_success"):
             self.model_connector.train_on_state()
             pass
-        if DataCache.get_value("move_data"):
+        if DataCache.get_value("move_train_data"):
             self.model_connector.train_on_state()
 
     def _change_page(self, event: pygame.event.Event):

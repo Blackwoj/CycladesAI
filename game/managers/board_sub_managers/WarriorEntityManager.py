@@ -63,7 +63,7 @@ class WarriorEntityManager(EntityManager):
             and self._player_status[self._act_player].coins >= int(self.moving_entity_id) * -1
             and self.count_all_player_entity < 6
         ):
-            DataCache.set_value("move_data", ["req", self.new_place])
+            DataCache.set_value("move_train_data", ["req", self.new_place])
             self.send_update(
                 self._fields_status[self.new_place].entity._id,
                 self.entities_points,

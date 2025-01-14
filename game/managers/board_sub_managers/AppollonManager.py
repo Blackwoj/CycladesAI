@@ -43,7 +43,7 @@ class AppollonManager(AbstractManager):
             and distance < 80
             and self._act_player == self._field_status[self.new_place].owner
         ):
-            DataCache.set_value("move_data", ["income_place", self.new_place])
+            DataCache.set_value("move_train_data", ["income_place", self.new_place])
             DataCache.set_value("valid_ai_move", True)
             self._field_status[self.new_place].income.quantity += 1
             if self._field_status[self.new_place].income._id == 2:

@@ -30,13 +30,13 @@ class BuildingsEntityManager(AbstractManager):
     def read_cache_values(self):
         self._player_status: dict[str, PlayerDataclass] = DataCache.get_value("player_data")
         self.fields_status: dict[str, Fieldv2] = DataCache.get_value("fields_status")
-        self.building_location = DataCache.get_value("new_building")
+        self.building_location = DataCache.get_value("new_building_location")
         return super().read_cache_values()
 
     def save_cache_values(self):
         DataCache.set_value("player_data", self._player_status)
         DataCache.set_value("fields_status", self.fields_status)
-        DataCache.set_value("new_building", self.building_location)
+        DataCache.set_value("new_building_location", self.building_location)
         return super().save_cache_values()
 
     @property
@@ -49,7 +49,7 @@ class BuildingsEntityManager(AbstractManager):
 
     @property
     def new_entity_tag(self) -> DataCache.AvailableSections:
-        return "new_building"
+        return "new_building_location"
 
     def new_building_decider(self):
         self.read_cache_values()
@@ -75,7 +75,7 @@ class BuildingsEntityManager(AbstractManager):
             )
         ):
             self._player_status[self._act_player].coins -= 2
-            DataCache.set_value("move_data", ["build", new_loc[0], new_loc[1]])
+            DataCache.set_value("move_train_data", ["build", new_loc[0], new_loc[1]])
             DataCache.set_value("valid_ai_move", True)
             self.fields_status[new_loc[0]].buildings[new_loc[1]] = Building(  # type: ignore
                 self.generate_unique_id(),
@@ -103,7 +103,7 @@ class BuildingsEntityManager(AbstractManager):
                 list(DataCache.get_value("building_to_delete").values())
             )
         ):
-            DataCache.set_value("move_data", [
+            DataCache.set_value("move_train_data", [
                 "metro_build",
                 new_loc,
                 DataCache.get_value("building_to_delete")

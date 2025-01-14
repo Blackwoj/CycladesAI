@@ -116,7 +116,7 @@ class EntityManager(AbstractSubManager):
             if self._player_status[self._fields_status[_previous_location].owner].coins >= 1:
                 if self.valid_entity_move:
                     DataCache.set_value(
-                        "move_data",
+                        "move_train_data",
                         [
                             "move",
                             self.moving_entity["previous_location"],

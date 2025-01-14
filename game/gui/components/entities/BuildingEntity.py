@@ -136,7 +136,7 @@ class BuildingEntity(pygame.sprite.Sprite):
     def validate_move(self):
         loc = [self._act_location[0] + self._shift, self._act_location[1] + self._shift]
         DataCache.set_value(
-            "new_building",
+            "new_building_location",
             loc
         )
         pygame.event.post(pygame.event.Event(EventConfig.NEW_BUILDING))
