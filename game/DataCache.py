@@ -7,6 +7,7 @@ from .DataCacheSection.PlayerCache import PlayerCache
 from .DataCacheSection.RollCache import RollCacheSection
 from .DataCacheSection.AiCache import AiCacheSection
 from .enums.GameState import GameState
+from pygame import Surface
 
 
 class DataCache:
@@ -22,6 +23,7 @@ class DataCache:
     AvailableSections = Literal[
         # "game_config",
         "num_of_players",
+        "board_view",
 
         "act_player",
         "act_stage",
@@ -77,7 +79,7 @@ class DataCache:
         }
 
     @staticmethod
-    def set_value(key: AvailableSections, value: Union[dict, str, list, int, GameState]):
+    def set_value(key: AvailableSections, value: Union[dict, str, list, int, GameState, Surface]):
         if key in DataCache._data_cache:
             DataCache._data_cache[key] = DataCache._cache_data_functions[key](value)
         else:

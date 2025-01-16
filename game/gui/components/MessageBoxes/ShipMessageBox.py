@@ -24,7 +24,7 @@ class ShipMessageBox(AbstractMessageBox):
         self.build_button(num_of_av_war, self.locations(num_of_av_war, [80, 80], [windows_size[0] // 2, windows_size[1] // 2], box_size))
 
     def write_text(self, message, message_box_center):
-        text = self.font.render(message, True, (0, 255, 0))
+        text = self.font.render(message, True, (0, 0, 0),)
         text_rect = text.get_rect()
         text_rect.left = message_box_center[0] - text_rect.width // 2
         text_rect.top = message_box_center[1] - 100 - text_rect.height // 2
@@ -44,7 +44,7 @@ class ShipMessageBox(AbstractMessageBox):
                 pygame.event.post(pygame.event.Event(EventConfig.UPDATE_SHIP_POS))
 
     def locations(self, num_of_icons, base_size, win_placing, win_size):
-        offset = (win_size[1] // 2 // 3) * 1
+        offset = (win_size[1] // 2 // 5) * 1
         move_v = 15
         move_h = 15
         _locations = {

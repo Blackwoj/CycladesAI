@@ -18,24 +18,16 @@ class AbstractView(ABC):
         self.pull_nav_bar()
 
     def pull_nav_bar(self):
-        self.game_icon = self.load_and_scale((Config.app.nav_bar / "gameIcon.png"), [60, 60])
+        # self.game_icon = self.load_and_scale((Config.app.nav_bar / "gameIcon.png"), [60, 60])
         self.board_icon = self.org_hov((Config.app.nav_bar / "board"), [60, 60])
         self.priest_card = self.load_and_scale((Config.app.boards_items / "priest_card.png"), [60, 100])
         self.philosophers_card = self.load_and_scale((Config.app.boards_items / "phil_card.png"), [60, 100])
         self.roll_icon = self.org_hov((Config.app.nav_bar / "roll"), [60, 60])
         self.settings_icon = self.org_hov((Config.app.nav_bar / "settings"), [60, 60])
-        self.priest_icon = {
-            str(i): self.load_and_scale((Config.app.nav_bar / "priests" / f"{i}.png"), [60, 60])
-            for i in range(0, 11)
-        }
-        self.coins_icon = {
-            str(i): self.load_and_scale((Config.app.nav_bar / "coins" / f"{i}.png"), [60, 60])
-            for i in range(0, 30)
-        }
-        self.philosophers = {
-            str(i): self.load_and_scale((Config.app.nav_bar / "philosophers" / f"{i}.png"), [60, 60])
-            for i in range(0, 11)
-        }
+
+        self.coins_icon = self.load_and_scale((Config.app.nav_bar / "coins" / "coin.png"), [60, 60])
+        self.philosophers = self.load_and_scale((Config.app.nav_bar / "philosophers" / "base.png"), [60, 90])
+        self.priest_icon = self.load_and_scale((Config.app.nav_bar / "priests" / "base.png"), [60, 90])
         self.player_icon = {
             _player: self.load_and_scale((Config.app.players_icons / f"{_player}.png"), [60, 60])
             for _player in ["p1", "p2", "p3", "p4", "p5"]
@@ -63,52 +55,60 @@ class AbstractView(ABC):
         self.screen.blit(self._bg, (0, 0))
 
     def build_nav_bar(self):
-        game_icon = pygame.image.load(Config.app.nav_bar / "gameIcon.png").convert()
+        # game_icon = pygame.image.load(Config.app.nav_bar / "gameIcon.png").convert()
         board_button = Button(
             self.screen,
             self.board_icon,
-            pygame.Rect(0, 60, 60, 60),
+            pygame.Rect(0, 0, 60, 60),
             self.switch_to_board
         )
         roll_button = Button(
             self.screen,
             self.roll_icon,
-            pygame.Rect(0, 120, 60, 60),
+            pygame.Rect(0, 60, 60, 60),
             self.switch_to_roll
-        )
-        setting_button = Button(
-            self.screen,
-            self.settings_icon,
-            pygame.Rect(0, 180, 60, 60),
-            self.switch_to_menu
         )
         if DataCache.get_value("act_player"):
             hero_player_name = str(
                 DataCache.get_value("hero_players")[DataCache.get_value("act_player")]
             )
-            self.screen.blit(self.hero_icon[hero_player_name], [0, 500])
+            if hero_player_name != "None":
+                self.screen.blit(self.hero_icon[hero_player_name], [0, 440])
 
             philosophers_player_name = str(
                 DataCache.get_value("player_data")[DataCache.get_value("act_player")].philosophers
             )
-            self.screen.blit(self.philosophers[philosophers_player_name], [0, 560])
+            self.screen.blit(self.philosophers, [0, 500])
+            self.write_coins_value(philosophers_player_name, 545, 30)
 
             priests_player_name = str(
                 DataCache.get_value("player_data")[DataCache.get_value("act_player")].priests
             )
-            self.screen.blit(self.priest_icon[str(priests_player_name)], [0, 620])
+            self.screen.blit(self.priest_icon, [0, 590])
+            self.write_coins_value(priests_player_name, 635, 30)
 
             coin_player_name = str(
                 DataCache.get_value("player_data")[DataCache.get_value("act_player")].coins
             )
-            self.screen.blit(self.coins_icon[str(coin_player_name)], [0, 680])
+            self.screen.blit(self.coins_icon, [0, 680])
+            self.write_coins_value(coin_player_name, 710, 30)
 
             self.screen.blit(self.player_icon[DataCache.get_value("act_player")], [0, 740])
 
         board_button.update()
         roll_button.update()
-        setting_button.update()
-        self.screen.blit(self.scale_img(game_icon, [60.0, 60.0]), (0, 0))
+
+    def write_coins_value(self, coin_player_name, top, left, size=40, alpha=192):
+        font = pygame.font.Font(Config.app.assert_dir / "fonts" / "font1.ttf", size)
+        text = font.render(coin_player_name, True, (0, 0, 0))
+        text_surface = pygame.Surface(text.get_size(), pygame.SRCALPHA)
+        text_surface.fill((0, 0, 0, 0))
+        text_surface.blit(text, (0, 0))
+        text_surface.set_alpha(alpha)
+        text_rect = text_surface.get_rect()
+        text_rect.left = left - text_rect.width // 2
+        text_rect.top = top - text_rect.height // 2
+        self.screen.blit(text_surface, text_rect)
 
     def scale_img(self, image: pygame.Surface, size: list[float]) -> pygame.Surface:
         return pygame.transform.scale(image, size)

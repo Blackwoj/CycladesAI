@@ -22,7 +22,7 @@ class AbstractMessageBox(ABC):
             i: self.load_and_scale((Config.app.boards_items / "multiplier" / f"{i}.png"), [80, 80])
             for i in range(1, 7)
         }
-        self.font = pygame.font.Font(Config.app.assert_dir / "fonts" / "font1.ttf", 18)
+        self.font = pygame.font.Font(Config.app.assert_dir / "fonts" / "font1.ttf", 20)
 
     def load_and_scale(self, location, size):
         img = pygame.image.load(location).convert_alpha()

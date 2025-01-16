@@ -17,7 +17,7 @@ class MenuView(AbstractView):
         self.button = Button(
             self.screen,
             self.play_button,
-            pygame.Rect(100, 100, 100, 120),
+            pygame.Rect(200, 350, 100, 120),
             self.switch_to_game
         )
         self.build_nav_bar()

@@ -39,10 +39,10 @@ class BoardConfig:
         ).open().read())
     }
 
-    new_building_icon_loc = [1100, 80]
+    new_building_icon_loc = [1036, 300]
     building_price_loc = [new_building_icon_loc[0] - 40, new_building_icon_loc[1]]
 
-    new_special_event_loc = [1100, 160]
+    new_special_event_loc = [1036, 210]
     special_event_price_loc = [new_special_event_loc[0] - 40, new_special_event_loc[1]]
 
     ares_pricing = [0, 2, 3, 4]

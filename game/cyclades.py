@@ -17,7 +17,7 @@ class GameManager:
     def __init__(self):
         pygame.init()
         DataCache.initialize_cache()
-        self.screen = pygame.display.set_mode((1500, 800))
+        self.screen = pygame.display.set_mode((1081, 800))
         self.Gui = ViewManager(self.screen)
         self.RollManager = RollManager(self.screen)
         self.BoardManager = BoardManager(self.screen)

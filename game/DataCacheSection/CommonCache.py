@@ -7,7 +7,8 @@ class CommonCache:
         "num_of_players": 5,
         "play_order": [],
         "is_dragging": False,
-        "new_player": True
+        "new_player": True,
+        "board_view": ""
     }
 
     _cache_data_functions: dict = {
@@ -17,7 +18,8 @@ class CommonCache:
         "num_of_players": lambda x: x,
         "play_order": lambda x: x,
         "is_dragging": lambda x: x,
-        "new_player": lambda x: x
+        "new_player": lambda x: x,
+        "board_view": lambda x: x
     }
 
     _base_values: dict = {}

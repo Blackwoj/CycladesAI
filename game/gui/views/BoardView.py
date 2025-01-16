@@ -10,7 +10,6 @@ from ...dataclasses.BuildingDataClass import Building
 from ...dataclasses.EntitiesDataClass import Entity
 from ...dataclasses.FieldDataClass import Fieldv2
 from ...dataclasses.IncomeDataClass import Income
-from ...dataclasses.PlayerDataClass import PlayerDataclass
 from ...enums.GameState import GameState
 from ...static.EventConfig import EventConfig
 from ..common.Config import Config
@@ -28,6 +27,8 @@ class BoardView(AbstractView):
 
     def __init__(self, screen: pygame.Surface, background: Path):
         super().__init__(screen, background)
+        self.rect_area_subsurface = pygame.Rect(0, 0, 805, 780)
+        self.independent_surface = pygame.Surface(self.rect_area_subsurface.size)
         self.entities_sprite = pygame.sprite.Group()
         self.building_sprite = pygame.sprite.Group()
         self.income_sprite = pygame.sprite.Group()
@@ -40,11 +41,11 @@ class BoardView(AbstractView):
         self.pull_img()
 
     def pull_img(self):
+        self.philosophers_card_small = self.load_and_scale((Config.app.boards_items / "phil_card.png"), [40, 66])
+        self.priest_card_small = self.load_and_scale((Config.app.boards_items / "priest_card.png"), [40, 66])
         self._boards = {
-            str(i): self.load_and_scale((Config.app.boards_path / f"{i}.png"), [800, 800])
-            for i in range(2, 6)
+            "5": self.load_and_scale((Config.app.boards_path / "5.png"), [1081, 800])
         }
-        self._action_bg = self.load_and_scale((Config.app.boards_path / "extra_bg.png"), [268, 800])
         self._player_icon_20 = {
             _player: self.load_and_scale((Config.app.players_icons / f"{_player}.png"), [20, 20])
             for _player in ["p1", "p2", "p3", "p4", "p5"]
@@ -68,8 +69,8 @@ class BoardView(AbstractView):
         self._play_order = self.load_and_scale((Config.app.boards_items / "order.png"), [60, 250])
         self._buildings = {
             building: [
-                self.load_and_scale((Config.app.building_icons / f"{building}.png"), [40, 40]),
-                self.load_and_scale((Config.app.building_icons / f"{building}_del.png"), [40, 40])
+                self.load_and_scale((Config.app.building_icons / f"{building}.png"), [29, 29]),
+                self.load_and_scale((Config.app.building_icons / f"{building}_del.png"), [29, 29])
             ]
             for building in ["atena", "ares", "posejdon", "zeus"]
         }
@@ -78,13 +79,48 @@ class BoardView(AbstractView):
             self.load_and_scale((Config.app.building_icons / "metro.png"), [40, 40])
         ]
         self._income_icon = self.load_and_scale((Config.app.boards_items / "rog.png"), [30, 30])
-        self.next_icon = self.org_hov((Config.app.boards_items / "next_player"), [240, 60])
-        self.metro_building = {
-            "not": self.load_and_scale((Config.app.background_dir / "metro_req_not.png"), [300, 300]),
-            "yes": self.load_and_scale((Config.app.background_dir / "metro_req_place.png"), [300, 300]),
-            "philo": self.load_and_scale((Config.app.background_dir / "metro_aten_place.png"), [300, 300])
-        }
-        self.yes = self.load_and_scale((Config.app.background_dir / "yes.png"), [40, 40])
+        self.next_icon_bg = self.load_and_scale((Config.app.background_dir / "next_bg.png"), [190, 150])
+        self.hero_bg = self.load_and_scale((Config.app.background_dir / "hero_bg.png"), [90, 200])
+        self.arrow = self.load_and_scale(Config.app.background_dir / "strzalka.png", [13, 9])
+        self.next_icon = self.org_hov((Config.app.boards_items / "next_player"), [180, 140])
+        self.yes = self.load_and_scale((Config.app.background_dir / "yes.png"), [29, 29])
+        self.yes_big = self.load_and_scale((Config.app.background_dir / "yes.png"), [80, 80])
+
+    def build_hero_bg(self):
+        self.screen.blit(
+            self.hero_bg,
+            pygame.Rect(991, 150, 90, 200)
+        )
+        new_entity_cost = -1
+        if DataCache.get_value("act_hero") == "ares" and DataCache.get_value("new_entity_price") != 5:
+            new_entity_cost = str(DataCache.get_value("new_entity_price") * 1)
+        elif DataCache.get_value("act_hero") == "posejdon" and DataCache.get_value("new_entity_price") != 4:
+            new_entity_cost = str(DataCache.get_value("new_entity_price") * 1)
+        elif DataCache.get_value("act_hero") == "atena" and DataCache.get_value("athena_card"):
+            new_entity_cost = "4"
+        elif DataCache.get_value("act_hero") == "zeus" and DataCache.get_value("zeus_card"):
+            new_entity_cost = "4"
+        if DataCache.get_value("act_hero") != "apollon" and new_entity_cost != -1:
+            self.write_coins_value(
+                f"Price: {new_entity_cost}",
+                170,
+                1036,
+                20,
+                256
+            )
+
+        building_exist = False
+        for building in self.building_sprite:
+            if 2 == building.entity_id:
+                building_exist = True
+        if building_exist and DataCache.get_value("act_hero") != "apollon":
+            self.write_coins_value(
+                "Price: 2",
+                260,
+                1036,
+                20,
+                256
+            )
 
     def load_hero(self):
         if (
@@ -124,11 +160,9 @@ class BoardView(AbstractView):
         self.entities_sprite.draw(self.screen)
 
     def render_view(self):
-        self.fill_bg()
+        self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [0, 0])
+        self.build_hero_bg()
         self.build_nav_bar()
-        self.screen.blit(self._boards[str(DataCache.get_value("num_of_players"))], [60, 0])
-        self.screen.blit(self._action_bg, [860, 0])
-        self.screen.blit(self._play_order, [1140, 0])
 
         self.delete_entity()
         if DataCache.get_value("metro_building_build") is True:
@@ -146,14 +180,39 @@ class BoardView(AbstractView):
         self.buy_card_button()
         if DataCache.get_value("act_stage") == GameState.BOARD:
             self.next_player_button()
+        self.independent_surface.blit(
+            self.screen.subsurface(pygame.Rect(65, 12, 805, 780)),
+            (0, 0), self.rect_area_subsurface
+        )
+        DataCache.set_value("board_view", self.independent_surface)
 
     def build_metro_decider_build(self):
+        self.screen.blit(self.next_icon_bg, (892, 350))
+        self.screen.blit(self.arrow, (892 + 95, 395 + 20))
+        self.screen.blit(self.arrow, (892 + 95, 395 + 40))
+        self.screen.blit(self.arrow, (892 + 95, 395 + 60))
+        self.screen.blit(self._buildings["ares"][0], (907, 400))
+        self.screen.blit(self._buildings["zeus"][0], (907, 444))
+        self.screen.blit(self._buildings["posejdon"][0], (951, 400))
+        self.screen.blit(self._buildings["atena"][0], (951, 444))
         _selected_status = DataCache.get_value("building_to_delete")
         if all(location != -1 for location in _selected_status.values()) and len(_selected_status.keys()) == 4:
+            self.write_coins_value(
+                "Build metro from buildings",
+                365,
+                892 + 190 / 2,
+                10,
+                256
+            )
             self.build_metro_building()
-            self.screen.blit(self.metro_building["yes"], (900, 250))
         else:
-            self.screen.blit(self.metro_building["not"], (900, 250))
+            self.write_coins_value(
+                "Select buildings to delete",
+                365,
+                892 + 190 / 2,
+                10,
+                256
+            )
             delete_entity = DataCache.get_value("entity_delete")
             for building in self.building_sprite:
                 if building._id == -1000:
@@ -166,17 +225,29 @@ class BoardView(AbstractView):
                     self.metro_placing_exist = False
                     self.delete_entity()
         if "ares" in _selected_status.keys() and _selected_status["ares"] != -1:
-            self.screen.blit(self.yes, (950, 285))
+            self.screen.blit(self.yes, (907, 400))
         if "atena" in _selected_status.keys() and _selected_status["atena"] != -1:
-            self.screen.blit(self.yes, (950, 350))
+            self.screen.blit(self.yes, (951, 444))
         if "posejdon" in _selected_status.keys() and _selected_status["posejdon"] != -1:
-            self.screen.blit(self.yes, (950, 415))
+            self.screen.blit(self.yes, (951, 400))
         if "zeus" in _selected_status.keys() and _selected_status["zeus"] != -1:
-            self.screen.blit(self.yes, (950, 480))
+            self.screen.blit(self.yes, (907, 444))
 
     def build_metro_decider_philo(self):
+        self.screen.blit(self.next_icon_bg, (892, 350))
+        self.screen.blit(self.arrow, (892 + 95, 375 + 20))
+        self.screen.blit(self.arrow, (892 + 95, 375 + 40))
+        self.screen.blit(self.arrow, (892 + 95, 375 + 60))
+        self.screen.blit(self.philosophers_card, (892 + 25, 375))
+        self.screen.blit(self.yes, (950, 285))
+        self.write_coins_value(
+            "Build metro from philosophers",
+            365,
+            892 + 190 / 2,
+            10,
+            256
+        )
         self.build_metro_building()
-        self.screen.blit(self.metro_building["philo"], (900, 250))
 
     def build_metro_building(self):
         if not self.metro_placing_exist:
@@ -184,7 +255,10 @@ class BoardView(AbstractView):
             self.building_sprite.add(BuildingEntity(
                 -1000,
                 self.screen,
-                [1128, 395],
+                [
+                    892 + 190 - 20 - 17 - 5,
+                    350 + 75
+                ],
                 self._buildings["metro"],
                 True,
                 "metro",
@@ -200,13 +274,6 @@ class BoardView(AbstractView):
         for _, location in _circle_centers[str(DataCache.get_value("num_of_players"))].items():
             if location:
                 self.draw_center(self.screen, (255, 0, 0), location, 10)
-
-    def draw_all_points(self):
-        water = Config.boards.buildings_centers[str(DataCache.get_value("num_of_players"))]
-        for _, loc in water.items():
-            for center in loc["small"]:
-                self.draw_center(self.screen, "yellow", center, 2)
-            self.draw_center(self.screen, "blue", loc["big"], 2)
 
     def draw_center(self, screen, color, center, radius):
         pygame.draw.circle(screen, color, tuple(center), radius)
@@ -465,10 +532,14 @@ class BoardView(AbstractView):
         pass
 
     def next_player_button(self):
+        self.screen.blit(
+            self.next_icon_bg,
+            pygame.Rect(892, 0, 40, 40)
+        )
         next_player_button = Button(
             self.screen,
             self.next_icon,
-            pygame.Rect(900, 0, 240, 60),
+            pygame.Rect(897, 5, 240, 60),
             self.clear_player
         )
         next_player_button.update()
@@ -501,10 +572,10 @@ class BoardView(AbstractView):
             athena_card = Button(
                 self.screen,
                 {
-                    "org": self.philosophers_card,
-                    "hov": self.philosophers_card
+                    "org": self.philosophers_card_small,
+                    "hov": self.philosophers_card_small
                 },
-                pygame.Rect(1080, 100, 60, 100),
+                pygame.Rect(1016, 180, 40, 66),
                 self.add_card_to_player
             )
             athena_card.update()
@@ -513,10 +584,10 @@ class BoardView(AbstractView):
             zeus_card = Button(
                 self.screen,
                 {
-                    "org": self.priest_card,
-                    "hov": self.priest_card
+                    "org": self.priest_card_small,
+                    "hov": self.priest_card_small
                 },
-                pygame.Rect(1080, 100, 60, 100),
+                pygame.Rect(1016, 180, 40, 66),
                 self.add_card_to_player
             )
             zeus_card.update()

@@ -22,7 +22,7 @@ class BuildingEntity(pygame.sprite.Sprite):
         self._id = entity_id
         self.screen = screen
         self._map_point = map_point
-        self._shift = 20 if champion == "metro" else 20
+        self._shift = 23 if champion == "metro" else 15
         self._act_location = (self._map_point[0] - self._shift, self._map_point[1] - self._shift)
         self._if_dragging = if_dragging
         self.is_dragging = False

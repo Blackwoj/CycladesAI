@@ -29,5 +29,5 @@ class Button:
         else:
             self.screen.blit(self.icons["org"], self.rect)
 
-        if hit and click[0] == 1 and self.callback is not None:
+        if hit and click[0] == 1 and self.callback is not None and not DataCache.get_value("is_dragging"):
             self.callback()
