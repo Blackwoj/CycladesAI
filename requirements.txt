@@ -1,0 +1,16 @@
+# CycladesAI — zależności Python
+
+# ── Silnik headless ─────────────────────────────────────────────────────────
+pydantic>=2.0          # walidacja wyjścia LLM (llm_schemas.py)
+
+# ── Agenci LLM — zainstaluj tylko potrzebnych dostawców ────────────────────
+# anthropic>=0.25       # Claude (AnthropicLLMAgent)
+# openai>=1.0           # GPT / Qwen / MiniMax / Ollama (OpenAILLMAgent)
+# google-generativeai   # Gemini (GeminiLLMAgent)
+
+# ── Pygame (stary GUI — opcjonalne przy headless) ───────────────────────────
+# pygame>=2.0
+
+# ── Testy i dev ─────────────────────────────────────────────────────────────
+pytest>=7.0
+python-dotenv          # ładowanie .env z kluczami API

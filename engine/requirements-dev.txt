@@ -1,0 +1,3 @@
+# Zależności deweloperskie silnika (testy).
+# Instalacja:  python3 -m pip install -r engine/requirements-dev.txt
+pytest==7.4.4

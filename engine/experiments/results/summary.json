@@ -1,0 +1,66 @@
+[
+  {
+    "name": "random_vs_random",
+    "total_games": 20,
+    "win_counts": {
+      "p1": 6
+    },
+    "win_rates": {
+      "p1": 0.3
+    },
+    "avg_steps": 364.6,
+    "total_illegal_moves": {
+      "p1": 232,
+      "p2": 334
+    },
+    "illegal_rate": {
+      "p1": 11.6,
+      "p2": 16.7
+    },
+    "truncated_games": 14
+  },
+  {
+    "name": "mcts_vs_random",
+    "total_games": 20,
+    "win_counts": {
+      "p2": 2,
+      "p1": 6
+    },
+    "win_rates": {
+      "p2": 0.1,
+      "p1": 0.3
+    },
+    "avg_steps": 345.4,
+    "total_illegal_moves": {
+      "p1": 224,
+      "p2": 587
+    },
+    "illegal_rate": {
+      "p1": 11.2,
+      "p2": 29.35
+    },
+    "truncated_games": 12
+  },
+  {
+    "name": "mcts_vs_mcts",
+    "total_games": 20,
+    "win_counts": {
+      "p1": 7,
+      "p2": 6
+    },
+    "win_rates": {
+      "p1": 0.35,
+      "p2": 0.3
+    },
+    "avg_steps": 286.4,
+    "total_illegal_moves": {
+      "p1": 239,
+      "p2": 281
+    },
+    "illegal_rate": {
+      "p1": 11.95,
+      "p2": 14.05
+    },
+    "truncated_games": 7
+  }
+]
