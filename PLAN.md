@@ -10,8 +10,32 @@
 | 4 | `LLMAgent` multi-provider + Pydantic schematy per-bóg + system prompt z zasadami gry | ✅ | `engine/agents/llm_agent.py`, `engine/agents/llm_schemas.py` |
 | 5 | `MCTSAgent` — UCB1, losowe rollouty, determinizacja walki, `time_budget_ms` | ✅ | `engine/agents/mcts_agent.py`, `engine/tests/test_mcts.py` |
 | 6 | `ConsoleHumanAgent` + interaktywna gra człowiek vs AI | ✅ | `engine/agents/human_agent.py`, `engine/experiments/play.py` |
+| 6.1 | Naprawa 4 błędów silnika wykrytych przy analizie punktu A (niżej) | ✅ | `engine/rules/board.py`, `engine/rules/setup.py`, `engine/tests/test_regressions.py` |
 
-**Testy**: 65 passed (59 bez MCTS + 6 MCTS) przy `python3 -m pytest engine/tests/`.
+**Testy**: 74 passed (65 poprzednich + 9 regresyjnych) przy `python3 -m pytest engine/tests/`.
+
+### Faza 6.1 — naprawione błędy
+
+Wykryte przy pomiarach do punktu A. Każdy ma test regresyjny w
+`engine/tests/test_regressions.py` (sprawdzone: 8 z 9 testów pada na kodzie sprzed napraw).
+
+1. **Gubienie `entity.kind` przy opróżnieniu pola** — `_apply_move_entity()` czytało
+   rodzaj jednostki z `from_f.entity` już PO wyzerowaniu pola, więc ruch wszystkich
+   statków dawał na polu docelowym `kind=None`. Kolejny ruch tych statków szedł
+   ścieżką kosztu wojownika i bywał odrzucany.
+2. **Wojownicy na otwartym morzu** — generator Aresa iterował po wszystkich polach,
+   a `can_warrior_reach()` dopuszczał dowolne pole sąsiednie. W 10 partiach 127 ruchów
+   wojowników na wodę, do 16 zajętych pól wodnych naraz. Teraz cel musi być wyspą;
+   ścieżka DFS przez własną wodę (most ze statków) pozostaje dozwolona.
+3. **Brak reprodukowalności między procesami** — kolejność `legal_actions()` zależała
+   od iteracji po `set`, czyli od `PYTHONHASHSEED`. Ten sam seed dawał w dwóch procesach
+   różne przebiegi gry. Po dodaniu `sorted()` wynik jest identyczny także dla
+   `PYTHONHASHSEED=random`.
+4. **Gracze-widma przy 2–4 graczach** — patrz punkt A niżej.
+
+**Efekt łączny**: `step()` nie odrzuca już ani jednej akcji zwróconej przez
+`legal_actions()` (wcześniej 6,0% kroków). To ważne dla punktu C: metryka
+`illegal_count` mierzy teraz wyłącznie agenta, a nie szum silnika.
 
 ---
 
@@ -19,16 +43,48 @@
 
 ### Priorytet wysoki (potrzebne do eksperymentów w pracy mgr)
 
-#### A. Plansza dla 2–4 graczy
-- **Problem**: silnik używa planszy 5-osobowej dla wszystkich konfiguracji (brak plansz 2–4 w `game/gui/common/config_section/boards/`). W grach 2-osobowych ~70% gier jest truncated przy max_steps=800 bo plansza jest za duża i gra trwa zbyt długo.
-- **Do zrobienia**: stworzyć lub zaimportować mniejsze plansze JSON dla 2, 3, 4 graczy albo przyciąć istniejącą planszę 5-osobową do podzbioru wysp/wód odpowiedniego dla mniejszej liczby graczy.
-- **Pliki**: `engine/rules/setup.py` → `load_board_data()`, `_BOARDS_DIR`
+#### A. Plansza dla 2–4 graczy — CZĘŚCIOWO ZROBIONE
+
+**Sprostowanie do pierwotnego opisu**: liczba „~70% truncated przy max_steps=800" była
+błędna — zapisane wyniki w `engine/experiments/results/random_vs_random.jsonl` mają
+`"steps": 400`, więc 70% pochodzi z **max_steps=400**. Przy 800 truncation wynosiło 17%.
+
+**Zrobione — gracze-widma (główna przyczyna)**: pliki JSON opisują rozstawienie dla
+5 graczy i wczytywano je w całości niezależnie od `num_players`. W partii 2-osobowej
+**15 z 22 zajętych pól (18 z 26 jednostek) należało do `p3`/`p4`/`p5`** — właścicieli
+bez agenta, którzy nigdy się nie ruszali ani nie tracili jednostek, za to blokowali
+ekspansję. `_parse_owner_entity()` przyjmuje teraz zbiór aktywnych graczy i zostawia
+pozycje pozostałych neutralne. Układ pól i rozstawienie dla 5 graczy bez zmian.
+
+Truncation dla 2 graczy, RandomAgent, `max_steps=400`, 30 partii:
+
+| Wersja | truncated |
+|---|---|
+| zapisane wyniki (przed naprawami) | 70% |
+| po naprawach błędów z Fazy 6.1 | 50% |
+| po neutralizacji graczy-widm | **43%** |
+
+**Zostaje do decyzji — czy w ogóle przycinać geometrię.** Po naprawach 6,7 z 13 wysp
+zostaje neutralnych do końca partii, czyli agenci nie zajmują nawet tego, co stoi
+otworem — to wskazuje na słabość agenta, nie na zbyt dużą planszę. Zapisane wyniki
+mówią to samo: przy tym samym budżecie `mcts_vs_mcts` miało 35%, a `random_vs_random`
+70%. **Zanim powstaną osobne plansze 2–4, trzeba zmierzyć truncation dla MCTS po
+naprawach** — jeśli spadnie do kilkunastu procent, przycinanie geometrii jest zbędne.
+
+Koszt przycięcia jest realny: layout ma odpowiedniki w `buildings_centers/5.json`,
+`water_centers/5.json`, `income_points/5.json`, `warriors_points/5.json` oraz we
+współrzędnych GUI — każda nowa plansza to komplet tych plików.
+
+- **Pliki**: `engine/rules/setup.py` → `load_board_data()`, `_parse_owner_entity()`, `_BOARDS_DIR`
 
 #### B. Uruchomienie eksperymentów porównawczych z prawdziwymi LLM
 - Uzupełnić klucze w `.env` (skopiować z `.env.example`)
 - Odkomentować sekcję LLM w `engine/experiments/compare.py`
 - Uruchomić: `python3 engine/experiments/compare.py`
 - Przeanalizować wyniki z `engine/experiments/results/`
+- **Uwaga: pliki w `results/` są nieaktualne** — powstały przed naprawami z Fazy 6.1,
+  na silniku, który odrzucał 6% własnych legalnych akcji i stawiał na planszy graczy-widm.
+  Trzeba je wygenerować od nowa, zanim posłużą za punkt odniesienia dla LLM
 - **Modele do przetestowania**: `claude-haiku-4-5` (Anthropic), `gpt-4o-mini` (OpenAI), lokalny Llama przez Ollama, Gemini Flash
 
 #### C. Metryki rozszerzone dla pracy mgr
@@ -128,4 +184,7 @@ engine/
 - **LLM providers**: każdy w osobnej podklasie; OpenAI SDK pokrywa też Qwen/MiniMax/Ollama
 - **MCTS + losowość**: determinizacja — Rng losuje wyniki walki w każdym rolloucie
 - **Pydantic schematy**: per-bóg discriminated unions → zero ręcznego parsowania JSON z LLM
-- **5-player board dla wszystkich**: znany dług techniczny — naprawić w punkcie A powyżej
+- **5-player board dla wszystkich**: layout wspólny, ale rozstawienie startowe ograniczone
+  do aktywnych graczy (Faza 6.1). Osobne plansze 2–4 — dopiero po pomiarze MCTS, patrz punkt A
+- **Kolejność `legal_actions()` musi być deterministyczna**: bez tego seed nie wystarcza do
+  reprodukcji. Nie iterować po `set` przy generowaniu akcji — zawsze `sorted()`

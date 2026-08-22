@@ -150,8 +150,13 @@ def _legal_ares_actions(state: GameState) -> list[Action]:
             if (from_field.type == FieldType.ISLAND
                     and from_field.owner == player_id
                     and from_field.entity.quantity > 0):
-                for to_id in state.fields:
+                for to_id, to_field in state.fields.items():
                     if to_id == from_id:
+                        continue
+                    # Celem musi być wyspa — wojownicy nie stoją na otwartym morzu.
+                    # Ścieżka DFS nadal biegnie przez własną wodę (most ze statków),
+                    # to modeluje ruch Aresa między wyspami połączonymi flotą.
+                    if to_field.type != FieldType.ISLAND:
                         continue
                     if g.can_warrior_reach(from_id, to_id, player_id):
                         for qty in range(1, from_field.entity.quantity + 1):
@@ -184,7 +189,10 @@ def _legal_posejdon_actions(state: GameState) -> list[Action]:
             for nb in state.fields[iid].neighbors
             if nb in state.fields and state.fields[nb].type == FieldType.WATER
         }
-        for fid in valid_water:
+        # sorted() jest istotne: iteracja po zbiorze zależy od PYTHONHASHSEED,
+        # co czyniło kolejność legal_actions() — a więc i wybór agenta —
+        # nieodtwarzalną między procesami, mimo seedowalnego Rng.
+        for fid in sorted(valid_water):
             actions.append(PlaceEntity(player=player_id, field_id=fid, kind="ship", quantity=1))
 
     # Ruch statków — jeden krok między sąsiednimi polami wodnymi
@@ -192,7 +200,10 @@ def _legal_posejdon_actions(state: GameState) -> list[Action]:
         for from_id, from_field in state.fields.items():
             if (from_field.type == FieldType.WATER
                     and from_field.owner == player_id
-                    and from_field.entity.quantity > 0):
+                    and from_field.entity.quantity > 0
+                    # tylko statki — bez tego Posejdon proponował ruch dla
+                    # wojowników stojących na wodzie, a step() go odrzucał
+                    and from_field.entity.kind == "ship"):
                 for to_id in from_field.neighbors:
                     if to_id in state.fields and state.fields[to_id].type == FieldType.WATER:
                         for qty in range(1, from_field.entity.quantity + 1):
@@ -344,8 +355,17 @@ def _apply_move_entity(state: GameState, action: MoveEntity, rng: Rng) -> tuple[
     from_f = s.fields[action.from_field]
     to_f = s.fields[action.to_field]
 
+    # Rodzaj jednostki ustalamy RAZ i PRZED opróżnieniem pola źródłowego.
+    # Wcześniej liczyliśmy to po wyzerowaniu from_f.entity, więc przy ruchu
+    # wszystkich jednostek kind gubił się jako None — statki jechały wtedy
+    # ścieżką kosztu wojownika i legal_actions() rozjeżdżało się ze step().
+    # Fallback na typ pola: na wodzie stoją tylko statki, na wyspach wojownicy.
+    entity_kind = action.kind or from_f.entity.kind
+    if not entity_kind:
+        entity_kind = "ship" if from_f.type == FieldType.WATER else "warrior"
+
     # Koszt ruchu
-    if action.kind == "ship" or (from_f.entity.kind == "ship"):
+    if entity_kind == "ship":
         if s.board.poseidon_jumps > 0:
             s.board.poseidon_jumps -= 1
         else:
@@ -365,8 +385,6 @@ def _apply_move_entity(state: GameState, action: MoveEntity, rng: Rng) -> tuple[
         from_f.entity = Entity()
         if from_f.type == FieldType.WATER:
             from_f.owner = None
-
-    entity_kind = action.kind if action.kind else from_f.entity.kind
 
     if to_f.owner is None or to_f.owner == player_id:
         # Ruch na własne lub neutralne pole

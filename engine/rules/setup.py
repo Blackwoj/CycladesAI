@@ -65,11 +65,18 @@ def build_initial_state(num_players: int, rng: Rng | None = None) -> GameState:
     rng = rng or Rng()
     water_cfg, islands_cfg = load_board_data(num_players)
 
+    players = _build_players(num_players)
+    # Pliki JSON opisują rozstawienie dla 5 graczy. Przy mniejszej liczbie
+    # graczy pozycje p3/p4/p5 muszą zostać neutralne — inaczej na planszy
+    # siedzą "gracze-widma": właściciele bez agenta, którzy nigdy się nie ruszą
+    # ani nie stracą jednostek, a blokują ekspansję i zawyżają truncation.
+    active_players = set(players)
+
     fields: dict[str, Field] = {}
 
     # Pola wodne
     for field_id, cfg in water_cfg.items():
-        owner, entity = _parse_owner_entity(cfg.get("owner", {}), "ship")
+        owner, entity = _parse_owner_entity(cfg.get("owner", {}), "ship", active_players)
         neighbors = list(cfg.get("neighbors", [])) + list(cfg.get("neighbors_island", []))
         # Wyfiltruj ewentualne puste stringi (neighbors_island: "" w JSON)
         neighbors = [n for n in neighbors if n]
@@ -83,7 +90,7 @@ def build_initial_state(num_players: int, rng: Rng | None = None) -> GameState:
 
     # Wyspy
     for field_id, cfg in islands_cfg.items():
-        owner, entity = _parse_owner_entity(cfg.get("owner", {}), "warrior")
+        owner, entity = _parse_owner_entity(cfg.get("owner", {}), "warrior", active_players)
         # Sąsiedzi wyspy = pola wodne, które mają tę wyspę w neighbors_island
         island_neighbors = [
             wid for wid, wcfg in water_cfg.items()
@@ -101,8 +108,6 @@ def build_initial_state(num_players: int, rng: Rng | None = None) -> GameState:
             neighbors=island_neighbors,
         )
 
-    players = _build_players(num_players)
-
     return GameState(
         num_of_players=num_players,
         stage=Stage.ROLL,
@@ -117,10 +122,22 @@ def build_initial_state(num_players: int, rng: Rng | None = None) -> GameState:
     )
 
 
-def _parse_owner_entity(owner_dict: dict, entity_kind: str) -> tuple[str | None, Entity]:
+def _parse_owner_entity(
+    owner_dict: dict,
+    entity_kind: str,
+    active_players: set[str] | None = None,
+) -> tuple[str | None, Entity]:
+    """Odczytaj właściciela i jednostki startowe pola z konfiguracji JSON.
+
+    `active_players` ogranicza rozstawienie do graczy faktycznie biorących
+    udział w partii; pozycje pozostałych zostają neutralne (bez właściciela
+    i bez jednostek).
+    """
     if not owner_dict:
         return None, Entity()
     player, quantity = next(iter(owner_dict.items()))
+    if active_players is not None and player not in active_players:
+        return None, Entity()
     return player, Entity(kind=entity_kind, quantity=quantity)
 
 
