@@ -212,6 +212,12 @@ Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
         self._fallback_rng = fallback_rng
         self.verbose = verbose
         self.stats = LLMStats()
+        # Szczegóły OSTATNIEJ decyzji — czyta je telemetria eksperymentu.
+        # Agregaty w self.stats nie wystarczają do wykresów, bo gubią
+        # rozkład w czasie (koszt decyzji rośnie wraz z rozmiarem stanu).
+        self.last_decision: dict = {}
+        self._call_illegal = 0
+        self._call_fallback = False
 
     # ------------------------------------------------------------------ #
     #   Abstrakcyjny interfejs API — do implementacji w podklasach
@@ -244,6 +250,8 @@ Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
             raise ValueError(f"{self.__class__.__name__}.choose: brak legalnych akcji")
 
         t0 = time.monotonic()
+        self._call_illegal = 0
+        self._call_fallback = False
 
         if self.mode == LLMMode.GUIDED:
             action, input_tok, output_tok = self._run_guided(state_view, legal_actions)
@@ -252,6 +260,17 @@ Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
 
         elapsed_ms = (time.monotonic() - t0) * 1000
         self.stats.record(input_tok, output_tok, elapsed_ms)
+
+        self.last_decision = {
+            "model": getattr(self, "model", ""),
+            "mode": self.mode.value,
+            "input_tokens": input_tok,
+            "output_tokens": output_tok,
+            "illegal_attempts": self._call_illegal,
+            "fallback_used": self._call_fallback,
+            "n_legal": len(legal_actions),
+            "decision_ms": elapsed_ms,
+        }
 
         if self.verbose:
             print(
@@ -286,6 +305,7 @@ Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
 
             if raw is None:
                 self.stats.total_illegal += 1
+                self._call_illegal += 1
                 continue
 
             # Walidacja: najpierw przez Pydantic schema (preferowane), potem fuzzy match
@@ -294,10 +314,12 @@ Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
                 return matched, total_inp, total_out
 
             self.stats.total_illegal += 1
+            self._call_illegal += 1
             if self.verbose:
                 print(f"[{self.__class__.__name__}/free_form] attempt {attempt}: illegal {raw}")
 
         self.stats.total_fallback += 1
+        self._call_fallback = True
         return self._fallback(legal_actions), total_inp, total_out
 
     def _validate_action(

@@ -87,11 +87,34 @@ współrzędnych GUI — każda nowa plansza to komplet tych plików.
   Trzeba je wygenerować od nowa, zanim posłużą za punkt odniesienia dla LLM
 - **Modele do przetestowania**: `claude-haiku-4-5` (Anthropic), `gpt-4o-mini` (OpenAI), lokalny Llama przez Ollama, Gemini Flash
 
-#### C. Metryki rozszerzone dla pracy mgr
-- W `LLMStats` zbierane są `tokens_used`, `decision_ms`, `illegal_count` — dodać eksport do CSV/JSON
-- Porównanie trybu GUIDED vs FREE_FORM (ile nielegalnych akcji generuje FREE_FORM?)
-- W `MCTSAgent` zbierać: średnia głębokość drzewa, współczynnik eksploracji, czas rolloutów
-- Skrypt analizy wyników: `engine/experiments/analyze.py`
+#### C. Metryki rozszerzone dla pracy mgr — ZROBIONE (czeka na dane z LLM)
+
+Telemetria **per decyzja**, nie zbiorcza: `LLMStats`/`MCTSStats` trzymają tylko sumy,
+z których nie da się zrobić wykresu (gubią rozkład w czasie).
+
+- `engine/experiment/telemetry.py` — `DecisionRecord` (26 pól) + `DecisionTrace` (zapis
+  strumieniowy do JSONL). Rekord łączy kontekst gry (runda, etap, heros), decyzję
+  (`n_legal`, typ akcji, `decision_ms`), koszt LLM (tokeny wejścia/wyjścia,
+  `illegal_attempts`, `fallback_used`), pracę MCTS (`simulations`, `tree_depth`)
+  i stan gracza (monety, wyspy, metropolie, wojownicy, statki).
+- Agenci wystawiają `last_decision`; agent bez telemetrii (`RandomAgent`) po prostu
+  go nie ma i telemetria zwraca pusty dict — **żaden agent nie musi nic wiedzieć o zapisie**.
+- `ExperimentConfig` ma `matchup` i `trace_path`; `compare.py` pisze do `results/traces/`.
+- `engine/experiments/analyze.py` — CSV (`decisions.csv`, `per_matchup.csv`,
+  `per_agent.csv`) + wykresy PNG. Bez `matplotlib` generuje same CSV.
+
+Wykresy: rozstrzygalność partii, rozkład długości partii, koszt decyzji wg rodzaju
+agenta (skala log), GUIDED vs FREE_FORM (nietrafione odpowiedzi + fallbacki), zużycie
+tokenów wg rundy, wielkość przestrzeni decyzyjnej, struktura wybieranych akcji,
+ekspansja terytorialna.
+
+```bash
+python3 engine/experiments/compare.py     # zapisuje results/*.jsonl + results/traces/*.jsonl
+python3 engine/experiments/analyze.py     # CSV + PNG w results/analysis/
+```
+
+Katalog `results/analysis/` jest w `.gitignore` — w całości odtwarzalny z `traces/`.
+Wykresy dotyczące LLM będą puste, dopóki nie ruszy punkt B (brak kluczy API).
 
 ### Priorytet średni (opcjonalne rozszerzenia)
 

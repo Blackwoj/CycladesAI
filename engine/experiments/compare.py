@@ -53,6 +53,7 @@ MAX_STEPS = 800
 
 def run_matchup(name: str, agents: dict, n_games: int = N_GAMES) -> dict:
     """Uruchom jedną konfigurację i zwróć podsumowanie."""
+    slug = name.replace(" ", "_").lower()
     config = ExperimentConfig(
         num_games=n_games,
         num_players=N_PLAYERS,
@@ -60,6 +61,9 @@ def run_matchup(name: str, agents: dict, n_games: int = N_GAMES) -> dict:
         seed=SEED,
         max_steps=MAX_STEPS,
         log_every=5,
+        matchup=slug,
+        # Jeden rekord na decyzję — materiał pod analyze.py i wykresy.
+        trace_path=str(RESULTS_DIR / "traces" / f"{slug}.jsonl"),
     )
     print(f"\n{'='*60}")
     print(f"  Matchup: {name}  ({n_games} gier)")
@@ -69,7 +73,7 @@ def run_matchup(name: str, agents: dict, n_games: int = N_GAMES) -> dict:
     summary = results.summary()
 
     # Zapisz wyniki do JSONL
-    out_file = RESULTS_DIR / f"{name.replace(' ', '_').lower()}.jsonl"
+    out_file = RESULTS_DIR / f"{slug}.jsonl"
     out_file.write_text(results.to_jsonl())
     print(f"  Zapisano: {out_file}")
     print(f"  Win rates: {summary['win_rates']}")

@@ -139,6 +139,10 @@ class MCTSAgent(Agent):
         self._player_id = player_id
         self.verbose = verbose
         self.stats = MCTSStats()
+        # Szczegóły ostatniej decyzji dla telemetrii eksperymentu
+        # (engine/experiment/telemetry.py). Agregaty w self.stats gubią
+        # rozkład w czasie — a właśnie on jest materiałem na wykresy.
+        self.last_decision: dict = {}
 
     def choose(self, state_view: dict, legal_actions: list[Action]) -> Action:
         if not legal_actions:
@@ -161,6 +165,13 @@ class MCTSAgent(Agent):
 
         elapsed_ms = (time.monotonic() - t0) * 1000
         self.stats.record(simulations, elapsed_ms, tree_depth)
+
+        self.last_decision = {
+            "simulations": simulations,
+            "tree_depth": tree_depth,
+            "n_legal": len(legal_actions),
+            "decision_ms": elapsed_ms,
+        }
 
         if self.verbose:
             print(

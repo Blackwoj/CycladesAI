@@ -28,6 +28,7 @@ from ..agents.base import Agent
 from ..engine import GameEngine
 from ..rng import Rng
 from ..state import GameState, Stage
+from .telemetry import DecisionTrace, build_record
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +43,8 @@ class ExperimentConfig:
     seed: int | None = None
     max_steps: int = 1000                     # zabezpieczenie przed nieskończoną grą
     log_every: int = 0                        # co ile gier wypisać postęp (0 = cicho)
+    matchup: str = ""                         # etykieta konfiguracji w telemetrii
+    trace_path: str | None = None             # JSONL z jednym rekordem na decyzję
 
 
 # ---------------------------------------------------------------------------
@@ -129,16 +132,18 @@ class ExperimentRunner:
 
     def run(self) -> ExperimentResults:
         results = ExperimentResults(config=self._cfg)
-        for game_id in range(self._cfg.num_games):
-            game_rng = self._master_rng.spawn()
-            result = self._run_game(game_id, game_rng)
-            results.games.append(result)
-            if self._cfg.log_every and (game_id + 1) % self._cfg.log_every == 0:
-                print(f"[experiment] gra {game_id + 1}/{self._cfg.num_games} — "
-                      f"winner={result.winner}, steps={result.steps}")
+        with DecisionTrace(self._cfg.trace_path) as trace:
+            for game_id in range(self._cfg.num_games):
+                game_rng = self._master_rng.spawn()
+                result = self._run_game(game_id, game_rng, trace)
+                results.games.append(result)
+                if self._cfg.log_every and (game_id + 1) % self._cfg.log_every == 0:
+                    print(f"[experiment] gra {game_id + 1}/{self._cfg.num_games} — "
+                          f"winner={result.winner}, steps={result.steps}")
         return results
 
-    def _run_game(self, game_id: int, rng: Rng) -> GameResult:
+    def _run_game(self, game_id: int, rng: Rng,
+                  trace: "DecisionTrace | None" = None) -> GameResult:
         engine = GameEngine(rng=rng)
         state = engine.new_game(num_players=self._cfg.num_players, rng=rng.spawn())
 
@@ -160,12 +165,27 @@ class ExperimentRunner:
                 break
 
             view = engine.state_view(state, state.act_player)
+            t_dec = time.monotonic()
             try:
                 chosen = agent.choose(view, legal)
             except Exception:
                 # Agent rzucił wyjątkiem — licz jako nielegalny ruch, użyj pierwszej legalnej
                 illegal[state.act_player] += 1
                 chosen = legal[0]
+            decision_ms = (time.monotonic() - t_dec) * 1000
+
+            if trace is not None:
+                trace.add(build_record(
+                    matchup=self._cfg.matchup,
+                    game_id=game_id,
+                    step=steps,
+                    state=state,
+                    player=state.act_player,
+                    agent=agent,
+                    action=chosen,
+                    decision_ms=decision_ms,
+                    n_legal=len(legal),
+                ))
 
             new_state, info = engine.step(state, chosen)
             if not info.get("valid", True):
