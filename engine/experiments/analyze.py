@@ -40,6 +40,11 @@ COLORS = {
 }
 FALLBACK_COLORS = ["#2563eb", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#94a3b8"]
 
+# Wykresy "wg rundy" mają długi ogon: do rundy 100+ dochodzą pojedyncze partie,
+# więc średnia z 1-2 obserwacji wygląda jak sygnał, a jest szumem. Rundy poniżej
+# tego progu są ucinane, a fakt ucięcia opisany na wykresie.
+MIN_SAMPLES_PER_ROUND = 5
+
 
 # ---------------------------------------------------------------------------
 # Wczytywanie
@@ -96,6 +101,16 @@ def write_decisions_csv(decisions: list[dict], out: Path) -> None:
 
 def _mean(xs, digits=2):
     return round(statistics.mean(xs), digits) if xs else 0.0
+
+
+def _trim_tail(buckets: dict, min_samples: int = MIN_SAMPLES_PER_ROUND):
+    """Zostaw tylko rundy z dostateczną liczbą obserwacji.
+
+    Zwraca (klucze, ile_uciete) — liczba uciętych rund idzie w podpis wykresu,
+    żeby nie ukrywać, że dane się kończą.
+    """
+    keys = sorted(k for k in buckets if len(buckets[k]) >= min_samples)
+    return keys, len(buckets) - len(keys)
 
 
 def summarize_matchups(games: dict[str, list[dict]],
@@ -203,6 +218,15 @@ def make_charts(games: dict[str, list[dict]], decisions: list[dict],
         plt.close(fig)
         made.append(name)
 
+    _charts_games(plt, save, games)
+    if decisions:
+        _charts_decisions(plt, save, decisions)
+        _charts_llm(plt, save, [d for d in decisions if d["agent_kind"] == "llm"])
+    return made
+
+
+def _charts_games(plt, save, games: dict[str, list[dict]]) -> None:
+    """Wykresy liczone z rekordów GRY (bez telemetrii decyzji)."""
     # --- 1. Rozstrzygnięcia i truncation na konfigurację -------------------
     if games:
         names = list(games)
@@ -235,9 +259,9 @@ def make_charts(games: dict[str, list[dict]], decisions: list[dict],
         ax.tick_params(axis="x", rotation=15)
         save(fig, "fig_dlugosc_partii.png")
 
-    if not decisions:
-        return made
 
+def _charts_decisions(plt, save, decisions: list[dict]) -> None:
+    """Wykresy liczone z telemetrii decyzji — wspólne dla wszystkich agentów."""
     by_kind = defaultdict(list)
     for d in decisions:
         by_kind[d["agent_kind"]].append(d)
@@ -255,52 +279,19 @@ def make_charts(games: dict[str, list[dict]], decisions: list[dict],
     ax.set_title("Koszt pojedynczej decyzji wg rodzaju agenta")
     save(fig, "fig_czas_decyzji.png")
 
-    # --- 4. Nielegalne odpowiedzi: GUIDED vs FREE_FORM --------------------
-    llm = [d for d in decisions if d["agent_kind"] == "llm"]
-    if llm:
-        by_mode = defaultdict(list)
-        for d in llm:
-            by_mode[d.get("mode") or "?"].append(d)
-        modes = sorted(by_mode)
-        rate = [sum(d["illegal_attempts"] for d in by_mode[m]) / len(by_mode[m])
-                for m in modes]
-        fb = [100 * sum(1 for d in by_mode[m] if d["fallback_used"]) / len(by_mode[m])
-              for m in modes]
-        fig, (a1, a2) = plt.subplots(1, 2, figsize=(8, 3.4))
-        a1.bar(modes, rate, color="#f59e0b")
-        a1.set_ylabel("odrzuconych odpowiedzi / decyzję")
-        a1.set_title("Nietrafione odpowiedzi LLM")
-        a2.bar(modes, fb, color="#ef4444")
-        a2.set_ylabel("% decyzji")
-        a2.set_title("Decyzje zakończone losowaniem (fallback)")
-        save(fig, "fig_llm_tryby.png")
-
-        # --- 5. Zużycie tokenów w trakcie partii --------------------------
-        buckets = defaultdict(list)
-        for d in llm:
-            buckets[d["round_no"]].append(d["input_tokens"] + d["output_tokens"])
-        if buckets:
-            rounds = sorted(buckets)
-            fig, ax = plt.subplots(figsize=(7, 3.4))
-            ax.plot(rounds, [_mean(buckets[r], 1) for r in rounds],
-                    marker="o", color="#f59e0b")
-            ax.set_xlabel("runda")
-            ax.set_ylabel("tokenów na decyzję (średnio)")
-            ax.set_title("Koszt promptu rośnie wraz ze stanem gry")
-            save(fig, "fig_tokeny_w_czasie.png")
-
     # --- 6. Współczynnik rozgałęzienia w czasie ---------------------------
     branch = defaultdict(list)
     for d in decisions:
         branch[d["round_no"]].append(d["n_legal"])
-    if branch:
-        rounds = sorted(branch)
+    rounds, cut = _trim_tail(branch)
+    if rounds:
         fig, ax = plt.subplots(figsize=(7, 3.4))
         ax.plot(rounds, [_mean(branch[r], 1) for r in rounds],
                 marker="o", color="#2563eb")
-        ax.set_xlabel("runda")
         ax.set_ylabel("liczba legalnych akcji (średnio)")
         ax.set_title("Wielkość przestrzeni decyzyjnej w trakcie partii")
+        ax.set_xlabel("runda" if not cut else
+                      f"runda  (ucięto {cut} rund z <{MIN_SAMPLES_PER_ROUND} obserwacjami)")
         save(fig, "fig_rozgalezienie.png")
 
     # --- 7. Co agenci właściwie robią -------------------------------------
@@ -332,16 +323,54 @@ def make_charts(games: dict[str, list[dict]], decisions: list[dict],
         prog[d["agent_kind"]][d["round_no"]].append(d["islands_owned"])
     fig, ax = plt.subplots(figsize=(7, 3.4))
     for k in sorted(prog):
-        rounds = sorted(prog[k])
-        ax.plot(rounds, [_mean(prog[k][r], 2) for r in rounds],
-                marker="o", label=k, color=COLORS.get(k, None))
+        rounds, _ = _trim_tail(prog[k])
+        if rounds:
+            ax.plot(rounds, [_mean(prog[k][r], 2) for r in rounds],
+                    marker="o", label=k, color=COLORS.get(k, None))
     ax.set_xlabel("runda")
     ax.set_ylabel("posiadanych wysp (średnio)")
     ax.set_title("Ekspansja terytorialna wg rodzaju agenta")
     ax.legend()
     save(fig, "fig_ekspansja.png")
 
-    return made
+
+def _charts_llm(plt, save, llm: list[dict]) -> None:
+    """Wykresy dotyczące wyłącznie agentów LLM (puste, dopóki brak kluczy API)."""
+    if not llm:
+        return
+
+    # --- 4. Nietrafione odpowiedzi: GUIDED vs FREE_FORM -------------------
+    by_mode = defaultdict(list)
+    for d in llm:
+        by_mode[d.get("mode") or "?"].append(d)
+    modes = sorted(by_mode)
+    rate = [sum(d["illegal_attempts"] for d in by_mode[m]) / len(by_mode[m])
+            for m in modes]
+    fb = [100 * sum(1 for d in by_mode[m] if d["fallback_used"]) / len(by_mode[m])
+          for m in modes]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(8, 3.4))
+    a1.bar(modes, rate, color="#f59e0b")
+    a1.set_ylabel("odrzuconych odpowiedzi / decyzję")
+    a1.set_title("Nietrafione odpowiedzi LLM")
+    a2.bar(modes, fb, color="#ef4444")
+    a2.set_ylabel("% decyzji")
+    a2.set_title("Decyzje zakończone losowaniem (fallback)")
+    save(fig, "fig_llm_tryby.png")
+
+    # --- 5. Zużycie tokenów w trakcie partii ------------------------------
+    buckets = defaultdict(list)
+    for d in llm:
+        buckets[d["round_no"]].append(d["input_tokens"] + d["output_tokens"])
+    rounds, cut = _trim_tail(buckets)
+    if rounds:
+        fig, ax = plt.subplots(figsize=(7, 3.4))
+        ax.plot(rounds, [_mean(buckets[r], 1) for r in rounds],
+                marker="o", color="#f59e0b")
+        ax.set_ylabel("tokenów na decyzję (średnio)")
+        ax.set_title("Koszt promptu rośnie wraz ze stanem gry")
+        ax.set_xlabel("runda" if not cut else
+                      f"runda  (ucięto {cut} rund z <{MIN_SAMPLES_PER_ROUND} obserwacjami)")
+        save(fig, "fig_tokeny_w_czasie.png")
 
 
 # ---------------------------------------------------------------------------
