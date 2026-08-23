@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -29,11 +30,48 @@ from engine.rng import Rng
 from engine.state import Stage
 
 
+def _fmt_action(action) -> str:
+    """Jedna linia opisu akcji — czytelna dla człowieka, nie dict."""
+    a = action.to_dict()
+    t = a.get("type")
+    if t == "roll_bid":
+        return f"licytuje {a['row']} za {a['amount']}"
+    if t == "apollon_bid":
+        return "dołącza do Apollona"
+    if t == "place_entity":
+        kind = "wojownika" if a["kind"] == "warrior" else "statek"
+        return f"wystawia {kind} na {a['field_id']}"
+    if t == "move_entity":
+        return f"przesuwa {a['quantity']} z {a['from_field']} na {a['to_field']}"
+    if t == "build":
+        return f"buduje {a['hero']} na {a['field_id']}"
+    if t == "buy_card":
+        return f"kupuje kartę {a['hero']}"
+    if t == "end_turn":
+        return "kończy turę"
+    return str(a)
+
+
+def _log_step(steps: int, state, action, info, legal_count: int, ms: float) -> None:
+    """Log jednego ruchu: kto, czym, co zrobił, z ilu opcji."""
+    hero = state.act_hero or "-"
+    p = state.players[state.act_player]
+    line = (f"[r{state.round_no:>2} k{steps:>3}] {state.act_player} "
+            f"({hero:<8} {p.coins:>2}zł) {_fmt_action(action):<34} "
+            f"| {legal_count:>3} opcji | {ms:>6.0f} ms")
+    if info.get("combat"):
+        line += f" | WALKA -> {info.get('winner')}"
+    if not info.get("valid", True):
+        line += f" | ODRZUCONE: {info.get('reason')}"
+    print(line, flush=True)
+
+
 def play_interactive(
     agents: dict,
     num_players: int = 2,
     seed: int = 42,
     max_steps: int = 1000,
+    log_moves: bool = False,
 ) -> None:
     """Uruchom grę interaktywną z podanymi agentami."""
     rng = Rng(seed)
@@ -60,9 +98,15 @@ def play_interactive(
             break
 
         view = engine.state_view(state, state.act_player)
+        t0 = time.monotonic()
         action = agent.choose(view, legal)
+        decision_ms = (time.monotonic() - t0) * 1000
+        prev = state
         state, info = engine.step(state, action)
         steps += 1
+
+        if log_moves:
+            _log_step(steps, prev, action, info, len(legal), decision_ms)
 
         if info.get("winners"):
             break
@@ -84,7 +128,22 @@ def main() -> None:
     parser.add_argument("--llm", action="store_true",
                         help="Użyj LLM (Claude) zamiast MCTS jako AI")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--watch", action="store_true",
+                        help="AI vs AI z logiem każdego ruchu (bez człowieka)")
+    parser.add_argument("--max-steps", type=int, default=1000)
     args = parser.parse_args()
+
+    # Tryb podglądu: dwa MCTS grają same, log ruch po ruchu.
+    if args.watch:
+        print(f"\nPODGLĄD: MCTS({args.mcts_sims}) vs MCTS({args.mcts_sims})")
+        play_interactive(
+            agents={"p1": MCTSAgent(n_simulations=args.mcts_sims, rollout_rng=Rng(99)),
+                    "p2": MCTSAgent(n_simulations=args.mcts_sims, rollout_rng=Rng(77))},
+            seed=args.seed,
+            max_steps=args.max_steps,
+            log_moves=True,
+        )
+        return
 
     human = ConsoleHumanAgent(name="Ty (p1)")
 

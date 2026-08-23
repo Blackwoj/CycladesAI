@@ -146,13 +146,19 @@ def setup_roll_phase(state: GameState, rng: Rng) -> GameState:
     heroes_this_round = left_heroes + available[:num_rows - len(left_heroes)]
     rng.shuffle(heroes_this_round)
 
-    # Zaktualizuj left_heros (te które NIE weszły do aukcji)
-    s.roll.left_heros = [h for h in HEROES_BIDDABLE if h not in heroes_this_round]
+    # Do rzędów wchodzi tylko num_rows pierwszych — reszta czeka na kolejną rundę.
+    placed = heroes_this_round[:num_rows]
+
+    # left_heros liczymy z FAKTYCZNIE wystawionych bogów. Wcześniej liczyliśmy je
+    # z heroes_this_round, które przy małej liczbie graczy jest dłuższe niż liczba
+    # rzędów — bogowie, którzy nigdy nie weszli do licytacji, znikali z puli.
+    # Przy 2 graczach dawało to rozkład 6/3/2/1 na 12 rund zamiast równego.
+    s.roll.left_heros = [h for h in HEROES_BIDDABLE if h not in placed]
 
     heros_per_row = {}
     for i, row in enumerate([f"row_{j}" for j in range(1, 5)]):
         if i < num_rows:
-            heros_per_row[row] = heroes_this_round[i]
+            heros_per_row[row] = placed[i]
         else:
             heros_per_row[row] = ""
     heros_per_row["row_5"] = "apollon"

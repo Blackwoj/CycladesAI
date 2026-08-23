@@ -185,7 +185,43 @@ def test_fewer_players_leaves_islands_neutral():
 
 
 # ---------------------------------------------------------------------------
-# 5. Test integracyjny — legal_actions() i step() muszą się zgadzać
+# 5. Sprawiedliwy rozkład bogów w aukcji
+# ---------------------------------------------------------------------------
+
+def test_gods_appear_evenly_in_auction():
+    """Każdy bóg musi trafiać do aukcji z podobną częstością.
+
+    Błąd: left_heros liczono z heroes_this_round, które przy małej liczbie
+    graczy jest dłuższe niż liczba rzędów — bogowie, którzy nigdy nie weszli
+    do licytacji, znikali z puli. Przy 2 graczach dawało to 6/3/2/1 na
+    12 rund; jeden bóg wracał co drugą rundę, inny prawie nie występował.
+    """
+    from collections import Counter
+
+    from engine.rules.roll import setup_roll_phase
+
+    for n in (2, 3, 5):
+        state = build_initial_state(n, Rng(3))
+        rng = Rng(3)
+        seen: Counter = Counter()
+        rounds = 200
+        for _ in range(rounds):
+            state = setup_roll_phase(state, rng)
+            for row, hero in state.roll.heros_per_row.items():
+                if hero and row != "row_5":
+                    seen[hero] += 1
+
+        assert set(seen) == {"ares", "atena", "posejdon", "zeus"}, \
+            f"n={n}: nie wszystkie bóstwa trafiły do aukcji: {dict(seen)}"
+        total = sum(seen.values())
+        expected = total / 4
+        for hero, count in seen.items():
+            assert 0.7 * expected <= count <= 1.3 * expected, \
+                f"n={n}: {hero} wystąpił {count}x, oczekiwano ~{expected:.0f} ({dict(seen)})"
+
+
+# ---------------------------------------------------------------------------
+# 6. Test integracyjny — legal_actions() i step() muszą się zgadzać
 # ---------------------------------------------------------------------------
 
 def test_engine_never_rejects_its_own_legal_action():
