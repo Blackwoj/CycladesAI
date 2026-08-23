@@ -43,7 +43,7 @@ Wykryte przy pomiarach do punktu A. Każdy ma test regresyjny w
 
 ### Priorytet wysoki (potrzebne do eksperymentów w pracy mgr)
 
-#### A. Plansza dla 2–4 graczy — CZĘŚCIOWO ZROBIONE
+#### A. Plansza dla 2–4 graczy — ZAMKNIĘTE (osobne plansze niepotrzebne)
 
 **Sprostowanie do pierwotnego opisu**: liczba „~70% truncated przy max_steps=800" była
 błędna — zapisane wyniki w `engine/experiments/results/random_vs_random.jsonl` mają
@@ -64,16 +64,28 @@ Truncation dla 2 graczy, RandomAgent, `max_steps=400`, 30 partii:
 | po naprawach błędów z Fazy 6.1 | 50% |
 | po neutralizacji graczy-widm | **43%** |
 
-**Zostaje do decyzji — czy w ogóle przycinać geometrię.** Po naprawach 6,7 z 13 wysp
-zostaje neutralnych do końca partii, czyli agenci nie zajmują nawet tego, co stoi
-otworem — to wskazuje na słabość agenta, nie na zbyt dużą planszę. Zapisane wyniki
-mówią to samo: przy tym samym budżecie `mcts_vs_mcts` miało 35%, a `random_vs_random`
-70%. **Zanim powstaną osobne plansze 2–4, trzeba zmierzyć truncation dla MCTS po
-naprawach** — jeśli spadnie do kilkunastu procent, przycinanie geometrii jest zbędne.
+**Rozstrzygnięte pomiarem: osobne plansze 2–4 NIE są potrzebne.** Truncation przy
+`max_steps=800`, 2 graczy, po naprawach:
 
-Koszt przycięcia jest realny: layout ma odpowiedniki w `buildings_centers/5.json`,
-`water_centers/5.json`, `income_points/5.json`, `warriors_points/5.json` oraz we
-współrzędnych GUI — każda nowa plansza to komplet tych plików.
+| Konfiguracja | truncated (przed, `max_steps=400`) | truncated (po, `max_steps=800`) |
+|---|---|---|
+| random vs random | 70% | **10%** (2/20) |
+| MCTS vs random   | 60% | **10%** (1/10, sims=20) |
+| MCTS vs MCTS     | 35% | **0%** (0/10, sims=20) |
+
+Zbyt duża plansza nie była przyczyną — były nią gracze-widma i rozjazd
+`legal_actions()`/`step()`. Im lepszy agent, tym mniej truncation: przy dwóch MCTS
+partie kończą się w komplecie, średnio po 339 krokach. Przycinanie geometrii jest
+więc zbędne i byłoby kosztowne — każda nowa plansza to komplet plików
+`buildings_centers/`, `water_centers/`, `income_points/`, `warriors_points/`
+plus współrzędne GUI.
+
+Do rozważenia zamiast tego: `max_steps=800` jako standard w `compare.py` (już jest)
+i raportowanie truncation jako metryki jakości agenta, nie wady planszy.
+
+Koszt czasowy MCTS (sims=20, 2 gracze, do wykorzystania przy planowaniu przebiegów):
+~500 ms/decyzję vs random, ~1260 ms/decyzję gdy obaj gracze to MCTS; partia MCTS vs
+MCTS to ok. 7 minut.
 
 - **Pliki**: `engine/rules/setup.py` → `load_board_data()`, `_parse_owner_entity()`, `_BOARDS_DIR`
 
