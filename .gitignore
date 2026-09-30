@@ -164,3 +164,7 @@ cython_debug/
 engine/experiments/results/analysis/
 # Slady decyzji — 5 MB na przebieg, w pelni odtwarzalne z seeda (patrz Faza 6.1)
 engine/experiments/results/traces/
+
+# web
+node_modules/
+.playwright-mcp/
