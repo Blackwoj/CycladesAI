@@ -55,6 +55,7 @@ class DecisionRecord:
     output_tokens: int = 0
     illegal_attempts: int = 0    # odrzucone odpowiedzi w TEJ decyzji
     fallback_used: bool = False  # agent nie trafił i wylosowano akcję
+    reasoning: str = ""          # uzasadnienie podane przez model (analiza jakościowa)
 
     # --- praca MCTS ---
     simulations: int = 0
@@ -195,6 +196,7 @@ def build_record(
         output_tokens=int(detail.get("output_tokens", 0)),
         illegal_attempts=int(detail.get("illegal_attempts", 0)),
         fallback_used=bool(detail.get("fallback_used", False)),
+        reasoning=str(detail.get("reasoning", "")),
         simulations=int(detail.get("simulations", 0)),
         tree_depth=float(detail.get("tree_depth", 0.0)),
         **snap,

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import copy
 
-from ..actions import Action, Build, BuyCard, EndTurn, MoveEntity, PlaceEntity, PlayCard
+from ..actions import Action, Build, BuyCard, EndTurn, MoveEntity, PlaceEntity, PlaceIncome, PlayCard
 from ..rng import Rng
 from ..state import Building, BoardPhaseState, Entity, Field, FieldType, GameState, Stage
 from .graph import BoardGraph
@@ -70,6 +70,9 @@ def start_player_turn(state: GameState) -> GameState:
             if f.type == FieldType.ISLAND and f.owner == s.act_player
         )
         s.players[s.act_player].coins += 1 if owned_islands > 1 else 4
+        # Znacznik dochodu kładzie tylko pierwszy gracz na Apollonie
+        # (parytet z AppollonManager / BoardView.load_small_apollon w game/).
+        s.board.apollon_income = hero == "apollon"
 
     return s
 
@@ -105,7 +108,8 @@ def legal_board_actions(state: GameState) -> list[Action]:
     elif hero == "zeus":
         actions += _legal_zeus_actions(state)
     elif hero in ("apollon", "ap_s"):
-        # Apollon nie ma akcji bojowych — tylko build i end
+        # Apollon nie ma akcji bojowych — znacznik dochodu (tylko "apollon") i koniec
+        actions += _legal_apollon_actions(state)
         actions += _legal_build_actions(state)
 
     # PlayCard — o ile rejestr kart nie jest pusty (szew Fazy 7)
@@ -245,6 +249,18 @@ def _legal_zeus_actions(state: GameState) -> list[Action]:
     return actions
 
 
+def _legal_apollon_actions(state: GameState) -> list[Action]:
+    """Apollon: jeden znacznik dochodu (+1) na dowolnej własnej wyspie."""
+    if not state.board.apollon_income:
+        return []
+    player_id = state.act_player
+    return [
+        PlaceIncome(player=player_id, field_id=fid)
+        for fid, f in state.fields.items()
+        if f.type == FieldType.ISLAND and f.owner == player_id
+    ]
+
+
 def _legal_build_actions(state: GameState) -> list[Build]:
     """Budowania — wspólne dla wszystkich herosów (koszt 2 monety)."""
     player_id = state.act_player
@@ -318,6 +334,8 @@ def apply_board_action(state: GameState, action: Action, rng: Rng) -> tuple[Game
         return _apply_build(state, action)
     if isinstance(action, BuyCard):
         return _apply_buy_card(state, action)
+    if isinstance(action, PlaceIncome):
+        return _apply_place_income(state, action)
     if isinstance(action, EndTurn):
         return _apply_end_turn(state)
     if isinstance(action, PlayCard):
@@ -475,6 +493,18 @@ def _apply_buy_card(state: GameState, action: BuyCard) -> tuple[GameState, dict]
     elif action.hero == "zeus":
         player.priests += 1
         s.board.zeus_card = False
+    return s, {"valid": True}
+
+
+def _apply_place_income(state: GameState, action: PlaceIncome) -> tuple[GameState, dict]:
+    if not state.board.apollon_income or state.act_hero != "apollon":
+        return state, {"valid": False, "reason": "znacznik dochodu już użyty"}
+    field = state.fields.get(action.field_id)
+    if field is None or field.type != FieldType.ISLAND or field.owner != action.player:
+        return state, {"valid": False, "reason": "nie twoja wyspa"}
+    s = copy.deepcopy(state)
+    s.fields[action.field_id].income.quantity += 1
+    s.board.apollon_income = False
     return s, {"valid": True}
 
 

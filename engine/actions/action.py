@@ -69,6 +69,14 @@ class Build(Action):
 
 
 @dataclass(frozen=True)
+class PlaceIncome(Action):
+    """Apollon: położenie znacznika dochodu (+1) na własnej wyspie."""
+    type: str = dc_field(default="place_income", init=False)
+    player: str = ""
+    field_id: str = ""
+
+
+@dataclass(frozen=True)
 class BuyCard(Action):
     """Zakup karty filozofa (Atena) / kapłana (Zeus)."""
     type: str = dc_field(default="buy_card", init=False)
@@ -98,6 +106,7 @@ _REGISTRY = {
     "place_entity": PlaceEntity,
     "move_entity": MoveEntity,
     "build": Build,
+    "place_income": PlaceIncome,
     "buy_card": BuyCard,
     "play_card": PlayCard,
     "end_turn": EndTurn,

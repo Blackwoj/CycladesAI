@@ -89,12 +89,18 @@ MCTS to ok. 7 minut.
 
 - **Pliki**: `engine/rules/setup.py` → `load_board_data()`, `_parse_owner_entity()`, `_BOARDS_DIR`
 
-#### B. Uruchomienie eksperymentów porównawczych z prawdziwymi LLM
-- Uzupełnić klucze w `.env` (skopiować z `.env.example`)
-- Odkomentować sekcję LLM w `engine/experiments/compare.py`
-- Uruchomić: `python3 engine/experiments/compare.py`
+#### B. Uruchomienie eksperymentów porównawczych z prawdziwymi LLM — KOD GOTOWY, czeka na klucze
+- Zrobione: `engine/agents/llm_factory.py` (`make_llm_agent`, `provider_available`);
+  `compare.py` sam uruchamia LLM vs Random dla każdego dostawcy z kluczem, w obu trybach
+  (`--dry-run`, `--skip-baseline`, `--providers`, `--modes`, `--llm-games`);
+  uzasadnienie modelu trafia do `last_decision["reasoning"]` i `DecisionRecord.reasoning`.
+  Sprawdzone na atrapie SDK (pełne partie GUIDED i FREE_FORM, ślady z uzasadnieniami).
+- Do zrobienia: klucze w `.env` (skopiować z `.env.example`) + `pip install anthropic` (itd.)
+- Uruchomić: `python3 engine/experiments/compare.py --dry-run`, potem bez `--dry-run`
+- Koszt orientacyjny (GUIDED, 2 graczy): ~200 wywołań i ~0,6 mln tokenów wejścia na partię
 - Przeanalizować wyniki z `engine/experiments/results/`
-- **Uwaga: pliki w `results/` są nieaktualne** — powstały przed naprawami z Fazy 6.1,
+- **Uwaga: pliki w `results/` są nieaktualne** — powstały przed naprawami z Fazy 6.1
+  i przed dodaniem znacznika dochodu Apollona (`PlaceIncome`),
   na silniku, który odrzucał 6% własnych legalnych akcji i stawiał na planszy graczy-widm.
   Trzeba je wygenerować od nowa, zanim posłużą za punkt odniesienia dla LLM
 - **Modele do przetestowania**: `claude-haiku-4-5` (Anthropic), `gpt-4o-mini` (OpenAI), lokalny Llama przez Ollama, Gemini Flash
@@ -141,7 +147,7 @@ Wykresy dotyczące LLM będą puste, dopóki nie ruszy punkt B (brak kluczy API)
 - Do zrobienia: zaimplementować kilka przykładowych kart (np. Posejdon daje darmowy ruch statku)
 - Wartość dla pracy mgr: sprawdzić czy LLM radzi sobie z nowym typem akcji bez przetrening
 
-#### F. Faza 8 — FastAPI serwer (opcjonalne)
+#### F. Faza 8 — FastAPI serwer + wersja webowa — ZROBIONE (`web/`, patrz `web/README.md`)
 - Stan jest serializowalny (`to_dict/from_dict`), brak globali → gotowe do opakowania
 - Prosty serwer: `POST /game/new`, `GET /game/{id}/state`, `POST /game/{id}/step`
 - Umożliwia grę przez przeglądarkę lub zewnętrznych agentów przez HTTP

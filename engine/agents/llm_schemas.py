@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 from ..actions import (
     Action, ApollonBid, BuyCard, Build, EndTurn,
-    MoveEntity, PlaceEntity, RollBid,
+    MoveEntity, PlaceEntity, PlaceIncome, RollBid,
 )
 
 
@@ -179,9 +179,18 @@ ZeusSchema = Annotated[
 
 # ---- APOLLON -------------------------------------------------------------
 
+class PlaceIncomeSchema(BaseModel):
+    action_type: Literal["place_income"]
+    field_id: str = Field(description="Your island to put the +1 income (prosperity) marker on.")
+    reasoning: str = ""
+
+    def to_action(self, player: str) -> PlaceIncome:
+        return PlaceIncome(player=player, field_id=self.field_id)
+
+
 ApollonSchema = Annotated[
-    EndTurnSchema,
-    Field(description="Apollo has no board actions. End your turn."),
+    Union[PlaceIncomeSchema, EndTurnSchema],
+    Field(discriminator="action_type"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -202,7 +211,7 @@ _HERO_SCHEMA: dict[str, type] = {
     "posejdon": PosejdonSchema, # type: ignore[assignment]
     "atena":    AtenaSchema,    # type: ignore[assignment]
     "zeus":     ZeusSchema,     # type: ignore[assignment]
-    "apollon":  EndTurnSchema,
+    "apollon":  ApollonSchema,   # type: ignore[assignment]
     "ap_s":     EndTurnSchema,
 }
 

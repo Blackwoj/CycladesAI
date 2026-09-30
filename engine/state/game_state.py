@@ -74,6 +74,7 @@ class BoardPhaseState:
     metro_by_build: bool = False  # metropolia przez 1 budynek każdego herosa
     zeus_card: bool = False       # karta Zeusa dostępna w tej turze
     athena_card: bool = False     # karta Ateny dostępna w tej turze
+    apollon_income: bool = False  # Apollon może jeszcze położyć znacznik dochodu
 
     def to_dict(self) -> dict:
         return {
@@ -83,6 +84,7 @@ class BoardPhaseState:
             "metro_by_build": self.metro_by_build,
             "zeus_card": self.zeus_card,
             "athena_card": self.athena_card,
+            "apollon_income": self.apollon_income,
         }
 
     @classmethod
@@ -94,6 +96,7 @@ class BoardPhaseState:
             metro_by_build=d.get("metro_by_build", False),
             zeus_card=d.get("zeus_card", False),
             athena_card=d.get("athena_card", False),
+            apollon_income=d.get("apollon_income", False),
         )
 
 

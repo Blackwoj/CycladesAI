@@ -3,18 +3,20 @@
 Uruchamia serię gier między agentami i zapisuje wyniki do JSONL.
 
 Użycie:
-    python3 engine/experiments/compare.py
+    python3 engine/experiments/compare.py                  # baseline + LLM (gdzie są klucze)
+    python3 engine/experiments/compare.py --dry-run        # pokaż plan, bez gier i kosztów
+    python3 engine/experiments/compare.py --skip-baseline --providers anthropic --llm-games 3
 
-Domyślnie uruchamia Random vs MCTS. Aby dodać LLMAgent, odkomentuj sekcję
-LLM i ustaw zmienne środowiskowe w .env:
+Matchupy LLM vs Random uruchamiają się same dla każdego dostawcy, który ma
+pakiet SDK i klucz w .env (Ollama: działający serwer):
     cp .env.example .env && nano .env
 
 Wyniki zapisywane do: engine/experiments/results/
 """
 from __future__ import annotations
 
+import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -28,6 +30,7 @@ except ImportError:
     pass  # python-dotenv opcjonalny
 
 from engine.agents import MCTSAgent, RandomAgent
+from engine.agents.llm_factory import PROVIDERS, make_llm_agent, provider_available
 from engine.experiment.runner import ExperimentConfig, ExperimentRunner
 from engine.rng import Rng
 
@@ -40,6 +43,7 @@ RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
 N_GAMES = 20          # liczba gier na parę agentów
+N_LLM_GAMES = 10      # mniej gier dla LLM — każda partia to ~200 płatnych wywołań
 N_PLAYERS = 2
 SEED = 42
 MCTS_SIMS = 100       # symulacje MCTS — więcej = lepszy, ale wolniejszy
@@ -83,58 +87,67 @@ def run_matchup(name: str, agents: dict, n_games: int = N_GAMES) -> dict:
     return {"name": name, **summary}
 
 
+def _parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser(description="Porównanie agentów Cyclades")
+    ap.add_argument("--skip-baseline", action="store_true",
+                    help="pomiń Random/MCTS (np. gdy baseline jest już policzony)")
+    ap.add_argument("--games", type=int, default=N_GAMES, help="gier na matchup bazowy")
+    ap.add_argument("--llm-games", type=int, default=N_LLM_GAMES, help="gier na matchup LLM")
+    ap.add_argument("--providers", default=",".join(PROVIDERS),
+                    help="dostawcy LLM do sprawdzenia, np. anthropic,ollama")
+    ap.add_argument("--modes", default="guided,free_form", help="tryby LLM: guided,free_form")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="tylko pokaż, co zostałoby uruchomione (bez gier i bez kosztów API)")
+    return ap.parse_args()
+
+
 def main() -> None:
+    args = _parse_args()
     summaries = []
+    plan: list[tuple[str, dict, int]] = []
 
-    # ---- 1. Random vs Random (baseline) -----------------------------------
-    summaries.append(run_matchup(
-        "random_vs_random",
-        {
-            "p1": RandomAgent(Rng(1)),
-            "p2": RandomAgent(Rng(2)),
-        }
-    ))
+    if not args.skip_baseline:
+        plan += [
+            ("random_vs_random", {"p1": RandomAgent(Rng(1)), "p2": RandomAgent(Rng(2))}, args.games),
+            ("mcts_vs_random", {"p1": MCTSAgent(n_simulations=MCTS_SIMS, rollout_rng=Rng(1)),
+                                "p2": RandomAgent(Rng(2))}, args.games),
+            ("mcts_vs_mcts", {"p1": MCTSAgent(n_simulations=MCTS_SIMS, rollout_rng=Rng(1)),
+                              "p2": MCTSAgent(n_simulations=MCTS_SIMS, rollout_rng=Rng(2))}, args.games),
+        ]
 
-    # ---- 2. MCTS vs Random ------------------------------------------------
-    summaries.append(run_matchup(
-        "mcts_vs_random",
-        {
-            "p1": MCTSAgent(n_simulations=MCTS_SIMS, rollout_rng=Rng(1)),
-            "p2": RandomAgent(Rng(2)),
-        }
-    ))
+    # ---- LLM vs Random — każdy dostawca z kluczem / serwerem, każdy tryb ----
+    # Dostawca bez klucza jest pomijany z komunikatem, nie wywraca przebiegu.
+    for provider in [p.strip() for p in args.providers.split(",") if p.strip()]:
+        ok, reason = provider_available(provider)
+        if not ok:
+            print(f"  [pomijam LLM {provider}] {reason}")
+            continue
+        model = PROVIDERS[provider][0]
+        for mode in [m.strip() for m in args.modes.split(",") if m.strip()]:
+            name = f"llm_{provider}_{mode}_vs_random"
+            if args.dry_run:
+                plan.append((name, {}, args.llm_games))
+                continue
+            agent = make_llm_agent(provider, model, mode, fallback_rng=Rng(1))
+            plan.append((name, {"p1": agent, "p2": RandomAgent(Rng(2))}, args.llm_games))
 
-    # ---- 3. MCTS vs MCTS --------------------------------------------------
-    summaries.append(run_matchup(
-        "mcts_vs_mcts",
-        {
-            "p1": MCTSAgent(n_simulations=MCTS_SIMS, rollout_rng=Rng(1)),
-            "p2": MCTSAgent(n_simulations=MCTS_SIMS, rollout_rng=Rng(2)),
-        }
-    ))
+    if args.dry_run:
+        print("\nPlan (dry-run):")
+        for name, _, n in plan:
+            print(f"  {name}: {n} gier")
+        return
 
-    # ---- 4. LLM (Anthropic) vs Random — odkomentuj gdy masz klucz ---------
-    # anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-    # if anthropic_key:
-    #     from engine.agents import AnthropicLLMAgent, LLMMode
-    #     summaries.append(run_matchup(
-    #         "llm_anthropic_guided_vs_random",
-    #         {
-    #             "p1": AnthropicLLMAgent(
-    #                 model="claude-haiku-4-5",
-    #                 mode=LLMMode.GUIDED,
-    #                 verbose=True,
-    #             ),
-    #             "p2": RandomAgent(Rng(2)),
-    #         },
-    #         n_games=10,  # mniej gier bo LLM jest kosztowny
-    #     ))
-    # else:
-    #     print("\nBrak ANTHROPIC_API_KEY — pomijam matchup LLM vs Random")
+    for name, agents, n in plan:
+        summaries.append(run_matchup(name, agents, n_games=n))
 
     # ---- Zapis zbiorczego raportu -----------------------------------------
+    # Scalanie po nazwie: przebieg samych LLM (--skip-baseline) nie kasuje baseline'u.
     report_file = RESULTS_DIR / "summary.json"
-    report_file.write_text(json.dumps(summaries, indent=2))
+    merged = {}
+    if report_file.exists():
+        merged = {s["name"]: s for s in json.loads(report_file.read_text())}
+    merged.update({s["name"]: s for s in summaries})
+    report_file.write_text(json.dumps(list(merged.values()), indent=2))
     print(f"\nZbiorczy raport: {report_file}")
     print("\nWyniki:")
     for s in summaries:

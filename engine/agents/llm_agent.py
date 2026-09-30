@@ -156,7 +156,9 @@ PHASE 2 — BOARD actions per god
 --- APOLLO ---
 - Receive bonus coins at start of your board turn:
   If you own more than 1 island: +1 coin.  Otherwise: +4 coins.
-- No other actions; just end your turn.
+- First player on Apollo only: place ONE +1 income marker on one of your
+  islands (action place_income). It adds income every round while you own it.
+- Then end your turn.
 
 ═══════════════════════════════════════════════════════
 COMBAT
@@ -218,6 +220,7 @@ Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
         self.last_decision: dict = {}
         self._call_illegal = 0
         self._call_fallback = False
+        self._call_reasoning = ""
 
     # ------------------------------------------------------------------ #
     #   Abstrakcyjny interfejs API — do implementacji w podklasach
@@ -252,6 +255,7 @@ Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
         t0 = time.monotonic()
         self._call_illegal = 0
         self._call_fallback = False
+        self._call_reasoning = ""
 
         if self.mode == LLMMode.GUIDED:
             action, input_tok, output_tok = self._run_guided(state_view, legal_actions)
@@ -270,6 +274,7 @@ Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
             "fallback_used": self._call_fallback,
             "n_legal": len(legal_actions),
             "decision_ms": elapsed_ms,
+            "reasoning": self._call_reasoning,
         }
 
         if self.verbose:
@@ -391,6 +396,7 @@ class AnthropicLLMAgent(BaseLLMAgent):
         out = response.usage.output_tokens
         for block in response.content:
             if block.type == "tool_use" and block.name == "choose_action":
+                self._call_reasoning = str(block.input.get("reasoning", ""))
                 idx = block.input.get("action_index", 0)
                 if isinstance(idx, int):
                     return idx, inp, out
@@ -418,6 +424,7 @@ class AnthropicLLMAgent(BaseLLMAgent):
             if block.type == "tool_use" and block.name == "propose_action":
                 # Pydantic-backed schema zwraca flat dict; fallback zwraca action_type+action_data
                 data = dict(block.input)
+                self._call_reasoning = str(data.get("reasoning", ""))
                 if "action_data" in data:
                     atype = data.pop("action_type", "")
                     adata = data.pop("action_data", {})
@@ -487,6 +494,7 @@ class OpenAILLMAgent(BaseLLMAgent):
         if msg.tool_calls:
             import json
             args = json.loads(msg.tool_calls[0].function.arguments)
+            self._call_reasoning = str(args.get("reasoning", ""))
             idx = args.get("action_index", 0)
             if isinstance(idx, int):
                 return idx, inp, out
@@ -517,6 +525,7 @@ class OpenAILLMAgent(BaseLLMAgent):
         msg = response.choices[0].message
         if msg.tool_calls:
             args = json.loads(msg.tool_calls[0].function.arguments)
+            self._call_reasoning = str(args.get("reasoning", ""))
             if "action_data" in args:
                 atype = args.pop("action_type", "")
                 adata = args.pop("action_data", {})
@@ -611,6 +620,7 @@ class GeminiLLMAgent(BaseLLMAgent):
 
         for part in response.parts:
             if part.function_call:
+                self._call_reasoning = str(part.function_call.args.get("reasoning", ""))
                 idx = int(part.function_call.args.get("action_index", 0))
                 return idx, inp, out
         return 0, inp, out
@@ -634,6 +644,7 @@ class GeminiLLMAgent(BaseLLMAgent):
         for part in response.parts:
             if part.function_call:
                 fc = part.function_call
+                self._call_reasoning = str(fc.args.get("reasoning", ""))
                 atype = fc.args.get("action_type", "")
                 adata = dict(fc.args.get("action_data", {}))
                 if atype:
@@ -661,7 +672,7 @@ def _render_free_form(state_view: dict) -> str:
     lines.append("")
     lines.append("Propose your next action as a structured action object.")
     lines.append("Valid action types: roll_bid, apollon_bid, place_entity, move_entity,")
-    lines.append("  build, buy_card, end_turn.")
+    lines.append("  build, buy_card, place_income, end_turn.")
     return "\n".join(lines)
 
 

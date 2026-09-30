@@ -143,3 +143,48 @@ def test_check_winners_detects_2_metros():
         s.fields[iid].owner = player_id
         s.fields[iid].is_metropolis = True
     assert player_id in check_winners(s)
+
+
+# ---- Apollon: znacznik dochodu ------------------------------------------
+
+def _apollon_state(hero="apollon"):
+    s = build_initial_state(2, Rng(1))
+    s = setup_roll_phase(s, Rng(1))
+    s.stage = Stage.BOARD
+    s.hero_players = {"p1": hero, "p2": "ares"}
+    s.play_order = ["p1", "p2"]
+    return start_player_turn(s)
+
+
+def test_apollon_can_place_income_on_own_island():
+    from engine.actions import PlaceIncome
+    s = _apollon_state()
+    own = {fid for fid, f in s.fields.items() if f.type == FieldType.ISLAND and f.owner == "p1"}
+    legal = legal_board_actions(s)
+    places = {a.field_id for a in legal if isinstance(a, PlaceIncome)}
+    assert places == own and own
+
+    fid = sorted(own)[0]
+    before = calculate_income(s)["p1"]
+    s2, info = apply_board_action(s, PlaceIncome(player="p1", field_id=fid), Rng(1))
+    assert info["valid"]
+    assert s2.fields[fid].income.quantity == 1
+    assert calculate_income(s2)["p1"] == before + 1
+    # tylko jeden znacznik na turę
+    assert not any(isinstance(a, PlaceIncome) for a in legal_board_actions(s2))
+    _, info = apply_board_action(s2, PlaceIncome(player="p1", field_id=fid), Rng(1))
+    assert not info["valid"]
+
+
+def test_second_apollon_player_gets_no_income_marker():
+    from engine.actions import PlaceIncome
+    s = _apollon_state(hero="ap_s")
+    assert not any(isinstance(a, PlaceIncome) for a in legal_board_actions(s))
+
+
+def test_place_income_roundtrip_and_llm_schema():
+    from engine.actions import PlaceIncome, action_from_dict
+    from engine.agents.llm_schemas import action_from_llm_output
+    a = PlaceIncome(player="p1", field_id="IS2")
+    assert action_from_dict(a.to_dict()) == a
+    assert action_from_llm_output({"action_type": "place_income", "field_id": "IS2"}, "p1", "apollon") == a
