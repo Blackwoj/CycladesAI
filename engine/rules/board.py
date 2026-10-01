@@ -1,44 +1,46 @@
-"""Reguły fazy BOARD — tury graczy.
+"""Reguły fazy BOARD — tury graczy (instrukcja str. 3–6, książeczka str. 4).
 
-Port logiki z game/managers/BoardManager.py i sub-managerów (Warrior, Ship,
-Buildings, PrepareStageManager.define_player_hero), bez pygame i DataCache.
+Moce bogów:
+- Posejdon: rekrutuj 1–4 Floty (1. darmowa, potem 1/2/3 GP), Port, ruch Flot
+  z jednego pola o ≤ 3 pola za 1 GP;
+- Ares: rekrutuj 1–4 Oddziały (1. darmowy, potem 2/3/4 GP), Forteca, ruch
+  Oddziałów z wyspy na wyspę po łańcuchu własnych Flot za 1 GP;
+- Zeus: 1 darmowy Kapłan (+1 za 4 GP), Świątynia, wymiana Stwora za 1 GP;
+- Atena: 1 darmowy Filozof (+1 za 4 GP), Uniwersytet;
+- Apollo: 1 GP (4 GP przy ≤ 1 wyspie), pierwszy gracz kładzie znacznik dobrobytu.
+Każdy bóg poza Apollem może wzywać Stwory (engine/rules/creatures.py).
+Budynek kosztuje 2 GP; limit jednostek na planszy: 8 Oddziałów i 8 Flot.
+
 Wszystkie funkcje czyste: (state, action) → state'.
 """
 from __future__ import annotations
 
 import copy
 
-from ..actions import Action, Build, BuyCard, EndTurn, MoveEntity, PlaceEntity, PlaceIncome, PlayCard
+from ..actions import (
+    Action, Build, BuyCard, BuyCreature, EndTurn, MoveEntity, PlaceEntity, PlaceIncome,
+    PlayCard, ReplaceCreature,
+)
 from ..rng import Rng
-from ..state import Building, BoardPhaseState, Entity, Field, FieldType, GameState, Stage
-from .graph import BoardGraph
-from .setup import (
-    WARRIOR_PRICING, SHIP_PRICING,
-    load_board_data,
+from ..state import Building, BoardPhaseState, FieldType, GameState
+from . import creatures
+from .metro import HEROES_BUILDING, metro_actions, place_metropolis, trigger_metropolis
+from .setup import MAX_UNITS, SHIP_PRICING, WARRIOR_PRICING
+from .units import (
+    count_units,
+    fleet_chain_targets,
+    fleet_destinations,
+    fleet_recruit_fields,
+    land_troops_into,
+    may_attack_island,
+    move_fleets_into,
+    owned_islands,
+    troops_frozen,
 )
 
-_MAX_WARRIORS = 6
-_MAX_SHIPS = 6
-_ATENA_PHILO_FOR_METRO = 4    # 4 filozofów → prawo do metropolii
 _BUILD_COST = 2
-# bogowie stawiający budynek (forteca, port, uniwersytet, świątynia); Apollon nie
-HEROES_BUILDING = ("ares", "posejdon", "atena", "zeus")
-
-
-# ---------------------------------------------------------------------------
-# Graf — budowany raz z danych JSON lub przekazywany z zewnątrz
-# ---------------------------------------------------------------------------
-
-def _build_graph(fields: dict) -> BoardGraph:
-    g = BoardGraph()
-    for fid, field in fields.items():
-        g.add_vertex(fid, field.owner)
-    for fid, field in fields.items():
-        for nb in field.neighbors:
-            if nb in fields:
-                g.add_edge(fid, nb)
-    g.sync_owners(fields)
-    return g
+_CARD_COST = 4
+_MAX_RECRUITS = len(WARRIOR_PRICING)    # 1 darmowy + 3 dokupione na turę
 
 
 # ---------------------------------------------------------------------------
@@ -46,47 +48,36 @@ def _build_graph(fields: dict) -> BoardGraph:
 # ---------------------------------------------------------------------------
 
 def start_player_turn(state: GameState) -> GameState:
-    """Pobierz następnego gracza z play_order i zainicjalizuj jego turę."""
+    """Pobierz następną turę z play_order (+ play_heroes) i zainicjalizuj ją."""
     s = copy.deepcopy(state)
     if not s.play_order:
         return s   # faza BOARD skończona — wywoła end_board_phase
     s.act_player = s.play_order[0]
     s.play_order = s.play_order[1:]
-    s.act_hero = s.hero_players.get(s.act_player, "None")
+    if s.play_heroes:
+        s.act_hero = s.play_heroes[0]
+        s.play_heroes = s.play_heroes[1:]
+    else:
+        s.act_hero = s.hero_players.get(s.act_player, "None")
+    s.hero_players[s.act_player] = s.act_hero
 
-    # Reset ulotnych pól tury
-    s.board = BoardPhaseState(entity_price=0, poseidon_jumps=0)
-    s = _check_metro_by_buildings(s, s.act_player)
+    s.board = BoardPhaseState()
+    creatures.expire_figures(s, s.act_player)
 
-    # Natychmiastowe efekty herosa — Atena i Zeus dają karty, Apollon daje monety
-    hero = s.act_hero
+    # Darmowe efekty boga
+    hero, player = s.act_hero, s.players[s.act_player]
     if hero == "atena":
-        s.players[s.act_player].philosophers += 1
+        player.philosophers += 1
         s.board.athena_card = True
-        s = _check_atena_metro(s)
     elif hero == "zeus":
-        s.players[s.act_player].priests += 1
+        player.priests += 1
         s.board.zeus_card = True
     elif hero in ("apollon", "ap_s"):
-        owned_islands = sum(
-            1 for f in s.fields.values()
-            if f.type == FieldType.ISLAND and f.owner == s.act_player
-        )
-        s.players[s.act_player].coins += 1 if owned_islands > 1 else 4
-        # Znacznik dochodu kładzie tylko pierwszy gracz na Apollonie
-        # (parytet z AppollonManager / BoardView.load_small_apollon w game/).
-        s.board.apollon_income = hero == "apollon"
+        player.coins += 1 if len(owned_islands(s, s.act_player)) > 1 else 4
+        s.board.apollon_income = hero == "apollon"   # znacznik tylko dla pierwszego
 
+    trigger_metropolis(s, s.act_player)               # np. 4. Filozof od Ateny
     return s
-
-
-def _check_atena_metro(state: GameState) -> GameState:
-    """Jeśli gracz ma >= 4 filozofów → zezwól na budowę metropolii."""
-    player = state.players[state.act_player]
-    if player.philosophers >= _ATENA_PHILO_FOR_METRO:
-        player.philosophers -= _ATENA_PHILO_FOR_METRO
-        state.board.metro_by_philo = True
-    return state
 
 
 # ---------------------------------------------------------------------------
@@ -95,235 +86,96 @@ def _check_atena_metro(state: GameState) -> GameState:
 
 def legal_board_actions(state: GameState) -> list[Action]:
     """Legalne akcje dla act_player w fazie BOARD zależne od herosa."""
-    hero = state.act_hero
-    player_id = state.act_player
-    if player_id is None or hero is None:
+    hero, pid = state.act_hero, state.act_player
+    if pid is None or hero is None:
         return []
 
-    actions: list[Action] = []
+    pending = state.board.pending
+    if pending:
+        if pending["kind"] == "metropolis":
+            return metro_actions(state)
+        return creatures.pending_actions(state)
 
+    actions: list[Action] = []
     if hero == "ares":
-        actions += _legal_ares_actions(state)
+        actions += _recruit_actions(state, "warrior")
+        actions += _ares_moves(state)
     elif hero == "posejdon":
-        actions += _legal_posejdon_actions(state)
-    elif hero == "atena":
-        actions += _legal_atena_actions(state)
-    elif hero == "zeus":
-        actions += _legal_zeus_actions(state)
-    elif hero in ("apollon", "ap_s"):
-        # Apollon nie ma akcji bojowych — znacznik dochodu (tylko "apollon") i koniec
-        actions += _legal_apollon_actions(state)
-        actions += _legal_build_actions(state)
+        actions += _recruit_actions(state, "ship")
+        actions += _poseidon_moves(state)
+    elif hero in ("atena", "zeus"):
+        if state.players[pid].coins >= _CARD_COST and (
+                state.board.athena_card if hero == "atena" else state.board.zeus_card):
+            actions.append(BuyCard(player=pid, hero=hero))
+    elif hero == "apollon" and state.board.apollon_income:
+        actions += [PlaceIncome(player=pid, field_id=fid) for fid in owned_islands(state, pid)]
 
-    # Metropolia z kompletu budynków — w turze dowolnego boga. Atena dokłada
-    # tę samą akcję sama (metro_by_philo), więc nie dublujemy.
-    if state.board.metro_by_build and not (hero == "atena" and state.board.metro_by_philo):
-        actions += _legal_metro_actions(state)
-
-    # PlayCard — o ile rejestr kart nie jest pusty (szew Fazy 7)
-    # (brak akcji gdy rejestr pusty)
-
-    # Zawsze można zakończyć turę
-    actions.append(EndTurn(player=player_id))
+    actions += _build_actions(state)
+    actions += creatures.legal_creature_actions(state)
+    actions.append(EndTurn(player=pid))
     return actions
 
 
-def _count_entities(state: GameState, player: str, kind: str) -> int:
-    field_type = FieldType.ISLAND if kind == "warrior" else FieldType.WATER
-    return sum(
-        f.entity.quantity
-        for f in state.fields.values()
-        if f.type == field_type and f.owner == player and f.entity.quantity > 0
-    )
+def _recruit_price(state: GameState, kind: str) -> int | None:
+    n = state.board.entity_price
+    if n >= _MAX_RECRUITS:
+        return None
+    return (WARRIOR_PRICING if kind == "warrior" else SHIP_PRICING)[n]
 
 
-def _legal_ares_actions(state: GameState) -> list[Action]:
-    """Ares: rekrut wojowników, przesuwanie, budowanie."""
-    player_id = state.act_player
-    player = state.players[player_id]
-    actions: list[Action] = []
-    g = _build_graph(state.fields)
-    g.sync_owners(state.fields)
-
-    entity_price = state.board.entity_price
-    price_idx = min(entity_price, len(WARRIOR_PRICING) - 1)
-    recruit_cost = WARRIOR_PRICING[price_idx]
-    total_warriors = _count_entities(state, player_id, "warrior")
-
-    # Rekrut
-    if player.coins >= recruit_cost and total_warriors < _MAX_WARRIORS:
-        for fid, field in state.fields.items():
-            if field.type == FieldType.ISLAND and field.owner == player_id:
-                actions.append(PlaceEntity(player=player_id, field_id=fid, kind="warrior", quantity=1))
-
-    # Ruch wojowników
-    if player.coins >= 1:
-        for from_id, from_field in state.fields.items():
-            if (from_field.type == FieldType.ISLAND
-                    and from_field.owner == player_id
-                    and from_field.entity.quantity > 0):
-                for to_id, to_field in state.fields.items():
-                    if to_id == from_id:
-                        continue
-                    # Celem musi być wyspa — wojownicy nie stoją na otwartym morzu.
-                    # Ścieżka DFS nadal biegnie przez własną wodę (most ze statków),
-                    # to modeluje ruch Aresa między wyspami połączonymi flotą.
-                    if to_field.type != FieldType.ISLAND:
-                        continue
-                    if g.can_warrior_reach(from_id, to_id, player_id):
-                        for qty in range(1, from_field.entity.quantity + 1):
-                            actions.append(MoveEntity(
-                                player=player_id, from_field=from_id,
-                                to_field=to_id, quantity=qty,
-                            ))
-
-    # Budowanie
-    actions += _legal_build_actions(state)
-    return actions
-
-
-def _legal_posejdon_actions(state: GameState) -> list[Action]:
-    """Posejdon: rekrut statków, przesuwanie, budowanie."""
-    player_id = state.act_player
-    player = state.players[player_id]
-    actions: list[Action] = []
-
-    price_idx = min(state.board.entity_price, len(SHIP_PRICING) - 1)
-    recruit_cost = SHIP_PRICING[price_idx]
-    total_ships = _count_entities(state, player_id, "ship")
-
-    # Rekrut statku — na polu wodnym sąsiadującym z wyspą gracza
-    if player.coins >= recruit_cost and total_ships < _MAX_SHIPS:
-        owned_islands = {fid for fid, f in state.fields.items()
-                         if f.type == FieldType.ISLAND and f.owner == player_id}
-        valid_water = {
-            nb for iid in owned_islands
-            for nb in state.fields[iid].neighbors
-            if nb in state.fields and state.fields[nb].type == FieldType.WATER
-        }
-        # sorted() jest istotne: iteracja po zbiorze zależy od PYTHONHASHSEED,
-        # co czyniło kolejność legal_actions() — a więc i wybór agenta —
-        # nieodtwarzalną między procesami, mimo seedowalnego Rng.
-        for fid in sorted(valid_water):
-            actions.append(PlaceEntity(player=player_id, field_id=fid, kind="ship", quantity=1))
-
-    # Ruch statków — jeden krok między sąsiednimi polami wodnymi
-    if player.coins >= 1 or state.board.poseidon_jumps > 0:
-        for from_id, from_field in state.fields.items():
-            if (from_field.type == FieldType.WATER
-                    and from_field.owner == player_id
-                    and from_field.entity.quantity > 0
-                    # tylko statki — bez tego Posejdon proponował ruch dla
-                    # wojowników stojących na wodzie, a step() go odrzucał
-                    and from_field.entity.kind == "ship"):
-                for to_id in from_field.neighbors:
-                    if to_id in state.fields and state.fields[to_id].type == FieldType.WATER:
-                        for qty in range(1, from_field.entity.quantity + 1):
-                            actions.append(MoveEntity(
-                                player=player_id, from_field=from_id,
-                                to_field=to_id, quantity=qty,
-                            ))
-
-    actions += _legal_build_actions(state)
-    return actions
-
-
-def _legal_atena_actions(state: GameState) -> list[Action]:
-    """Atena: kup kartę filozofa (koszt 4 monety), buduj, zbuduj metropolię jeśli warunki."""
-    player_id = state.act_player
-    player = state.players[player_id]
-    actions: list[Action] = []
-
-    if player.coins >= 4 and state.board.athena_card:
-        actions.append(BuyCard(player=player_id, hero="atena"))
-
-    if state.board.metro_by_philo:
-        actions += _legal_metro_actions(state)
-
-    actions += _legal_build_actions(state)
-    return actions
-
-
-def _legal_zeus_actions(state: GameState) -> list[Action]:
-    """Zeus: kup kartę kapłana (koszt 4 monety), buduj."""
-    player_id = state.act_player
-    player = state.players[player_id]
-    actions: list[Action] = []
-
-    if player.coins >= 4 and state.board.zeus_card:
-        actions.append(BuyCard(player=player_id, hero="zeus"))
-
-    actions += _legal_build_actions(state)
-    return actions
-
-
-def _legal_apollon_actions(state: GameState) -> list[Action]:
-    """Apollon: jeden znacznik dochodu (+1) na dowolnej własnej wyspie."""
-    if not state.board.apollon_income:
+def _recruit_actions(state: GameState, kind: str) -> list[Action]:
+    pid = state.act_player
+    price = _recruit_price(state, kind)
+    if price is None or state.players[pid].coins < price or count_units(state, pid, kind) >= MAX_UNITS:
         return []
-    player_id = state.act_player
-    return [
-        PlaceIncome(player=player_id, field_id=fid)
-        for fid, f in state.fields.items()
-        if f.type == FieldType.ISLAND and f.owner == player_id
-    ]
+    fields = owned_islands(state, pid) if kind == "warrior" else fleet_recruit_fields(state, pid)
+    return [PlaceEntity(player=pid, field_id=fid, kind=kind, quantity=1) for fid in fields]
 
 
-def _legal_build_actions(state: GameState) -> list[Build]:
-    """Budowania — wspólne dla wszystkich herosów (koszt 2 monety)."""
-    player_id = state.act_player
-    player = state.players[player_id]
-    if player.coins < _BUILD_COST:
+def _ares_moves(state: GameState) -> list[Action]:
+    pid = state.act_player
+    if state.players[pid].coins < 1:
         return []
-    hero = state.act_hero
-    if hero not in HEROES_BUILDING:
-        # Apollon nie stawia budynku — ma znacznik dochodu (PlaceIncome).
-        return []
-
-    actions = []
-    for fid, field in state.fields.items():
-        if field.type != FieldType.ISLAND or field.owner != player_id:
+    out: list[Action] = []
+    for src in owned_islands(state, pid):
+        n = state.fields[src].entity.quantity
+        if n == 0 or troops_frozen(state, src):
             continue
-        if field.is_metropolis:
+        for dst in fleet_chain_targets(state, src, pid):
+            if not may_attack_island(state, pid, dst):
+                continue
+            out += [MoveEntity(player=pid, from_field=src, to_field=dst, quantity=q) for q in range(1, n + 1)]
+    return out
+
+
+def _poseidon_moves(state: GameState) -> list[Action]:
+    pid = state.act_player
+    if state.players[pid].coins < 1:
+        return []
+    out: list[Action] = []
+    for src, f in sorted(state.fields.items()):
+        if f.type != FieldType.WATER or f.owner != pid or f.entity.quantity == 0 or f.entity.kind != "ship":
             continue
-        for slot, building in field.buildings.items():
-            if building is None and not _slot_is_metro_reserved(state, fid, slot):
-                actions.append(Build(player=player_id, field_id=fid, hero=hero))
-                break   # jedno Build na wyspę żeby nie multiplikować
-    return actions
+        for dst in fleet_destinations(state, src, pid):
+            out += [MoveEntity(player=pid, from_field=src, to_field=dst, quantity=q)
+                    for q in range(1, f.entity.quantity + 1)]
+    return out
 
 
-def _legal_metro_actions(state: GameState) -> list[Build]:
-    """Budowanie metropolii (filozofowie Ateny albo komplet budynków). Build z hero='metro'."""
-    player_id = state.act_player
-    actions = []
-    for fid, field in state.fields.items():
-        if (field.type == FieldType.ISLAND
-                and field.owner == player_id
-                and not field.is_metropolis):
-            actions.append(Build(player=player_id, field_id=fid, hero="metro"))
-    return actions
+def _build_actions(state: GameState) -> list[Build]:
+    """Budynek boga z tej tury (2 GP) na własnej wyspie z wolnym miejscem."""
+    pid, hero = state.act_player, state.act_hero
+    if hero not in HEROES_BUILDING or state.players[pid].coins < _BUILD_COST:
+        return []
+    return [Build(player=pid, field_id=fid, hero=hero)
+            for fid in owned_islands(state, pid)
+            if not state.fields[fid].is_metropolis
+            and any(b is None for b in state.fields[fid].buildings.values())]
 
-
-def _slot_is_metro_reserved(state: GameState, field_id: str, slot: str) -> bool:
-    """Czy slot jest zarezerwowany dla metropolii (miejsca big w konfiguracji)?"""
-    # Uproszczenie: nie blokujemy slotów w silniku headless — GUI to robi wizualnie.
-    return False
-
-
-# ---------------------------------------------------------------------------
-# Walidacja akcji
-# ---------------------------------------------------------------------------
 
 def validate_action(state: GameState, action: Action) -> bool:
-    """Sprawdź, czy akcja jest legalna. False → AccjeError bez wyjątku."""
-    legal = legal_board_actions(state)
-    for la in legal:
-        if la == action:
-            return True
-    # Elastyczna walidacja typów (bez sprawdzania parametrów ilościowych):
-    legal_types = {type(a) for a in legal}
-    return type(action) in legal_types
+    """Czy akcja jest legalna (przynależność do legal_board_actions)."""
+    return action in legal_board_actions(state)
 
 
 # ---------------------------------------------------------------------------
@@ -332,235 +184,111 @@ def validate_action(state: GameState, action: Action) -> bool:
 
 def apply_board_action(state: GameState, action: Action, rng: Rng) -> tuple[GameState, dict]:
     """Zastosuj akcję. Zwraca (nowy_stan, info). Nie mutuje wejścia."""
-    new_state, info = _dispatch_board_action(state, action, rng)
-    if info.get("valid") and new_state is not state:
-        # walka mogła przejąć/odebrać wyspę z budynkami — przelicz prawo do metropolii
-        new_state = _check_metro_by_buildings(new_state, new_state.act_player)
-    return new_state, info
+    if state.board.pending and action not in legal_board_actions(state):
+        return state, {"valid": False, "reason": "najpierw rozstrzygnij wybór w toku"}
+    s = copy.deepcopy(state)
+    info = _dispatch(s, action, rng)
+    if not info.get("valid"):
+        return state, info
+    # walka/Stwór/budowa mogły domknąć warunek metropolii — jest obowiązkowa
+    trigger_metropolis(s, s.act_player)
+    return s, info
 
 
-def _dispatch_board_action(state: GameState, action: Action, rng: Rng) -> tuple[GameState, dict]:
+def _dispatch(s: GameState, action: Action, rng: Rng) -> dict:
     if isinstance(action, PlaceEntity):
-        return _apply_place_entity(state, action)
+        return _apply_place_entity(s, action)
     if isinstance(action, MoveEntity):
-        return _apply_move_entity(state, action, rng)
+        return _move(s, action, rng)
     if isinstance(action, Build):
-        return _apply_build(state, action)
+        return _apply_build(s, action)
     if isinstance(action, BuyCard):
-        return _apply_buy_card(state, action)
+        return _apply_buy_card(s, action)
     if isinstance(action, PlaceIncome):
-        return _apply_place_income(state, action)
-    if isinstance(action, EndTurn):
-        return _apply_end_turn(state)
+        return _apply_place_income(s, action)
+    if isinstance(action, BuyCreature):
+        return creatures.apply_buy(s, action, rng)
+    if isinstance(action, ReplaceCreature):
+        return creatures.apply_replace(s, action, rng)
     if isinstance(action, PlayCard):
-        return _apply_play_card(state, action)
+        if not s.board.pending or s.board.pending.get("kind") != "creature":
+            return {"valid": False, "reason": "brak Stwora do rozstrzygnięcia"}
+        return creatures.apply_play(s, action, rng)
+    if isinstance(action, EndTurn):
+        return _apply_end_turn(s)
     raise ValueError(f"Nieznana akcja: {action}")
 
 
-def _apply_place_entity(state: GameState, action: PlaceEntity) -> tuple[GameState, dict]:
-    s = copy.deepcopy(state)
-    player = s.players[action.player]
+def _apply_place_entity(s: GameState, action: PlaceEntity) -> dict:
+    if s.act_hero != ("ares" if action.kind == "warrior" else "posejdon"):
+        return {"valid": False, "reason": "rekrutacja wymaga Aresa/Posejdona"}
+    if PlaceEntity(player=action.player, field_id=action.field_id, kind=action.kind, quantity=1) \
+            not in _recruit_actions(s, action.kind):
+        return {"valid": False, "reason": "rekrutacja niedozwolona (złoto, limit, pole)"}
+    s.players[action.player].coins -= _recruit_price(s, action.kind)
     field = s.fields[action.field_id]
-
-    price_idx = min(s.board.entity_price, len(WARRIOR_PRICING) - 1)
-    cost = WARRIOR_PRICING[price_idx] if action.kind == "warrior" else SHIP_PRICING[price_idx]
-
-    if player.coins < cost:
-        return state, {"valid": False, "reason": "brak monet"}
-    if _count_entities(s, action.player, action.kind) >= _MAX_WARRIORS:
-        return state, {"valid": False, "reason": "max jednostek"}
-
-    player.coins -= cost
     field.entity.quantity += 1
-    if not field.entity.kind:
-        field.entity.kind = action.kind
-    if field.owner is None:
-        field.owner = action.player
-
+    field.entity.kind = action.kind
+    field.owner = action.player
     s.board.entity_price += 1
-    return s, {"valid": True}
+    return {"valid": True}
 
 
+def _move(s: GameState, action: MoveEntity, rng: Rng) -> dict:
+    """Ruch Oddziałów (Ares) albo Flot (Posejdon) — 1 GP."""
+    legal = _ares_moves(s) if s.act_hero == "ares" else _poseidon_moves(s) if s.act_hero == "posejdon" else []
+    plain = MoveEntity(player=action.player, from_field=action.from_field,
+                       to_field=action.to_field, quantity=action.quantity)
+    if plain not in legal:
+        return {"valid": False, "reason": "ruch niedozwolony"}
+    s.players[action.player].coins -= 1
+    mover = land_troops_into if s.act_hero == "ares" else move_fleets_into
+    return {"valid": True, **mover(s, action.player, action.from_field, action.to_field, action.quantity, rng)}
+
+
+# zgodność wsteczna z testami regresyjnymi (ta sama ścieżka co step())
 def _apply_move_entity(state: GameState, action: MoveEntity, rng: Rng) -> tuple[GameState, dict]:
-    s = copy.deepcopy(state)
-    player_id = action.player
-    from_f = s.fields[action.from_field]
-    to_f = s.fields[action.to_field]
-
-    # Rodzaj jednostki ustalamy RAZ i PRZED opróżnieniem pola źródłowego.
-    # Wcześniej liczyliśmy to po wyzerowaniu from_f.entity, więc przy ruchu
-    # wszystkich jednostek kind gubił się jako None — statki jechały wtedy
-    # ścieżką kosztu wojownika i legal_actions() rozjeżdżało się ze step().
-    # Fallback na typ pola: na wodzie stoją tylko statki, na wyspach wojownicy.
-    entity_kind = action.kind or from_f.entity.kind
-    if not entity_kind:
-        entity_kind = "ship" if from_f.type == FieldType.WATER else "warrior"
-
-    # Koszt ruchu
-    if entity_kind == "ship":
-        if s.board.poseidon_jumps > 0:
-            s.board.poseidon_jumps -= 1
-        else:
-            if s.players[player_id].coins < 1:
-                return state, {"valid": False, "reason": "brak monet na ruch statku"}
-            s.players[player_id].coins -= 1
-            s.board.poseidon_jumps = 2  # kolejne 2 przejścia darmowe w tej ramce
-    else:
-        if s.players[player_id].coins < 1:
-            return state, {"valid": False, "reason": "brak monet na ruch wojownika"}
-        s.players[player_id].coins -= 1
-
-    qty = action.quantity
-    from_f.entity.quantity -= qty
-
-    if from_f.entity.quantity == 0:
-        from_f.entity = Entity()
-        if from_f.type == FieldType.WATER:
-            from_f.owner = None
-
-    if to_f.owner is None or to_f.owner == player_id:
-        # Ruch na własne lub neutralne pole
-        to_f.entity.quantity += qty
-        to_f.entity.kind = entity_kind
-        to_f.owner = player_id
-        return s, {"valid": True, "combat": False}
-
-    # Walka
-    attacker = qty
-    defender = to_f.entity.quantity
-    diff = attacker - defender
-
-    if diff > 0:
-        to_f.entity = Entity(kind=entity_kind, quantity=diff)
-        to_f.owner = player_id
-        return s, {"valid": True, "combat": True, "winner": player_id}
-    elif diff < 0:
-        to_f.entity.quantity = abs(diff)
-        return s, {"valid": True, "combat": True, "winner": to_f.owner}
-    else:
-        # Remis: wojownicy — obrońca zostaje; statki — obaj giną
-        if entity_kind == "ship":
-            to_f.entity = Entity()
-            to_f.owner = None
-        else:
-            # Remis wojownicy — obrońca wygrywa (1 zostaje)
-            to_f.entity.quantity = 1
-        return s, {"valid": True, "combat": True, "winner": to_f.owner}
+    return apply_board_action(state, action, rng)
 
 
-def _apply_build(state: GameState, action: Build) -> tuple[GameState, dict]:
-    s = copy.deepcopy(state)
-    player = s.players[action.player]
-    field = s.fields[action.field_id]
-
+def _apply_build(s: GameState, action: Build) -> dict:
     if action.hero == "metro":
-        if field.type != FieldType.ISLAND or field.owner != action.player or field.is_metropolis:
-            return state, {"valid": False, "reason": "nie można tu postawić metropolii"}
-        # Filozofowie są już zapłaceni na starcie tury Ateny — używamy ich najpierw.
-        if s.board.metro_by_philo:
-            s.board.metro_by_philo = False
-            source = "philosophers"
-        elif s.board.metro_by_build:
-            _consume_building_set(s, action.player, action.field_id)
-            source = "buildings"
-        else:
-            return state, {"valid": False, "reason": "brak prawa do metropolii"}
-        field.is_metropolis = True
-        s = _check_metro_by_buildings(s, action.player)
-        return s, {"valid": True, "metropolis": True, "source": source}
-
-    if action.hero != state.act_hero or action.hero not in HEROES_BUILDING:
-        return state, {"valid": False, "reason": "budynek musi być boga z tej tury"}
-
-    if player.coins < _BUILD_COST:
-        return state, {"valid": False, "reason": "brak monet"}
-    if field.type != FieldType.ISLAND or field.owner != action.player:
-        return state, {"valid": False, "reason": "nie twoja wyspa"}
-
-    # Znajdź wolny slot
-    for slot, building in field.buildings.items():
-        if building is None:
-            field.buildings[slot] = Building(hero=action.hero)
-            player.coins -= _BUILD_COST
-            # Sprawdź czy to otwiera budowę metropolii przez budynki
-            s = _check_metro_by_buildings(s, action.player)
-            return s, {"valid": True}
-
-    return state, {"valid": False, "reason": "brak wolnego slotu"}
+        return place_metropolis(s, action.player, action.field_id)
+    if action not in _build_actions(s):
+        return {"valid": False, "reason": "budowa niedozwolona (bóg, złoto, wolne miejsce)"}
+    field = s.fields[action.field_id]
+    slot = next(sl for sl, b in field.buildings.items() if b is None)
+    field.buildings[slot] = Building(hero=action.hero)
+    s.players[action.player].coins -= _BUILD_COST
+    return {"valid": True}
 
 
-def _own_buildings(state: GameState, player_id: str) -> list[tuple[str, str, str]]:
-    """(field_id, slot, hero) budynków na wyspach gracza, poza metropoliami."""
-    return [
-        (fid, slot, b.hero)
-        for fid, f in state.fields.items()
-        if f.type == FieldType.ISLAND and f.owner == player_id and not f.is_metropolis
-        for slot, b in f.buildings.items() if b
-    ]
-
-
-def _check_metro_by_buildings(state: GameState, player_id: str | None) -> GameState:
-    """Prawo do metropolii = budynek każdego z 4 bogów na wyspach gracza.
-
-    Liczone od nowa (a nie tylko ustawiane), bo zbiór może się rozpaść —
-    przez walkę o wyspę albo przez zużycie budynków na metropolię.
-    """
-    if player_id is None:
-        return state
-    have = {hero for _, _, hero in _own_buildings(state, player_id)}
-    state.board.metro_by_build = set(HEROES_BUILDING).issubset(have)
-    return state
-
-
-def _consume_building_set(state: GameState, player_id: str, target_field: str) -> None:
-    """Zdejmij po jednym budynku każdego boga (metropolia je „wchłania”).
-
-    Kolejność deterministyczna: najpierw budynki z wyspy docelowej, potem
-    po id pola i slotu — bez dokładania gałęzi wyboru do legal_actions.
-    """
-    owned = sorted(_own_buildings(state, player_id), key=lambda x: (x[0] != target_field, x[0], x[1]))
-    for hero in HEROES_BUILDING:
-        fid, slot, _ = next(b for b in owned if b[2] == hero)
-        state.fields[fid].buildings[slot] = None
-
-
-def _apply_buy_card(state: GameState, action: BuyCard) -> tuple[GameState, dict]:
-    s = copy.deepcopy(state)
+def _apply_buy_card(s: GameState, action: BuyCard) -> dict:
+    if action not in legal_board_actions(s):
+        return {"valid": False, "reason": "zakup karty niedozwolony"}
     player = s.players[action.player]
-    if player.coins < 4:
-        return state, {"valid": False, "reason": "brak 4 monet"}
-
-    player.coins -= 4
+    player.coins -= _CARD_COST
     if action.hero == "atena":
         player.philosophers += 1
         s.board.athena_card = False
-        s = _check_atena_metro(s)
-    elif action.hero == "zeus":
+    else:
         player.priests += 1
         s.board.zeus_card = False
-    return s, {"valid": True}
+    return {"valid": True}
 
 
-def _apply_place_income(state: GameState, action: PlaceIncome) -> tuple[GameState, dict]:
-    if not state.board.apollon_income or state.act_hero != "apollon":
-        return state, {"valid": False, "reason": "znacznik dochodu już użyty"}
-    field = state.fields.get(action.field_id)
-    if field is None or field.type != FieldType.ISLAND or field.owner != action.player:
-        return state, {"valid": False, "reason": "nie twoja wyspa"}
-    s = copy.deepcopy(state)
+def _apply_place_income(s: GameState, action: PlaceIncome) -> dict:
+    if action not in legal_board_actions(s):
+        return {"valid": False, "reason": "znacznik dochodu niedozwolony"}
     s.fields[action.field_id].income.quantity += 1
     s.board.apollon_income = False
-    return s, {"valid": True}
+    return {"valid": True}
 
 
-def _apply_play_card(state: GameState, action: PlayCard) -> tuple[GameState, dict]:
-    """SZEW — rejestr kart pusty; CardRegistry podłącza się tu w Fazie 7."""
-    return state, {"valid": False, "reason": "brak kart w rejestrze (Faza 7)"}
-
-
-def _apply_end_turn(state: GameState) -> tuple[GameState, dict]:
-    s = copy.deepcopy(state)
+def _apply_end_turn(s: GameState) -> dict:
+    # znacznik ofiarowania na tor kolejności: kto kończy później, licytuje wcześniej
+    s.acted.append(s.act_player)
     s.act_player = None
     s.act_hero = None
     # Kolejnego gracza uruchomi engine.step po sprawdzeniu play_order
-    return s, {"valid": True, "end_turn": True}
+    return {"valid": True, "end_turn": True}

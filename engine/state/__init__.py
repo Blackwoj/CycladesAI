@@ -2,7 +2,7 @@ from .enums import FieldType, Stage, HEROES
 from .entities import Building, Entity, Income
 from .field import Field
 from .player import Player
-from .game_state import BoardPhaseState, CardState, GameState, RollState
+from .game_state import BoardPhaseState, CardState, GameOptions, GameState, RollState
 
 __all__ = [
     "FieldType",
@@ -15,6 +15,7 @@ __all__ = [
     "Player",
     "BoardPhaseState",
     "CardState",
+    "GameOptions",
     "GameState",
     "RollState",
 ]

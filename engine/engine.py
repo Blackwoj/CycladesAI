@@ -15,25 +15,32 @@ from .actions import Action, EndTurn
 from .cards import CardRegistry, CARDS
 from .rng import Rng
 from .rules.board import apply_board_action, legal_board_actions, start_player_turn
-from .rules.roll import apply_roll_bid, apply_apollon_bid, legal_roll_actions, setup_roll_phase
-from .rules.scoring import check_winners, end_board_phase, is_game_over
+from .rules.roll import apply_roll_bid, apply_apollon_bid, legal_roll_actions
+from .rules.scoring import end_board_phase, is_game_over, start_cycle
 from .rules.setup import build_initial_state
-from .state import GameState, Player, Stage
+from .state import GameOptions, GameState, Player, Stage
 
 
 class GameEngine:
-    def __init__(self, rng: Rng | None = None, cards: CardRegistry | None = None):
+    def __init__(
+        self,
+        rng: Rng | None = None,
+        cards: CardRegistry | None = None,
+        options: GameOptions | None = None,
+    ):
         self._rng = rng or Rng()
         self._cards = cards or CARDS
+        self._options = options or GameOptions()
 
     # ---- tworzenie gry -------------------------------------------------
 
-    def new_game(self, num_players: int, rng: Rng | None = None) -> GameState:
-        """Zbuduj pełny stan początkowy z layoutem planszy i fazą ROLL."""
+    def new_game(
+        self, num_players: int, rng: Rng | None = None, options: GameOptions | None = None,
+    ) -> GameState:
+        """Zbuduj stan początkowy i rozpocznij cykl 1 (tor Stworów, bogowie, dochód)."""
         r = rng or self._rng.spawn()
-        state = build_initial_state(num_players, r)
-        state = setup_roll_phase(state, r)
-        return state
+        state = build_initial_state(num_players, r, options or self._options)
+        return start_cycle(state, r)
 
     # ---- rdzeń API -------------------------------------------------------
 
@@ -88,21 +95,13 @@ class GameEngine:
             return state, info   # nielegalny ruch — zwracamy STARY stan
 
         if isinstance(action, EndTurn):
-            # Koniec tury — sprawdź czy ktoś jeszcze gra w tej rundzie
             if new_state.play_order:
                 new_state = start_player_turn(new_state)
             else:
-                # Koniec rundy
+                # Koniec cyklu — tu (i tylko tu) rozstrzyga się zwycięstwo
                 new_state = end_board_phase(new_state, self._rng)
-                if new_state.stage == Stage.ROLL:
-                    # Nowa runda — setup_roll_phase już wywołany w end_board_phase
-                    pass
-
-        # Sprawdź zwycięstwo (może wyniknąć z budowy metropolii)
-        winners = check_winners(new_state)
-        if winners:
-            new_state.stage = Stage.GAME_OVER
-            info["winners"] = winners
+                if new_state.winners:
+                    info["winners"] = list(new_state.winners)
 
         return new_state, info
 
@@ -112,8 +111,8 @@ class GameEngine:
         return is_game_over(state)
 
     def winner(self, state: GameState) -> list[str]:
-        """Zwróć zwycięzców (lista — w teorii może być remis w tym wariancie)."""
-        return check_winners(state)
+        """Zwycięzcy ustaleni na koniec cyklu ([] dopóki gra trwa)."""
+        return list(state.winners)
 
     # ---- projekcja dla agenta --------------------------------------------
 

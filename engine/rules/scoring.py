@@ -1,6 +1,8 @@
-"""Warunki końca gry, dochód i przejście między rundami.
+"""Dochód, warunek zwycięstwa i przejście między cyklami (instrukcja str. 2, 6).
 
-Port logiki z PrepareStageManager.end_stage(), calculate_income() i check_win().
+Przebieg cyklu: 1) tor Stworów, 2) bogowie, 3) dochód, 4) ofiary, 5) akcje.
+Gra kończy się NA KONIEC cyklu, w którym ktoś ma wymagane Metropolie
+(2; w grze 2-osobowej 3). Kilku takich graczy → wygrywa najbogatszy.
 """
 from __future__ import annotations
 
@@ -10,15 +12,13 @@ from ..rng import Rng
 from ..state import FieldType, GameState, Stage
 from .roll import setup_roll_phase
 
-_WIN_METROPOLIS_COUNT = 2
-
 
 # ---------------------------------------------------------------------------
 # Dochód
 # ---------------------------------------------------------------------------
 
 def calculate_income(state: GameState) -> dict[str, int]:
-    """Oblicz dochód każdego gracza (base_income + income żetony Apollona)."""
+    """1 GP za każdy znacznik dobrobytu: z wysp, pól handlu (morze) i Apolla."""
     income: dict[str, int] = {pid: 0 for pid in state.players}
     for field in state.fields.values():
         owner = field.owner
@@ -28,57 +28,69 @@ def calculate_income(state: GameState) -> dict[str, int]:
     return income
 
 
+def pay_income(state: GameState) -> None:
+    """Wypłać dochód (mutuje stan)."""
+    for pid, amount in calculate_income(state).items():
+        state.players[pid].coins += amount
+
+
 # ---------------------------------------------------------------------------
 # Warunek zwycięstwa
 # ---------------------------------------------------------------------------
 
-def check_winners(state: GameState) -> list[str]:
-    """Zwróć listę graczy posiadających >= 2 metropolie."""
-    metro_count: dict[str, int] = {}
+def metro_counts(state: GameState) -> dict[str, int]:
+    counts: dict[str, int] = {}
     for field in state.fields.values():
         if field.type == FieldType.ISLAND and field.is_metropolis and field.owner:
-            metro_count[field.owner] = metro_count.get(field.owner, 0) + 1
-    return [p for p, n in metro_count.items() if n >= _WIN_METROPOLIS_COUNT]
+            counts[field.owner] = counts.get(field.owner, 0) + 1
+    return counts
+
+
+def check_winners(state: GameState) -> list[str]:
+    """Kto spełnia warunek zwycięstwa teraz (remis rozstrzygnięty złotem)."""
+    target = state.options.metros_to_win
+    qualified = [p for p, n in metro_counts(state).items() if n >= target]
+    if len(qualified) <= 1:
+        return qualified
+    best = max(state.players[p].coins for p in qualified)
+    return sorted(p for p in qualified if state.players[p].coins == best)
 
 
 def is_game_over(state: GameState) -> bool:
-    return bool(check_winners(state)) or state.stage == Stage.GAME_OVER
+    return state.stage == Stage.GAME_OVER
 
 
 # ---------------------------------------------------------------------------
-# Koniec rundy — przejście BOARD → ROLL
+# Początek cyklu
+# ---------------------------------------------------------------------------
+
+def start_cycle(state: GameState, rng: Rng) -> GameState:
+    """Kroki 1–4 cyklu: tor Stworów, bogowie + kolejność ofiar, dochód (kopia)."""
+    from .creatures import update_track
+    s = copy.deepcopy(state)
+    update_track(s, rng)
+    s = setup_roll_phase(s, rng)
+    pay_income(s)
+    return s
+
+
+# ---------------------------------------------------------------------------
+# Koniec cyklu — przejście BOARD → ROLL
 # ---------------------------------------------------------------------------
 
 def end_board_phase(state: GameState, rng: Rng) -> GameState:
-    """Zakończ fazę BOARD: wypłać dochód, sprawdź wygraną, przejdź do ROLL."""
+    """Koniec cyklu: sprawdź zwycięstwo, w przeciwnym razie zacznij nowy cykl."""
     s = copy.deepcopy(state)
-
-    # Wypłata dochodu
-    income = calculate_income(s)
-    for pid, amount in income.items():
-        s.players[pid].coins += amount
-
-    # Sprawdź wygraną
     winners = check_winners(s)
     if winners:
+        s.winners = winners
         s.stage = Stage.GAME_OVER
+        s.act_player = None
         return s
 
-    # Nowa runda
     s.round_no += 1
     s.act_player = None
     s.act_hero = None
     s.hero_players = {pid: "None" for pid in s.players}
-
-    # Przywróć kolejność licytacji z wyników poprzedniej aukcji
-    prev_bids = s.roll.bids
-    bid_order = []
-    for row, bid in prev_bids.items():
-        if row == "row_5":
-            bid_order.extend(bid)
-        elif bid:
-            bid_order.append(bid["player"])
-    s.roll.bid_order = bid_order
-
-    s = setup_roll_phase(s, rng)
-    return s
+    s.round_heroes = {pid: [] for pid in s.players}
+    return start_cycle(s, rng)

@@ -135,7 +135,7 @@ def test_check_winners_none_initially():
 
 
 def test_check_winners_detects_2_metros():
-    s = build_initial_state(2, Rng(1))
+    s = build_initial_state(3, Rng(1))   # 2 graczy gra do 3 metropolii
     player_id = "p1"
     # Ręcznie ustaw 2 metropolie dla p1
     island_ids = [fid for fid, f in s.fields.items() if f.type == FieldType.ISLAND][:2]
@@ -238,26 +238,26 @@ def test_build_of_other_god_is_rejected():
     assert not info["valid"]
 
 
-def test_completing_building_set_unlocks_metropolis():
+def test_completing_building_set_forces_metropolis():
+    """Czwarty różny budynek → metropolia NATYCHMIAST i obowiązkowo (instrukcja str. 6)."""
     s = _turn("zeus")
     islands = _own_islands(s)
     slots = [(fid, slot) for fid in islands for slot in s.fields[fid].buildings]
     for (fid, slot), hero in zip(slots, ["ares", "posejdon", "atena"]):
         s.fields[fid].buildings[slot] = Building(hero)
-    assert not s.board.metro_by_build
     zeus_build = next(a for a in legal_board_actions(s) if isinstance(a, Build) and a.hero == "zeus")
     s, info = apply_board_action(s, zeus_build, Rng(1))
-    assert info["valid"] and s.board.metro_by_build
-    assert any(isinstance(a, Build) and a.hero == "metro" for a in legal_board_actions(s))
+    assert info["valid"] and s.board.pending == {"kind": "metropolis", "source": "buildings"}
+    legal = legal_board_actions(s)
+    assert legal and all(isinstance(a, Build) and a.hero == "metro" for a in legal)
 
 
 def test_metropolis_from_buildings_consumes_one_of_each_god():
     s = _give_set(_turn("ares"))
-    # piąty budynek, który powinien zostać na planszy
     spare = next((fid, sl) for fid in _own_islands(s) for sl, b in s.fields[fid].buildings.items() if b is None)
     s.fields[spare[0]].buildings[spare[1]] = Building("ares")
-    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"]}))
-    assert s.board.metro_by_build
+    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"], "play_heroes": ["ares"]}))
+    assert s.board.pending["source"] == "buildings"
 
     target = _own_islands(s)[-1]
     s2, info = apply_board_action(s, Build(player="p1", field_id=target, hero="metro"), Rng(1))
@@ -266,41 +266,36 @@ def test_metropolis_from_buildings_consumes_one_of_each_god():
     left = [b.hero for fid in _own_islands(s2) if not s2.fields[fid].is_metropolis
             for b in s2.fields[fid].buildings.values() if b]
     assert left == ["ares"]
-    assert not s2.board.metro_by_build
-    assert not any(isinstance(a, Build) and a.hero == "metro" for a in legal_board_actions(s2))
+    assert s2.board.pending is None
+    assert any(isinstance(a, EndTurn) for a in legal_board_actions(s2))
 
 
-def test_metropolis_from_buildings_available_in_any_gods_turn():
-    for hero in ("posejdon", "atena", "zeus", "apollon"):
-        s = _give_set(_turn(hero))
-        s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"]}))
-        assert any(isinstance(a, Build) and a.hero == "metro" for a in legal_board_actions(s)), hero
+def test_fourth_philosopher_forces_metropolis():
+    s = _turn("atena", coins=10)
+    s.players["p1"].philosophers = 2
+    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"], "play_heroes": ["atena"]}))
+    assert s.players["p1"].philosophers == 3 and s.board.pending is None   # darmowy = 3.
+    buy = next(a for a in legal_board_actions(s) if isinstance(a, BuyCard))
+    s, info = apply_board_action(s, buy, Rng(1))
+    assert info["valid"] and s.players["p1"].philosophers == 0
+    assert s.board.pending == {"kind": "metropolis", "source": "philosophers"}
 
 
-def test_losing_island_breaks_building_set():
+def test_pending_metropolis_blocks_other_actions():
     s = _give_set(_turn("ares"))
-    for fid in _own_islands(s):
-        if any(b and b.hero == "atena" for b in s.fields[fid].buildings.values()):
-            s.fields[fid].owner = "p2"
-    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"]}))
-    assert not s.board.metro_by_build
+    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"], "play_heroes": ["ares"]}))
+    _, info = apply_board_action(s, EndTurn(player="p1"), Rng(1))
+    assert not info["valid"]
 
 
-def test_two_metropolises_from_buildings_win_through_engine():
+def test_win_is_decided_at_end_of_cycle_with_gold_tiebreak():
     from engine.engine import GameEngine
-    eng = GameEngine(rng=Rng(1))
-    s = _give_set(_turn("ares"))
-    s.fields[_own_islands(s)[0]].is_metropolis = True     # pierwsza metropolia już stoi
-    # komplet budynków musi być poza metropolią — rozstaw go na pozostałych wyspach
-    for fid in _own_islands(s)[1:]:
-        s.fields[fid].buildings = {sl: None for sl in s.fields[fid].buildings}
-    free = [(fid, sl) for fid in _own_islands(s)[1:] for sl in s.fields[fid].buildings]
-    extra = "IS5"
-    s.fields[extra].owner = "p1"
-    free += [(extra, sl) for sl in s.fields[extra].buildings]
-    for (fid, sl), hero in zip(free, ["ares", "posejdon", "atena", "zeus"]):
-        s.fields[fid].buildings[sl] = Building(hero)
-    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"]}))
-    metro = next(a for a in eng.legal_actions(s) if isinstance(a, Build) and a.hero == "metro")
-    s2, info = eng.step(s, metro)
-    assert info.get("winners") == ["p1"] and eng.is_terminal(s2)
+    from engine.rules.scoring import end_board_phase
+    s = build_initial_state(3, Rng(1))
+    for pid, coins in (("p1", 3), ("p2", 9)):
+        for fid in _own_islands(s, pid):
+            s.fields[fid].is_metropolis = True
+        s.players[pid].coins = coins
+    assert GameEngine().winner(s) == []          # w trakcie cyklu nikt jeszcze nie wygrał
+    s2 = end_board_phase(s, Rng(1))
+    assert s2.winners == ["p2"] and GameEngine().is_terminal(s2)

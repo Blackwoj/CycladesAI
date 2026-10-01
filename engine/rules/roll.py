@@ -1,7 +1,16 @@
-"""Reguły fazy ROLL — aukcja herosów.
+"""Reguły fazy ROLL — składanie ofiar (licytacja bogów).
 
-Port logiki z game/managers/RollManager.py, bez pygame i bez DataCache.
-Wszystkie funkcje są czyste (state in → state' out) — wejście nigdy nie jest mutowane.
+Zgodnie z instrukcją (str. 2–3, 6):
+- w kolejności toru każdy znacznik ofiarowania trafia do jednego boga;
+- przebicie wymaga wyższej ofiary, a przelicytowany gracz NATYCHMIAST licytuje
+  u INNEGO boga (nie może wrócić do tego, którego stracił);
+- Apollo jest darmowy i mieści wielu graczy (pierwszy dostaje znacznik dobrobytu);
+- ofiar nie wolno składać ponad stan: suma kosztów (po zniżce Kapłanów, min. 1 GP
+  za ofiarę) nie może przekroczyć złota gracza;
+- w grze 2-osobowej każdy ma 2 znaczniki i ofiaruje DWÓM różnym bogom,
+  a w grze są 3 bogowie + Apollo (zasady jak dla 4 graczy).
+
+Funkcje są czyste (state in → state' out) — wejście nigdy nie jest mutowane.
 """
 from __future__ import annotations
 
@@ -9,24 +18,44 @@ import copy
 
 from ..actions import ApollonBid, RollBid
 from ..rng import Rng
-from ..state import GameState, Player, RollState, Stage
+from ..state import GameState, Player, Stage
 
 HEROES_BIDDABLE = ["ares", "atena", "posejdon", "zeus"]
+APOLLO_ROW = "row_5"
 
 
 # ---------------------------------------------------------------------------
 # Pomocnicze
 # ---------------------------------------------------------------------------
 
-def _player_total_bid_power(player: Player) -> int:
-    """Ile łącznie może wydać gracz (monety + kapłani jako zniżka)."""
-    return player.coins + player.priests
+def markers_per_player(state: GameState) -> int:
+    return 2 if state.num_of_players == 2 else 1
+
+
+def visible_gods(num_players: int) -> int:
+    """Ilu bogów (poza Apollem) jest w licytacji: 2p gra jak 4p."""
+    return 3 if num_players == 2 else num_players - 1
 
 
 def _bid_cost(bid_amount: int, player: Player) -> int:
-    """Rzeczywisty koszt złożonej oferty (kapłani są zniżką, min 1 moneta)."""
-    cost = bid_amount - player.priests
-    return max(cost, 1)
+    """Rzeczywisty koszt ofiary (Kapłani są zniżką, min 1 GP)."""
+    return max(bid_amount - player.priests, 1)
+
+
+def _rows_of(state: GameState, player_id: str) -> list[str]:
+    """Rzędy, w których gracz ma teraz znacznik."""
+    rows = [r for r, b in state.roll.bids.items() if r != APOLLO_ROW and b and b.get("player") == player_id]
+    rows += [APOLLO_ROW] * state.roll.bids.get(APOLLO_ROW, []).count(player_id)
+    return rows
+
+
+def _committed_cost(state: GameState, player_id: str, except_row: str | None = None) -> int:
+    player = state.players[player_id]
+    return sum(
+        _bid_cost(b["bid"], player)
+        for r, b in state.roll.bids.items()
+        if r != APOLLO_ROW and r != except_row and b and b.get("player") == player_id
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -39,35 +68,28 @@ def legal_roll_actions(state: GameState) -> list:
     if player_id is None:
         return []
     player = state.players[player_id]
-    total_power = _player_total_bid_power(player)
-    actions = []
+    banned = set(state.roll.banned.get(player_id, []))
+    mine = _rows_of(state, player_id)
+    actions: list = []
 
     for row, hero in state.roll.heros_per_row.items():
-        if row == "row_5":
-            # Apollon — każdy gracz bez herosa bierze tu domyślnie.
-            # Akceptujemy ApollonBid tylko jeśli gracz nie zlicytował wyżej.
-            already_in = player_id in state.roll.bids.get("row_5", [])
-            if not already_in:
-                actions.append(ApollonBid(player=player_id))
+        if row == APOLLO_ROW or not hero or row in banned:
             continue
-
-        if not hero:  # rząd nieaktywny (mniej niż 4 herosów przy mniejszej liczbie graczy)
+        current = state.roll.bids.get(row) or {}
+        # w 2p wolno przebić własną ofertę (instrukcja str. 6) — wtedy wypchnięty
+        # znacznik trafia do innego boga jak przy zwykłym przebiciu
+        # budżet: złoto minus koszt pozostałych ofiar tego gracza
+        budget = player.coins - _committed_cost(state, player_id, except_row=row)
+        if budget < 1:
             continue
+        max_amount = budget + player.priests        # koszt = amount - priests (min 1)
+        start = current.get("bid", 0) + 1 if current else 1
+        for amount in range(start, max_amount + 1):
+            actions.append(RollBid(player=player_id, row=row, amount=amount))
 
-        current_bid = state.roll.bids.get(row, {})
-        if current_bid:
-            current_bid_value = current_bid.get("bid", 0)
-            current_owner = current_bid.get("player")
-            # Można przelicytować cudzą ofertę wyższą kwotą
-            for amount in range(current_bid_value + 1, total_power + 1):
-                if current_owner != player_id and amount <= total_power and player.coins >= 1:
-                    actions.append(RollBid(player=player_id, row=row, amount=amount))
-        else:
-            # Rząd pusty — oferta od 1 (minimum 1 moneta)
-            for amount in range(1, total_power + 1):
-                if player.coins >= 1:
-                    actions.append(RollBid(player=player_id, row=row, amount=amount))
-
+    # Apollo: darmowy; w 2p drugi znacznik do innego boga — chyba że nie ma wyjścia
+    if APOLLO_ROW not in mine or not actions:
+        actions.append(ApollonBid(player=player_id))
     return actions
 
 
@@ -76,51 +98,32 @@ def legal_roll_actions(state: GameState) -> list:
 # ---------------------------------------------------------------------------
 
 def apply_roll_bid(state: GameState, action: RollBid) -> GameState:
-    """Zastosuj licytację. Oddaje monety poprzedniemu licytantowi."""
+    """Złóż ofiarę. Przebity gracz natychmiast licytuje u innego boga."""
     s = copy.deepcopy(state)
-    row = action.row
-    player_id = action.player
-    amount = action.amount
+    row, player_id = action.row, action.player
+    outbid = (s.roll.bids.get(row) or {}).get("player")
 
-    current_bid = s.roll.bids.get(row, {})
-    if current_bid:
-        outbid_player = current_bid.get("player")
-        if outbid_player and outbid_player != player_id:
-            # Poprzedni licytant nie płaci — jego monet nie trącamy teraz
-            pass
+    s.roll.bids[row] = {"player": player_id, "bid": action.amount}
+    s.roll.banned.pop(player_id, None)
 
-    s.roll.bids[row] = {"player": player_id, "bid": amount}
+    if outbid is not None:
+        # przelicytowany wraca na początek kolejki i nie może wrócić do tego boga
+        s.roll.bid_order = [outbid] + s.roll.bid_order
+        s.roll.banned[outbid] = [row]
 
-    # Gracz który przelicytował traci kolejkę (wraca do bid_order na koniec)
-    # Jeśli był tu ktoś inny, on dostaje kolejne podejście
-    outbid_player = current_bid.get("player") if current_bid else None
-
-    # Usuń act_player z bid_order (jego tura minęła)
-    s.roll.bid_order = [p for p in s.roll.bid_order if p != player_id]
-
-    if outbid_player and outbid_player != player_id:
-        # Przelicytowany wraca na przód kolejki
-        s.roll.bid_order = [outbid_player] + s.roll.bid_order
-
-    # Następny gracz
-    s = _advance_roll_player(s)
-    return s
+    return _advance_roll_player(s)
 
 
 def apply_apollon_bid(state: GameState, action: ApollonBid) -> GameState:
-    """Dołącz gracza do rzędu Apollona."""
+    """Dołącz gracza do rzędu Apollona (kolejne miejsca: 1, 2, ...)."""
     s = copy.deepcopy(state)
-    row5 = s.roll.bids.setdefault("row_5", [])
-    if action.player not in row5:
-        row5.append(action.player)
-
-    s.roll.bid_order = [p for p in s.roll.bid_order if p != action.player]
-    s = _advance_roll_player(s)
-    return s
+    s.roll.bids.setdefault(APOLLO_ROW, []).append(action.player)
+    s.roll.banned.pop(action.player, None)
+    return _advance_roll_player(s)
 
 
 def _advance_roll_player(state: GameState) -> GameState:
-    """Przesuń na kolejnego gracza; jeśli wszyscy zagłosowali — zakończ ROLL."""
+    """Przesuń na kolejny znacznik; jeśli wszystkie złożone — zakończ ROLL."""
     if state.roll.bid_order:
         state.act_player = state.roll.bid_order[0]
         state.roll.bid_order = state.roll.bid_order[1:]
@@ -134,45 +137,46 @@ def _advance_roll_player(state: GameState) -> GameState:
 # ---------------------------------------------------------------------------
 
 def setup_roll_phase(state: GameState, rng: Rng) -> GameState:
-    """Przygotuj fazę aukcji na początku rundy: losuj herosów i kolejność graczy."""
+    """Przygotuj licytację: rozłóż bogów i ustal kolejność znaczników.
+
+    Kolejność: gracz, który w poprzednim cyklu wykonywał akcje jako ostatni,
+    składa ofiarę pierwszy (instrukcja str. 3) — czyli odwrócona `state.acted`.
+    W pierwszym cyklu kolejność jest losowa.
+    """
     s = copy.deepcopy(state)
 
-    # Wylosuj herosów do rzędów (do num_players - 1 rzędów)
-    num_rows = s.num_of_players - 1
+    num_rows = visible_gods(s.num_of_players)
     available = [h for h in HEROES_BIDDABLE if h not in s.roll.left_heros]
     rng.shuffle(available)
     left_heroes = s.roll.left_heros[:]
 
+    # bogowie niedostępni w poprzednim cyklu wchodzą jako pierwsi
     heroes_this_round = left_heroes + available[:num_rows - len(left_heroes)]
     rng.shuffle(heroes_this_round)
-
-    # Do rzędów wchodzi tylko num_rows pierwszych — reszta czeka na kolejną rundę.
     placed = heroes_this_round[:num_rows]
 
-    # left_heros liczymy z FAKTYCZNIE wystawionych bogów. Wcześniej liczyliśmy je
-    # z heroes_this_round, które przy małej liczbie graczy jest dłuższe niż liczba
-    # rzędów — bogowie, którzy nigdy nie weszli do licytacji, znikali z puli.
-    # Przy 2 graczach dawało to rozkład 6/3/2/1 na 12 rund zamiast równego.
+    # left_heros liczymy z FAKTYCZNIE wystawionych bogów (patrz test_regressions)
     s.roll.left_heros = [h for h in HEROES_BIDDABLE if h not in placed]
 
     heros_per_row = {}
     for i, row in enumerate([f"row_{j}" for j in range(1, 5)]):
-        if i < num_rows:
-            heros_per_row[row] = placed[i]
-        else:
-            heros_per_row[row] = ""
-    heros_per_row["row_5"] = "apollon"
+        heros_per_row[row] = placed[i] if i < num_rows else ""
+    heros_per_row[APOLLO_ROW] = "apollon"
     s.roll.heros_per_row = heros_per_row
 
-    # Ustaw kolejność licytacji
-    bid_order = list(s.players.keys())
-    rng.shuffle(bid_order)
-    s.roll.bid_order = bid_order[1:]      # pierwszy gracz wchodzi od razu
-    s.act_player = bid_order[0]
+    if s.acted:
+        order = list(reversed(s.acted))
+    else:
+        players = list(s.players.keys())
+        rng.shuffle(players)
+        order = players * markers_per_player(s)
+    s.acted = []
+    s.act_player = order[0]
+    s.roll.bid_order = order[1:]
 
-    # Wyczyść stare oferty
     s.roll.bids = {f"row_{i}": {} for i in range(1, 5)}
-    s.roll.bids["row_5"] = []
+    s.roll.bids[APOLLO_ROW] = []
+    s.roll.banned = {}
 
     s.stage = Stage.ROLL
     return s
@@ -183,31 +187,36 @@ def setup_roll_phase(state: GameState, rng: Rng) -> GameState:
 # ---------------------------------------------------------------------------
 
 def finalize_roll(state: GameState) -> GameState:
-    """Rozstrzygnij aukcję: przypisz herosów, oblicz koszty, ustaw kolejność BOARD."""
+    """Rozstrzygnij aukcję: zapłać ofiary, ustal kolejność tur w BOARD.
+
+    Bogowie działają w kolejności rzędów (row_1 pierwszy), Apollo na końcu.
+    """
     s = copy.deepcopy(state)
     play_order: list[str] = []
-    hero_players: dict[str, str] = {pid: "None" for pid in s.players}
+    play_heroes: list[str] = []
+    round_heroes: dict[str, list[str]] = {pid: [] for pid in s.players}
 
-    for row, bid in s.roll.bids.items():
-        if row == "row_5":
-            # Apollon: wszyscy którzy się zapisali
-            for i, player_id in enumerate(bid):
-                play_order.append(player_id)
-                hero_players[player_id] = "apollon" if i == 0 else "ap_s"
-        else:
-            if not bid:
-                continue
-            player_id = bid["player"]
-            amount = bid["bid"]
-            hero = s.roll.heros_per_row[row]
+    for row in sorted(k for k in s.roll.bids if k != APOLLO_ROW):
+        bid = s.roll.bids[row]
+        if not bid:
+            continue
+        player_id, hero = bid["player"], s.roll.heros_per_row[row]
+        cost = _bid_cost(bid["bid"], s.players[player_id])
+        s.players[player_id].coins = max(0, s.players[player_id].coins - cost)
+        play_order.append(player_id)
+        play_heroes.append(hero)
+        round_heroes[player_id].append(hero)
 
-            cost = _bid_cost(amount, s.players[player_id])
-            s.players[player_id].coins = max(0, s.players[player_id].coins - cost)
-            play_order.append(player_id)
-            hero_players[player_id] = hero
+    for i, player_id in enumerate(s.roll.bids.get(APOLLO_ROW, [])):
+        hero = "apollon" if i == 0 else "ap_s"
+        play_order.append(player_id)
+        play_heroes.append(hero)
+        round_heroes[player_id].append(hero)
 
     s.play_order = play_order
-    s.hero_players = hero_players
+    s.play_heroes = play_heroes
+    s.round_heroes = round_heroes
+    s.hero_players = {pid: (h[0] if h else "None") for pid, h in round_heroes.items()}
     s.act_player = None
     s.stage = Stage.BOARD
     return s

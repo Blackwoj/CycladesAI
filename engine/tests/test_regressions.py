@@ -80,28 +80,26 @@ def test_move_partial_ships_preserves_kind():
 
 
 def test_ship_stays_a_ship_across_two_moves_without_coins():
-    """Statek po przeskoku na puste pole nadal jest statkiem w NASTĘPNYM ruchu.
+    """Statek po ruchu na puste pole nadal jest statkiem w NASTĘPNYM ruchu.
 
-    Pełny łańcuch błędu — pojedynczy ruch nie wystarcza, żeby go wykryć:
-    ruch 1 opróżnia W1, więc pole W2 dostawało kind=None; ruch 2 z W2 szedł
-    wtedy ścieżką kosztu wojownika i przy coins=0 był odrzucany jako
-    "brak monet na ruch wojownika", mimo że legal_posejdon_actions() go
-    dopuszczało (brama: coins>=1 OR poseidon_jumps>0).
+    Pełny łańcuch pierwotnego błędu: ruch 1 opróżniał W1, pole W2 dostawało
+    kind=None, a ruch 2 szedł ścieżką wojownika. Od Fazy 6.3 ruch Floty to
+    1 GP za maks. 3 pola (instrukcja) — bez „darmowych skoków”, więc drugi
+    ruch bez złota jest po prostu nielegalny, a kind musi przetrwać.
     """
     s = _two_water_state(ships=2, coins=1)
-    # Ruch 1: wszystkie statki z W1 na W2 — pole źródłowe pustoszeje.
     s, info1 = _apply_move_entity(
         s, MoveEntity(player="p1", from_field="W1", to_field="W2", quantity=2), Rng(1))
     assert info1["valid"], info1
-    assert s.players["p1"].coins == 0, "ruch 1 miał kosztować 1 monetę"
-    assert s.board.poseidon_jumps == 2, "ruch 1 miał odblokować 2 darmowe przejścia"
+    assert s.players["p1"].coins == 0, "ruch miał kosztować 1 monetę"
+    assert s.fields["W2"].entity.kind == "ship"
+    assert not [a for a in legal_board_actions(s) if isinstance(a, MoveEntity)]
 
-    # Ruch 2: bez monet, ale z darmowym przejściem Posejdona.
+    s.players["p1"].coins = 1
     s, info2 = _apply_move_entity(
         s, MoveEntity(player="p1", from_field="W2", to_field="W3", quantity=2), Rng(1))
     assert info2["valid"], info2
     assert s.fields["W3"].entity.kind == "ship"
-    assert s.board.poseidon_jumps == 1
 
 
 # ---------------------------------------------------------------------------

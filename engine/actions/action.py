@@ -85,8 +85,28 @@ class BuyCard(Action):
 
 
 @dataclass(frozen=True)
+class BuyCreature(Action):
+    """Wezwanie Mitologicznego Stwora z toru (slot 0/1/2 = 4/3/2 GP minus Świątynie)."""
+    type: str = dc_field(default="buy_creature", init=False)
+    player: str = ""
+    slot: int = 0
+
+
+@dataclass(frozen=True)
+class ReplaceCreature(Action):
+    """Akcja specjalna Zeusa: za 1 GP odrzuć Stwora z toru i dociągnij nowego."""
+    type: str = dc_field(default="replace_creature", init=False)
+    player: str = ""
+    slot: int = 0
+
+
+@dataclass(frozen=True)
 class PlayCard(Action):
-    """Zagranie karty specjalnej. SZEW pod przyszły moduł kart (Faza 7)."""
+    """Rozstrzygnięcie efektu wezwanego Stwora — wybór celu.
+
+    `targets` zależy od Stwora (np. ("IS4",) dla Harpii, ("IS2", "IS9", 2) dla
+    Pegaza); ("done",) kończy efekt wieloetapowy (Sfinks, Sylfida, Kraken).
+    """
     type: str = dc_field(default="play_card", init=False)
     player: str = ""
     card_id: str = ""
@@ -108,6 +128,8 @@ _REGISTRY = {
     "build": Build,
     "place_income": PlaceIncome,
     "buy_card": BuyCard,
+    "buy_creature": BuyCreature,
+    "replace_creature": ReplaceCreature,
     "play_card": PlayCard,
     "end_turn": EndTurn,
 }

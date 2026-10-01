@@ -20,6 +20,7 @@ from ..state import (
     Entity,
     Field,
     FieldType,
+    GameOptions,
     GameState,
     Income,
     Player,
@@ -31,10 +32,24 @@ _BOARDS_DIR = Path(__file__).resolve().parents[2] / "game" / "gui" / "common" / 
 
 HEROES_BIDDABLE = ["ares", "atena", "posejdon", "zeus"]
 
-# koszt kolejnego wojownika Aresa: indeks = ile już wystawiono w tej turze
+# koszt kolejnego wojownika Aresa: indeks = ile już wystawiono w tej turze.
+# Instrukcja: 1. darmowy, potem 2/3/4 GP, maks. 3 dodatkowe na turę (4 łącznie).
 WARRIOR_PRICING = [0, 2, 3, 4]
-# koszt kolejnego statku Posejdona
+# koszt kolejnej floty Posejdona: 1. darmowa, potem 1/2/3 GP, maks. 4 na turę
 SHIP_PRICING = [0, 1, 2, 3]
+MAX_UNITS = 8           # na planszy, osobno Oddziały i Floty
+START_COINS = 5
+
+# Poprawki rozstawienia 5-osobowego z JSON-ów starego GUI. Instrukcja (str. 7):
+# każdy gracz ma 2 wyspy, 2 Oddziały i 2 Floty. W JSON-ie p5 miał 3 wyspy,
+# 6 Oddziałów i 4 Floty (dane testowe). Zgodnie z ilustracją zostawiamy p5
+# wyspy IS4 + IS13 i Floty F5 + K6. Pliki w game/ zostają nietknięte.
+_START_FIXES_5 = {
+    "IS4": {"p5": 1},
+    "IS8": {},
+    "F6": {},
+    "G7": {},
+}
 
 
 def _load_json(path: Path) -> dict:
@@ -57,13 +72,21 @@ def load_board_data(num_players: int) -> tuple[dict, dict]:
     return water, islands
 
 
-def build_initial_state(num_players: int, rng: Rng | None = None) -> GameState:
+def build_initial_state(
+    num_players: int, rng: Rng | None = None, options: GameOptions | None = None,
+) -> GameState:
     """Zbuduj pełny stan początkowy z layoutem planszy."""
     if not 2 <= num_players <= 5:
         raise ValueError("Cyclades: 2-5 graczy")
 
     rng = rng or Rng()
+    options = options or GameOptions()
+    if num_players == 2 and options.metros_to_win == 2:
+        options = GameOptions(**{**options.to_dict(), "metros_to_win": 3})
     water_cfg, islands_cfg = load_board_data(num_players)
+    for fid, owner in _START_FIXES_5.items():
+        cfg = water_cfg.get(fid) or islands_cfg.get(fid)
+        cfg["owner"] = owner
 
     players = _build_players(num_players)
     # Pliki JSON opisują rozstawienie dla 5 graczy. Przy mniejszej liczbie
@@ -118,8 +141,16 @@ def build_initial_state(num_players: int, rng: Rng | None = None) -> GameState:
         roll=RollState(
             heros_per_row={f"row_{i}": "" for i in range(1, 6)},
         ),
-        cards=CardState(hands={pid: [] for pid in players}),
+        cards=_initial_creatures(rng) if options.creatures else CardState(),
+        options=options,
     )
+
+
+def _initial_creatures(rng: Rng) -> CardState:
+    from .creatures import CREATURES
+    deck = list(CREATURES)
+    rng.shuffle(deck)
+    return CardState(deck=deck)
 
 
 def _parse_owner_entity(
@@ -142,13 +173,6 @@ def _parse_owner_entity(
 
 
 def _build_players(num_players: int) -> dict[str, Player]:
-    # Startowe monety: p1-p3 = 5, p4 = 10, p5 = 10, 2 filozofów
-    # (parytet z PlayerCache w grze oryginalnej)
-    config = {
-        "p1": Player("p1", coins=5),
-        "p2": Player("p2", coins=5),
-        "p3": Player("p3", coins=5),
-        "p4": Player("p4", coins=10),
-        "p5": Player("p5", coins=10, philosophers=2),
-    }
-    return {f"p{i}": config[f"p{i}"] for i in range(1, num_players + 1)}
+    # Instrukcja: każdy gracz dostaje 5 GP. (PlayerCache starego GUI dawał p4/p5
+    # po 10 GP i p5 2 filozofów — dane testowe, nie zasada.)
+    return {f"p{i}": Player(f"p{i}", coins=START_COINS) for i in range(1, num_players + 1)}
