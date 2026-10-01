@@ -12,9 +12,37 @@
 | 6 | `ConsoleHumanAgent` + interaktywna gra człowiek vs AI | ✅ | `engine/agents/human_agent.py`, `engine/experiments/play.py` |
 | 6.1 | Naprawa 4 błędów silnika wykrytych przy analizie punktu A (niżej) | ✅ | `engine/rules/board.py`, `engine/rules/setup.py`, `engine/tests/test_regressions.py` |
 | 6.3 | Audyt zasad vs instrukcja + Mitologiczne Stwory (17 kart) + kości jako opcja; raport w `engine/ZASADY.md` | ✅ | `engine/rules/`, `engine/tests/test_rules_audit.py`, `engine/tests/test_creatures.py` |
+| 6.4 | MCTS: ocena pozycji przy nierozstrzygniętym rolloucie + perspektywa gracza wybierającego ruch (max^n); przełączniki `heuristic`/`adversarial` | ✅ | `engine/agents/mcts_agent.py`, `engine/tests/test_mcts.py` |
 | 6.2 | Brakujące zasady: znacznik dochodu Apollona (`PlaceIncome`), budynki Ateny/Zeusa, metropolia z kompletu 4 budynków (wcześniej nieosiągalna) | ✅ | `engine/rules/board.py`, `engine/agents/llm_schemas.py`, `engine/tests/test_rules_board.py` |
 
 **Testy**: 74 passed (65 poprzednich + 9 regresyjnych) przy `python3 -m pytest engine/tests/`.
+
+### Faza 6.4 — MCTS po zmianie warunku zwycięstwa
+
+Od Fazy 6.3 zwycięstwo liczy się na koniec cyklu, więc rollout (80 kroków) prawie
+nigdy nie dochodzi do końca gry — stara nagroda dawała wtedy 0.5, czyli brak sygnału.
+Drugi błąd: wszystkie węzły oceniały ruchy z perspektywy korzenia, więc w drzewie
+przeciwnik wybierał ruchy korzystne dla MCTS.
+
+- `position_values()` — udział gracza w łącznej „sile” (metropolie / wymagane,
+  wyspy, dochód, typy budynków, filozofowie, złoto, jednostki), suma = 1;
+- nagroda jest wektorem `{gracz: wartość}`; dziecko przechowuje wartość dla gracza,
+  który wybrał ruch (max^n).
+
+Pomiar (2 graczy, sims=30, rollout 40, 8 partii na wariant, MCTS na zmianę jako p1/p2):
+
+| Wariant | vs Random | średnio rund |
+|---|---|---|
+| stary (`heuristic=False, adversarial=False`) | 6/8 | 28.9 |
+| tylko heurystyka | 7/8 | 25.2 |
+| tylko perspektywa przeciwnika | 5/8 | 28.6 |
+| nowy (oba) | 6/8 | 26.1 |
+| **nowy vs stary (bezpośrednio)** | **6/8 dla nowego** | 25.5 |
+
+Wniosek ostrożny: próbka jest mała (8 partii, p≈0.14 dla 6/8), różnice vs Random
+są w szumie. Spójny sygnał: heurystyka skraca partie o ~3 rundy (MCTS dąży do
+metropolii zamiast grać „na 0.5”), a w pojedynku nowy wygrywa 75%. Do potwierdzenia
+większą serią przy liczeniu wyników bazowych (`compare.py`).
 
 ### Faza 6.2 — brakujące zasady
 

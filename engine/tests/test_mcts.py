@@ -94,3 +94,38 @@ def test_mcts_time_budget():
     assert action in legal
     # Na pewno skończyło przed n_simulations
     assert agent.stats.total_simulations < 10_000
+
+
+# ---- ocena pozycji i perspektywa przeciwnika ---------------------------------
+
+def test_position_values_sum_to_one_and_reward_metropolis():
+    from engine.agents.mcts_agent import position_values
+    engine, state = _setup()
+    v = position_values(state)
+    assert abs(sum(v.values()) - 1) < 1e-9
+    assert abs(v["p1"] - v["p2"]) < 0.05            # start symetryczny
+    isl = next(fid for fid, f in state.fields.items() if f.owner == "p1" and f.type.value == "island")
+    state.fields[isl].is_metropolis = True
+    assert position_values(state)["p1"] > 0.6
+
+
+def test_terminal_reward_beats_heuristic():
+    engine, state = _setup()
+    agent = MCTSAgent(n_simulations=1)
+    state.winners = ["p2"]
+    assert agent._rewards(state, engine) == {"p1": 0.0, "p2": 1.0}
+    state.winners = []
+    assert MCTSAgent(heuristic=False)._rewards(state, engine) == {"p1": 0.5, "p2": 0.5}
+
+
+def test_backprop_scores_each_move_for_the_player_who_chose_it():
+    from engine.agents.mcts_agent import MCTSNode
+    engine, state = _setup()
+    root = MCTSNode(state=state, action=None, parent=None, player="p1")
+    mine = MCTSNode(state=state, action=None, parent=root, player="p2")      # ruch p1
+    theirs = MCTSNode(state=state, action=None, parent=mine, player="p1")    # ruch p2
+    MCTSAgent()._backpropagate(theirs, {"p1": 0.9, "p2": 0.1}, "p1")
+    assert (mine.total_reward, theirs.total_reward) == (0.9, 0.1)
+    old = MCTSNode(state=state, action=None, parent=mine, player="p1")
+    MCTSAgent(adversarial=False)._backpropagate(old, {"p1": 0.9, "p2": 0.1}, "p1")
+    assert old.total_reward == 0.9                    # stare: zawsze perspektywa korzenia

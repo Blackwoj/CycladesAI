@@ -17,6 +17,15 @@ Konfiguracja:
   exploration_weight — stała C w UCB1 (domyślnie sqrt(2) ≈ 1.414)
   rollout_agent   — agent do rolloutów (domyślnie RandomAgent)
   player_id       — ID gracza; jeśli None, pobierane z state_view["me"]
+  heuristic       — ocena pozycji, gdy rollout nie dojdzie do końca gry
+                    (False = stara nagroda 0.5 za każdą nierozstrzygniętą grę)
+  adversarial     — węzeł ocenia ruch z perspektywy gracza, który go wybiera
+                    (max^n); False = wszystkie węzły z perspektywy korzenia,
+                    czyli przeciwnik „gra na naszą korzyść” (stare zachowanie)
+
+Nagroda jest wektorem {gracz: wartość w [0, 1]}. Wygrana gry daje 1/0; partia
+nierozstrzygnięta w rolloucie (zwycięstwo liczy się dopiero na koniec cyklu,
+więc to typowy przypadek) dostaje ocenę heurystyczną `position_values()`.
 """
 from __future__ import annotations
 
@@ -61,6 +70,49 @@ class MCTSStats:
             "avg_decision_ms": round(self.total_decision_ms / n, 1),
             "avg_tree_depth": round(self.total_tree_depth / n, 2),
         }
+
+
+# ---------------------------------------------------------------------------
+# Ocena pozycji
+# ---------------------------------------------------------------------------
+
+# Wagi siły gracza. Metropolie dominują (to warunek zwycięstwa); reszta to
+# „paliwo” do metropolii: wyspy (dochód, miejsce na budynki), różne typy
+# budynków (droga przez komplet 4), filozofowie (droga przez 4), złoto.
+W_METRO = 1.0          # × metropolie / wymagane metropolie
+W_ISLAND = 0.08
+W_INCOME = 0.04
+W_BUILDING_TYPE = 0.06
+W_PHILOSOPHER = 0.05
+W_COIN = 0.005
+W_UNIT = 0.01
+
+
+def player_strength(state: "GameState", player: str) -> float:
+    from ..state import FieldType
+    target = max(1, state.options.metros_to_win)
+    metros = islands = income = units = 0
+    types: set[str] = set()
+    for f in state.fields.values():
+        if f.owner != player:
+            continue
+        income += f.base_income + f.income.quantity
+        units += f.entity.quantity
+        if f.type == FieldType.ISLAND:
+            islands += 1
+            metros += 1 if f.is_metropolis else 0
+            types |= {b.hero for b in f.buildings.values() if b}
+    p = state.players[player]
+    return (W_METRO * metros / target + W_ISLAND * islands + W_INCOME * income
+            + W_BUILDING_TYPE * len(types) + W_PHILOSOPHER * min(p.philosophers, 3)
+            + W_COIN * p.coins + W_UNIT * units)
+
+
+def position_values(state: "GameState") -> dict[str, float]:
+    """Udział gracza w łącznej sile — wartości w [0, 1] sumujące się do 1."""
+    raw = {pid: player_strength(state, pid) + 1e-6 for pid in state.players}
+    total = sum(raw.values())
+    return {pid: v / total for pid, v in raw.items()}
 
 
 # ---------------------------------------------------------------------------
@@ -130,7 +182,11 @@ class MCTSAgent(Agent):
         rollout_rng: Rng | None = None,
         player_id: str | None = None,
         verbose: bool = False,
+        heuristic: bool = True,
+        adversarial: bool = True,
     ) -> None:
+        self.heuristic = heuristic
+        self.adversarial = adversarial
         self.n_simulations = n_simulations
         self.time_budget_ms = time_budget_ms
         self.max_rollout_depth = max_rollout_depth
@@ -219,10 +275,10 @@ class MCTSAgent(Agent):
                 node = self._expand(node, engine)
 
             # 3. Rollout
-            reward = self._rollout(node.state, engine, player_id)
+            rewards = self._rollout(node.state, engine, player_id)
 
             # 4. Propagacja
-            self._backpropagate(node, reward)
+            self._backpropagate(node, rewards, player_id)
 
             total_depth += node.depth()
             simulations += 1
@@ -260,7 +316,7 @@ class MCTSAgent(Agent):
 
     def _rollout(
         self, state: "GameState", engine: "GameEngine", player_id: str
-    ) -> float:
+    ) -> dict[str, float]:
         """Symuluj grę losowo do końca lub do max_rollout_depth."""
         rollout_agent = RandomAgent(self._rollout_rng)
         current = state.clone()
@@ -280,7 +336,7 @@ class MCTSAgent(Agent):
             current = self._advance_state(current, engine)
             depth += 1
 
-        return self._reward(current, engine, player_id)
+        return self._rewards(current, engine)
 
     def _advance_state(self, state: "GameState", engine: "GameEngine") -> "GameState":
         """Przepchnij stan przez puste przejścia (act_player=None między turami)."""
@@ -300,20 +356,34 @@ class MCTSAgent(Agent):
                 break
         return state
 
-    def _backpropagate(self, node: MCTSNode, reward: float) -> None:
-        """Propaguj nagrodę w górę drzewa."""
+    def _backpropagate(self, node: MCTSNode, rewards: dict[str, float], root_player: str) -> None:
+        """Propaguj nagrodę w górę drzewa.
+
+        Dziecko przechowuje wartość ruchu dla gracza, który go WYBRAŁ (gracz
+        rodzica) — dzięki temu w węzłach przeciwnika UCB1 wybiera ruchy dobre
+        dla przeciwnika, a nie dla nas.
+        """
         current: MCTSNode | None = node
         while current is not None:
             current.visits += 1
-            current.total_reward += reward
+            if current.parent is not None:
+                mover = current.parent.player if self.adversarial else root_player
+                current.total_reward += rewards.get(mover, 0.0)
             current = current.parent
+
+    def _rewards(self, state: "GameState", engine: "GameEngine") -> dict[str, float]:
+        """Wygrana: 1 / liczba zwycięzców, reszta 0; inaczej ocena pozycji."""
+        winners = engine.winner(state)
+        if winners:
+            return {pid: (1.0 / len(winners) if pid in winners else 0.0) for pid in state.players}
+        if self.heuristic:
+            return position_values(state)
+        return {pid: 0.5 for pid in state.players}
 
     @staticmethod
     def _reward(state: "GameState", engine: "GameEngine", player_id: str) -> float:
-        """Nagrada: 1.0 za wygraną, 0.0 za przegraną, 0.5 za remis/truncation."""
+        """Nagroda skalarna dla jednego gracza (zgodność wsteczna)."""
         winners = engine.winner(state)
         if not winners:
             return 0.5
-        if player_id in winners:
-            return 1.0 / len(winners)   # podziel nagrodę przy remisie
-        return 0.0
+        return 1.0 / len(winners) if player_id in winners else 0.0
