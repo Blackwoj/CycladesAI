@@ -12,6 +12,7 @@ from engine.actions import action_from_dict
 from engine.agents.llm_factory import PROVIDERS, provider_available
 from engine.experiment.telemetry import read_last_decision
 from engine.rules.setup import load_board_data
+from engine.state import GameOptions
 
 from ..schemas import GameView, NewGameRequest, StepRequest
 from ..store import LOG_TAIL, Game, store
@@ -55,7 +56,8 @@ def _get(game_id: str) -> Game:
 @router.post("/game/new", response_model=GameView, status_code=201)
 def new_game(body: NewGameRequest):
     try:
-        game = store.create(body.num_players, body.seed, body.agents)
+        options = GameOptions(combat_dice=body.combat_dice, creatures=body.creatures)
+        game = store.create(body.num_players, body.seed, body.agents, options)
     except ImportError as e:
         raise HTTPException(400, f"brak zależności agenta: {e}") from e
     except (ValueError, OSError) as e:   # OSError obejmuje EnvironmentError "Brak ..._API_KEY"

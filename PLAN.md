@@ -11,6 +11,7 @@
 | 5 | `MCTSAgent` — UCB1, losowe rollouty, determinizacja walki, `time_budget_ms` | ✅ | `engine/agents/mcts_agent.py`, `engine/tests/test_mcts.py` |
 | 6 | `ConsoleHumanAgent` + interaktywna gra człowiek vs AI | ✅ | `engine/agents/human_agent.py`, `engine/experiments/play.py` |
 | 6.1 | Naprawa 4 błędów silnika wykrytych przy analizie punktu A (niżej) | ✅ | `engine/rules/board.py`, `engine/rules/setup.py`, `engine/tests/test_regressions.py` |
+| 6.3 | Audyt zasad vs instrukcja + Mitologiczne Stwory (17 kart) + kości jako opcja; raport w `engine/ZASADY.md` | ✅ | `engine/rules/`, `engine/tests/test_rules_audit.py`, `engine/tests/test_creatures.py` |
 | 6.2 | Brakujące zasady: znacznik dochodu Apollona (`PlaceIncome`), budynki Ateny/Zeusa, metropolia z kompletu 4 budynków (wcześniej nieosiągalna) | ✅ | `engine/rules/board.py`, `engine/agents/llm_schemas.py`, `engine/tests/test_rules_board.py` |
 
 **Testy**: 74 passed (65 poprzednich + 9 regresyjnych) przy `python3 -m pytest engine/tests/`.
@@ -149,13 +150,13 @@ Wykresy dotyczące LLM będą puste, dopóki nie ruszy punkt B (brak kluczy API)
 
 ### Priorytet średni (opcjonalne rozszerzenia)
 
-#### D. Walka z prawdziwymi kośćmi (losowość)
+#### D. Walka z prawdziwymi kośćmi (losowość) — ZROBIONE (`GameOptions(combat_dice=True)`, `engine/rules/combat.py`)
 - Obecna implementacja: `attacker vs defender = N vs M → deterministyczny wynik` (więcej jednostek wygrywa, remis → obrońca)
 - Oryginalna gra: rzuty kośćmi — każda jednostka rzuca k6, ile wyrzuci >3 = ile trafia
 - MCTS już obsługuje losowość przez `determinizację` (Rng w `rollout_rng`)
 - Do zrobienia: dodać opcję `combat_dice=True` w `GameEngine.__init__` i obsłużyć w `engine/rules/board.py → _apply_move_entity()`
 
-#### E. Faza 7 — Karty specjalne
+#### E. Faza 7 — Karty specjalne — ZROBIONE w Fazie 6.3 (Mitologiczne Stwory, `engine/rules/creatures.py`)
 - Szew już w miejscu: `engine/cards/card.py` (`CardRegistry`), akcja `PlayCard` zdefiniowana
 - Do zrobienia: zaimplementować kilka przykładowych kart (np. Posejdon daje darmowy ruch statku)
 - Wartość dla pracy mgr: sprawdzić czy LLM radzi sobie z nowym typem akcji bez przetrening

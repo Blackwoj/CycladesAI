@@ -51,6 +51,12 @@ export default function RollPanel({ state, legal, onAction, disabled }) {
           )
         })}
       </div>
+      {state.roll.banned?.[state.act_player]?.length > 0 && (
+        <div className="warn small-text">Przelicytowano Cię — wybierz innego boga.</div>
+      )}
+      {state.num_of_players === 2 && (
+        <div className="muted small-text">Gra 2-osobowa: każdy ofiaruje dwóm różnym bogom.</div>
+      )}
       {state.roll.bid_order.length > 0 && (
         <div className="muted small-text">Dalej licytują: {state.roll.bid_order.map((p) => <PlayerChip key={p} pid={p} />)}</div>
       )}

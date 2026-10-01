@@ -116,3 +116,10 @@ def test_llm_providers_endpoint():
     data = client.get("/api/llm/providers").json()
     assert set(data) == {"anthropic", "openai", "gemini", "ollama"}
     assert all("available" in v and "reason" in v for v in data.values())
+
+
+def test_game_options_reach_engine():
+    v = client.post("/api/game/new", json={"num_players": 2, "seed": 1, "combat_dice": True,
+                                           "creatures": False}).json()
+    assert v["state"]["options"] == {"combat_dice": True, "creatures": False, "metros_to_win": 3}
+    assert v["state"]["cards"]["deck"] == []

@@ -187,3 +187,45 @@ export function ResourceIcon({ kind, size = 18 }) {
     </svg>
   )
 }
+
+// ---- Mitologiczne Stwory ----------------------------------------------------
+// Medalion 64×64: figurki (trwałe) mają ciemne tło, karty jednorazowe — morskie.
+
+const FIGURE_IDS = ['kraken', 'minotaur', 'chiron', 'meduza', 'polifem']
+const W = { fill: 'none', stroke: '#fff', strokeWidth: 4, strokeLinecap: 'round', strokeLinejoin: 'round' }
+
+const CreatureGlyphs = {
+  syrena: <path {...W} d="M32 8 Q20 24 32 36 Q44 48 30 56 M30 56 L22 52 M30 56 L34 62" />,
+  pegaz: <path {...W} d="M10 40 Q22 14 54 12 Q40 22 44 30 Q30 28 26 40 Q20 34 10 40 Z" />,
+  gigant: <g {...W}><rect x="18" y="10" width="28" height="16" rx="3" /><path d="M32 26 V56" /></g>,
+  chimera: <path {...W} d="M32 6 Q48 24 40 40 Q46 32 44 26 Q56 40 44 54 Q34 62 22 54 Q10 42 22 28 Q20 36 26 40 Q16 22 32 6 Z" />,
+  cyklopi: <g {...W}><path d="M6 32 Q32 8 58 32 Q32 56 6 32 Z" /><circle cx="32" cy="32" r="7" fill="#fff" /></g>,
+  sfinks: <g {...W}><path d="M8 54 L32 12 L56 54 Z" /><path d="M20 54 L32 32 L44 54" /></g>,
+  sylfida: <path {...W} d="M8 24 H40 Q50 24 50 16 Q50 8 42 10 M8 36 H50 Q58 36 58 44 Q58 52 50 50 M14 48 H32" />,
+  harpia: <path {...W} d="M14 10 Q22 32 18 56 M32 8 Q36 32 32 58 M50 10 Q42 32 46 56" />,
+  gryf: <g {...W}><circle cx="32" cy="34" r="16" /><path d="M10 12 L54 56" /></g>,
+  mojry: <path {...W} d="M16 8 H48 M16 56 H48 M20 8 Q20 28 32 32 Q44 36 44 56 M44 8 Q44 28 32 32 Q20 36 20 56" />,
+  satyr: <g {...W}><path d="M18 30 Q8 16 14 6 Q22 16 26 26 M46 30 Q56 16 50 6 Q42 16 38 26" /><circle cx="32" cy="40" r="14" /></g>,
+  driada: <g {...W}><path d="M32 58 Q8 40 22 18 Q32 6 42 18 Q56 40 32 58 Z" /><path d="M32 58 V22" /></g>,
+  kraken: <path {...W} d="M12 56 Q8 36 20 34 M24 58 Q22 32 30 28 Q36 32 34 58 M52 56 Q56 36 44 34 M20 34 Q20 10 32 10 Q44 10 44 34" />,
+  minotaur: <g {...W}><path d="M8 18 Q12 32 24 30 M56 18 Q52 32 40 30" /><path d="M22 28 Q22 54 32 56 Q42 54 42 28 Q32 22 22 28 Z" /></g>,
+  chiron: <g {...W}><path d="M14 52 Q8 32 14 12 Q40 32 14 52 Z" /><path d="M12 32 H56 M48 26 L56 32 L48 38" /></g>,
+  meduza: <g {...W}><circle cx="32" cy="38" r="12" /><path d="M22 28 Q14 20 20 10 M32 26 Q30 14 36 6 M42 28 Q52 22 48 10" /></g>,
+  polifem: <g {...W}><path d="M14 50 Q6 34 18 22 Q30 10 44 18 Q58 28 52 46 Q44 58 26 56 Z" /><path d="M24 34 L32 30 L40 36" /></g>,
+}
+
+export function CreatureIcon({ id, size = 40, x, y, title }) {
+  const figure = FIGURE_IDS.includes(id)
+  const body = (
+    <>
+      <title>{title ?? id}</title>
+      <circle cx="32" cy="32" r="31" fill={figure ? '#4a2a5e' : '#1f5f6b'} />
+      <circle cx="32" cy="32" r="27" fill="none" stroke="#e8c96c" strokeOpacity=".7" strokeWidth="2" />
+      <g transform="translate(8 8) scale(.75)">{CreatureGlyphs[id]}</g>
+    </>
+  )
+  if (x !== undefined) {
+    return <svg x={x} y={y} width={size} height={size} viewBox="0 0 64 64" style={{ overflow: 'visible' }}>{body}</svg>
+  }
+  return <svg width={size} height={size} viewBox="0 0 64 64" style={{ flex: 'none' }}>{body}</svg>
+}

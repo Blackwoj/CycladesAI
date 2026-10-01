@@ -6,15 +6,20 @@ export default function PlayersPanel({ state, labels, actPlayer }) {
   return (
     <div className="panel players">
       {Object.values(state.players).map((p) => {
-        const hero = state.hero_players[p.player_id]
+        const heroes = state.round_heroes?.[p.player_id]?.length ? state.round_heroes[p.player_id]
+          : [state.hero_players[p.player_id]].filter((h) => h && h !== 'None')
+        const hero = heroes[0]
         const active = p.player_id === actPlayer
         return (
           <div key={p.player_id} className={`player-row ${active ? 'active' : ''}`}
             style={{ '--pc': PLAYER_COLORS[p.player_id] }}>
-            <HeroPortrait hero={hero} size={34} dim={!hero || hero === 'None'} />
+            <div className="portraits">
+              {heroes.length ? heroes.map((h, i) => <HeroPortrait key={i} hero={h} size={heroes.length > 1 ? 26 : 34} />)
+                : <HeroPortrait hero={null} size={34} dim />}
+            </div>
             <div className="player-main">
               <div><b style={{ color: PLAYER_COLORS[p.player_id] }}>{p.player_id}</b> <span className="muted">{labels[p.player_id]}</span></div>
-              <div className="muted small-text">{hero && hero !== 'None' ? heroName(hero) : 'bez boga'}</div>
+              <div className="muted small-text">{heroes.length ? heroes.map(heroName).join(' + ') : 'bez boga'}</div>
             </div>
             <div className="res" title="monety"><ResourceIcon kind="coins" />{p.coins}</div>
             <div className="res" title="filozofowie"><ResourceIcon kind="philosophers" />{p.philosophers}</div>

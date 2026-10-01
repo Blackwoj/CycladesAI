@@ -17,6 +17,8 @@ class AgentSpec(BaseModel):
 class NewGameRequest(BaseModel):
     num_players: int = Field(default=2, ge=2, le=5)
     seed: int | None = None
+    combat_dice: bool = False          # bitwy z kośćmi (oryginał) zamiast deterministycznych
+    creatures: bool = True             # Mitologiczne Stwory
     # player_id -> spec; brakujący gracz = człowiek
     agents: dict[str, AgentSpec] = Field(default_factory=dict)
 

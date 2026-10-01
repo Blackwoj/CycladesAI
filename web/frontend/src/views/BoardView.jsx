@@ -4,6 +4,8 @@ import Board from '../components/Board'
 import RollPanel from '../components/RollPanel'
 import ActionPanel, { fieldActions } from '../components/ActionPanel'
 import PlayersPanel from '../components/PlayersPanel'
+import CreaturePanel from '../components/CreaturePanel'
+import PendingPanel, { actionFields } from '../components/PendingPanel'
 import GameLog from '../components/GameLog'
 import { HeroPortrait } from '../components/icons'
 import { PLAYER_COLORS, heroName } from '../data/labels'
@@ -25,6 +27,7 @@ export default function BoardView({ game, setGame, onExit }) {
   const { state, legal_actions: legal, act_player: act, terminal } = game
   const human = game.act_player_is_human && !terminal
   const hero = state.act_hero
+  const pending = state.board?.pending
 
   const clearSelection = () => { setSelected(null); setMoveFrom(null); setPendingMove(null) }
 
@@ -53,6 +56,9 @@ export default function BoardView({ game, setGame, onExit }) {
   // podświetlenia pól = rzut legal_actions (bez żadnej reguły gry po stronie klienta)
   const { highlight, targets } = useMemo(() => {
     if (!human || game.stage !== 'board') return { highlight: new Set(), targets: new Set() }
+    if (pending) {
+      return { highlight: new Set(legal.flatMap(actionFields).filter((f) => state.fields[f])), targets: new Set() }
+    }
     if (moveFrom) {
       return {
         highlight: new Set(),
@@ -63,10 +69,11 @@ export default function BoardView({ game, setGame, onExit }) {
       highlight: new Set(legal.flatMap((a) => a.type === 'move_entity' ? [a.from_field] : a.field_id ? [a.field_id] : [])),
       targets: new Set(),
     }
-  }, [legal, moveFrom, human, game.stage])
+  }, [legal, moveFrom, human, game.stage, pending, state.fields])
 
   const onFieldClick = (id) => {
     if (busy) return
+    if (pending) { setSelected(highlight.has(id) ? id : null); return }
     if (moveFrom) {
       if (targets.has(id)) {
         const options = legal.filter((a) => a.type === 'move_entity' && a.from_field === moveFrom && a.to_field === id)
@@ -91,6 +98,7 @@ export default function BoardView({ game, setGame, onExit }) {
         <b className="brand">Cyklady</b>
         <span>Runda <b>{state.round_no}</b></span>
         <span>{STAGES[game.stage] ?? game.stage}</span>
+        <span className="muted">do wygranej: {state.options?.metros_to_win ?? 2} metropolie{state.options?.combat_dice ? ' · kości' : ''}</span>
         <span className="muted">seed {game.seed} · krok {game.step}</span>
         <span className="spacer" />
         <label className="inline muted">tempo AI
@@ -104,7 +112,7 @@ export default function BoardView({ game, setGame, onExit }) {
       <main className="layout">
         <section className="board-wrap">
           {islands
-            ? <Board fields={state.fields} islands={islands} highlight={highlight} targets={targets}
+            ? <Board fields={state.fields} islands={islands} figures={state.cards?.figures} highlight={highlight} targets={targets}
                 selected={selected} onFieldClick={onFieldClick} />
             : <div className="muted">Ładowanie planszy…</div>}
         </section>
@@ -126,13 +134,20 @@ export default function BoardView({ game, setGame, onExit }) {
           {stuck && <div className="error">Brak legalnych akcji — silnik czeka.</div>}
 
           {human && game.stage === 'roll' && <RollPanel state={state} legal={legal} onAction={doAction} disabled={busy} />}
-          {human && game.stage === 'board' && (
+          {human && game.stage === 'board' && pending && (
+            <PendingPanel pending={pending} legal={legal} selected={selected} onAction={doAction}
+              onClear={() => setSelected(null)} disabled={busy} />
+          )}
+          {human && game.stage === 'board' && !pending && (
             <ActionPanel legal={legal} selected={selected} moveFrom={moveFrom} pendingMove={pendingMove}
               onAction={doAction} onStartMove={(id) => { setMoveFrom(id); setPendingMove(null) }}
               onCancel={clearSelection} disabled={busy} />
           )}
           {!human && game.stage === 'roll' && <RollPanel state={state} legal={[]} onAction={() => {}} disabled />}
 
+          {state.options?.creatures !== false && (
+            <CreaturePanel cards={state.cards} legal={human && !pending ? legal : []} onAction={doAction} disabled={busy} />
+          )}
           <PlayersPanel state={state} labels={game.players} actPlayer={act} />
           <GameLog log={game.log} />
         </aside>
@@ -143,7 +158,7 @@ export default function BoardView({ game, setGame, onExit }) {
           <div className="panel overlay-card">
             <h2>{game.winners.length ? 'Zwycięstwo!' : 'Koniec gry'}</h2>
             {game.winners.map((w) => (
-              <p key={w}><b style={{ color: PLAYER_COLORS[w] }}>{w}</b> ({game.players[w]}) ma dwie metropolie.</p>
+              <p key={w}><b style={{ color: PLAYER_COLORS[w] }}>{w}</b> ({game.players[w]}) ma {state.options?.metros_to_win ?? 2} metropolie.</p>
             ))}
             <p className="muted">Partia: seed {game.seed}, {game.step} kroków, {state.round_no} rund.</p>
             <button className="btn primary" onClick={onExit}>Nowa gra</button>

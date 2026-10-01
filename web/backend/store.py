@@ -17,7 +17,7 @@ from engine.actions import Action
 from engine.agents import Agent
 from engine.engine import GameEngine
 from engine.rng import Rng
-from engine.state import GameState
+from engine.state import GameOptions, GameState
 
 from .agents_factory import build_agent, describe
 from .schemas import AgentSpec
@@ -78,10 +78,13 @@ class GameStore:
     def __init__(self) -> None:
         self._games: dict[str, Game] = {}
 
-    def create(self, num_players: int, seed: int | None, specs: dict[str, AgentSpec]) -> Game:
+    def create(
+        self, num_players: int, seed: int | None, specs: dict[str, AgentSpec],
+        options: GameOptions | None = None,
+    ) -> Game:
         seed = seed if seed is not None else random.randint(0, 2**31 - 1)
         rng = Rng(seed)
-        engine = GameEngine(rng=rng)
+        engine = GameEngine(rng=rng, options=options)
         state = engine.new_game(num_players, rng.spawn())
 
         agents: dict[str, Agent] = {}
@@ -97,6 +100,7 @@ class GameStore:
         self._games[game.game_id] = game
         _append_run(game.game_id, {"event": "new_game", "seed": seed,
                                    "num_players": num_players, "players": labels,
+                                   "options": state.options.to_dict(),
                                    "ts": time.time()})
         return game
 

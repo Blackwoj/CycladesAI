@@ -145,3 +145,16 @@ input[type=range] { padding: 0; accent-color: var(--gold); }
 .hit.target:hover polygon { fill: rgba(124, 240, 176, .32); }
 .hit.selected polygon { stroke: #fff; stroke-width: 4; fill: rgba(255,255,255,.12); }
 @keyframes glow { 50% { stroke-opacity: .35; } }
+.track { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.track-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  padding: 8px 6px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid rgba(201,168,76,.2); }
+.track-slot.empty { opacity: .5; justify-content: center; }
+.track-cost { font: 700 11px Inter, sans-serif; color: var(--gold-light); }
+.pending { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.pending-head { display: flex; gap: 10px; align-items: center; }
+.action-list.scroll { max-height: 260px; overflow-y: auto; }
+.portraits { display: flex; gap: 2px; }
+.options { display: flex; flex-direction: column; gap: 6px; }
+.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.check input { accent-color: var(--gold); width: 16px; height: 16px; }
+.panel a { color: var(--gold-light); }

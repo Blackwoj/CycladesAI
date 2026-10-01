@@ -4,7 +4,8 @@
 import { useMemo } from 'react'
 import { ALL_CELLS, BOARD_H, BOARD_W, R, cellCenter, hexPoints, islandGeometry } from '../data/geometry'
 import { PLAYER_COLORS } from '../data/labels'
-import { Building, Coin, EmptySlot, Metropolis, Prosperity, Ship, Warrior } from './icons'
+import { Building, Coin, CreatureIcon, EmptySlot, Metropolis, Prosperity, Ship, Warrior } from './icons'
+import { creatureName } from '../data/labels'
 
 const LAND = '#e6d3a0'
 const LAND_EDGE = '#a88b52'
@@ -71,7 +72,7 @@ function WaterContent({ id, field }) {
   )
 }
 
-export default function Board({ fields, islands, highlight, selected, targets, onFieldClick }) {
+export default function Board({ fields, islands, figures = {}, highlight, selected, targets, onFieldClick }) {
   const islandGeo = useMemo(() => Object.fromEntries(
     Object.entries(islands).map(([id, cfg]) => [id, islandGeometry(cfg.location)])), [islands])
 
@@ -124,6 +125,18 @@ export default function Board({ fields, islands, highlight, selected, targets, o
 
       {waterIds.map((id) => <WaterContent key={id} id={id} field={fields[id]} />)}
       {islandIds.map((id) => <IslandContent key={id} id={id} field={fields[id]} geo={islandGeo[id]} />)}
+
+      {/* figurki Stworów */}
+      {Object.entries(figures).map(([name, fig]) => {
+        const geo = islandGeo[fig.field]
+        const p = geo ? { x: geo.cx + 14, y: geo.cy - 40 } : { ...cellCenter(fig.field), y: cellCenter(fig.field).y - 14 }
+        return (
+          <g key={name} className="no-hit figure">
+            <CreatureIcon id={name} size={geo ? 22 : 30} x={p.x - (geo ? 0 : 15)} y={p.y} title={creatureName(name)} />
+            {fig.owner && <circle cx={p.x + (geo ? 20 : 13)} cy={p.y + 3} r="4" fill={PLAYER_COLORS[fig.owner]} stroke="#000" />}
+          </g>
+        )
+      })}
 
       {/* podświetlenia + obszary klikalne (na wierzchu) */}
       {[...waterIds, ...islandIds].map((id) => {

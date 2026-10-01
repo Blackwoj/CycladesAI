@@ -22,6 +22,8 @@ const defaultSpec = (i) => (i === 0 ? { kind: 'human' } : { kind: 'mcts', n_simu
 export default function SetupView({ onStart }) {
   const [num, setNum] = useState(2)
   const [seed, setSeed] = useState('')
+  const [dice, setDice] = useState(false)
+  const [creatures, setCreatures] = useState(true)
   const [specs, setSpecs] = useState(() => Array.from({ length: 5 }, (_, i) => defaultSpec(i)))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -36,7 +38,8 @@ export default function SetupView({ onStart }) {
     setBusy(true); setError(null)
     const agents = Object.fromEntries(specs.slice(0, num).map((s, i) => [`p${i + 1}`, s]))
     try {
-      onStart(await api.newGame({ num_players: num, seed: seed === '' ? null : Number(seed), agents }))
+      onStart(await api.newGame({ num_players: num, seed: seed === '' ? null : Number(seed), agents,
+        combat_dice: dice, creatures }))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -101,6 +104,13 @@ export default function SetupView({ onStart }) {
           <span>Seed <span className="muted">(puste = losowy)</span></span>
           <input type="number" value={seed} onChange={(e) => setSeed(e.target.value)} placeholder="np. 42" />
         </label>
+
+        <div className="options">
+          <label className="check"><input type="checkbox" checked={creatures} onChange={(e) => setCreatures(e.target.checked)} />
+            Mitologiczne Stwory</label>
+          <label className="check"><input type="checkbox" checked={dice} onChange={(e) => setDice(e.target.checked)} />
+            Bitwy z kośćmi <span className="muted">(oryginał; bez — deterministyczne)</span></label>
+        </div>
 
         {error && <div className="error">{error}</div>}
         <button className="btn primary big" disabled={busy}>{busy ? 'Tworzenie…' : 'Rozpocznij grę'}</button>
