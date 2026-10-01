@@ -11,8 +11,21 @@
 | 5 | `MCTSAgent` — UCB1, losowe rollouty, determinizacja walki, `time_budget_ms` | ✅ | `engine/agents/mcts_agent.py`, `engine/tests/test_mcts.py` |
 | 6 | `ConsoleHumanAgent` + interaktywna gra człowiek vs AI | ✅ | `engine/agents/human_agent.py`, `engine/experiments/play.py` |
 | 6.1 | Naprawa 4 błędów silnika wykrytych przy analizie punktu A (niżej) | ✅ | `engine/rules/board.py`, `engine/rules/setup.py`, `engine/tests/test_regressions.py` |
+| 6.2 | Brakujące zasady: znacznik dochodu Apollona (`PlaceIncome`), budynki Ateny/Zeusa, metropolia z kompletu 4 budynków (wcześniej nieosiągalna) | ✅ | `engine/rules/board.py`, `engine/agents/llm_schemas.py`, `engine/tests/test_rules_board.py` |
 
 **Testy**: 74 passed (65 poprzednich + 9 regresyjnych) przy `python3 -m pytest engine/tests/`.
+
+### Faza 6.2 — brakujące zasady
+
+- **Metropolia z budynków była nieosiągalna**: wymagała budynku każdego z 4 bogów, a Atena
+  i Zeus nie mogli budować; flaga `metro_by_build` była ustawiana, ale nigdzie czytana.
+  Teraz każdy bóg poza Apollonem stawia swój budynek (2 monety), komplet 4 typów daje
+  `Build(hero="metro")` w turze dowolnego boga, a metropolia zużywa po jednym budynku
+  każdego typu (najpierw z wyspy docelowej — deterministycznie, bez rozgałęzień akcji).
+  Prawo jest przeliczane po każdej akcji (walka może przejąć/odebrać wyspę z budynkami).
+- **Apollon**: pierwszy gracz na Apollonie kładzie znacznik dochodu +1 na własnej wyspie.
+- Efekt (Random vs Random, 2 graczy, 30 partii, `max_steps=800`): średnio **450 → 341**
+  kroków, truncated 1 → 0, z 77 metropolii 19 (25%) powstało z budynków.
 
 ### Faza 6.1 — naprawione błędy
 

@@ -128,3 +128,22 @@ def test_guided_negative_returns_zero():
 
 def test_guided_missing_field_returns_zero():
     assert guided_choice_from_llm_output({}, 5) == 0
+
+
+@pytest.mark.parametrize("hero", ["ares", "posejdon", "atena", "zeus"])
+def test_build_schema_per_god_and_metropolis(hero):
+    from engine.actions import Build
+    from engine.agents.llm_schemas import action_from_llm_output, json_schema_for_hero
+    assert action_from_llm_output({"action_type": "build", "field_id": "IS2"}, "p1", hero) == \
+        Build(player="p1", field_id="IS2", hero=hero)
+    assert action_from_llm_output({"action_type": "build", "field_id": "IS2", "metropolis": True}, "p1", hero) == \
+        Build(player="p1", field_id="IS2", hero="metro")
+    assert "metropolis" in str(json_schema_for_hero(hero))
+
+
+@pytest.mark.parametrize("hero", ["apollon", "ap_s"])
+def test_apollo_build_means_metropolis(hero):
+    from engine.actions import Build
+    from engine.agents.llm_schemas import action_from_llm_output
+    assert action_from_llm_output({"action_type": "build", "field_id": "IS2"}, "p1", hero) == \
+        Build(player="p1", field_id="IS2", hero="metro")

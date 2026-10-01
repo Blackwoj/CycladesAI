@@ -13,7 +13,7 @@ Wymaga: pip install pydantic>=2.0
 """
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, ClassVar, Literal, Union
 
 # Unconditional import — jeśli pydantic nie jest zainstalowany, moduł rzuca ImportError.
 # llm_agent.py łapie to w try/except i wyłącza _SCHEMAS_AVAILABLE.
@@ -75,13 +75,29 @@ class MoveWarriorSchema(BaseModel):
                           to_field=self.to_field, quantity=self.quantity, kind="warrior")
 
 
-class AresBuildSchema(BaseModel):
+class _BuildSchema(BaseModel):
+    """Budynek boga z tej tury albo metropolia (metropolis=True).
+
+    Jeden schemat na boga, bo w unii z dyskryminatorem `action_type="build"`
+    może wystąpić tylko raz.
+    """
+    HERO: ClassVar[str] = ""   # "" = bóg bez budynku (Apollon) — tylko metropolia
+
     action_type: Literal["build"]
-    field_id: str = Field(description="Your island to build an Ares building on.")
+    field_id: str = Field(description="Your island to build on.")
+    metropolis: bool = Field(
+        default=False,
+        description="True = build a METROPOLIS (needs 4 philosophers or one building of each god).",
+    )
     reasoning: str = ""
 
     def to_action(self, player: str) -> Build:
-        return Build(player=player, field_id=self.field_id, hero="ares")
+        hero = "metro" if self.metropolis or not self.HERO else self.HERO
+        return Build(player=player, field_id=self.field_id, hero=hero)
+
+
+class AresBuildSchema(_BuildSchema):
+    HERO: ClassVar[str] = "ares"
 
 
 class EndTurnSchema(BaseModel):
@@ -122,13 +138,8 @@ class MoveShipSchema(BaseModel):
                           to_field=self.to_field, quantity=self.quantity, kind="ship")
 
 
-class PosejdonBuildSchema(BaseModel):
-    action_type: Literal["build"]
-    field_id: str = Field(description="Your island to build a Poseidon building on.")
-    reasoning: str = ""
-
-    def to_action(self, player: str) -> Build:
-        return Build(player=player, field_id=self.field_id, hero="posejdon")
+class PosejdonBuildSchema(_BuildSchema):
+    HERO: ClassVar[str] = "posejdon"
 
 
 PosejdonSchema = Annotated[
@@ -147,17 +158,12 @@ class BuyPhilosopherSchema(BaseModel):
         return BuyCard(player=player, hero="atena")
 
 
-class BuildMetropolisSchema(BaseModel):
-    action_type: Literal["build"]
-    field_id: str = Field(description="Your island where you want to build a metropolis.")
-    reasoning: str = ""
-
-    def to_action(self, player: str) -> Build:
-        return Build(player=player, field_id=self.field_id, hero="metro")
+class AtenaBuildSchema(_BuildSchema):
+    HERO: ClassVar[str] = "atena"
 
 
 AtenaSchema = Annotated[
-    Union[BuyPhilosopherSchema, BuildMetropolisSchema, EndTurnSchema],
+    Union[BuyPhilosopherSchema, AtenaBuildSchema, EndTurnSchema],
     Field(discriminator="action_type"),
 ]
 
@@ -172,8 +178,12 @@ class BuyPriestSchema(BaseModel):
         return BuyCard(player=player, hero="zeus")
 
 
+class ZeusBuildSchema(_BuildSchema):
+    HERO: ClassVar[str] = "zeus"
+
+
 ZeusSchema = Annotated[
-    Union[BuyPriestSchema, EndTurnSchema],
+    Union[BuyPriestSchema, ZeusBuildSchema, EndTurnSchema],
     Field(discriminator="action_type"),
 ]
 
@@ -188,8 +198,18 @@ class PlaceIncomeSchema(BaseModel):
         return PlaceIncome(player=player, field_id=self.field_id)
 
 
+class ApollonMetroSchema(_BuildSchema):
+    HERO: ClassVar[str] = ""   # Apollon nie ma budynku — "build" = metropolia z kompletu
+
+
 ApollonSchema = Annotated[
-    Union[PlaceIncomeSchema, EndTurnSchema],
+    Union[PlaceIncomeSchema, ApollonMetroSchema, EndTurnSchema],
+    Field(discriminator="action_type"),
+]
+
+# kolejny gracz na Apollonie: bez znacznika dochodu, ale metropolia z kompletu tak
+ApSSchema = Annotated[
+    Union[ApollonMetroSchema, EndTurnSchema],
     Field(discriminator="action_type"),
 ]
 
@@ -212,7 +232,7 @@ _HERO_SCHEMA: dict[str, type] = {
     "atena":    AtenaSchema,    # type: ignore[assignment]
     "zeus":     ZeusSchema,     # type: ignore[assignment]
     "apollon":  ApollonSchema,   # type: ignore[assignment]
-    "ap_s":     EndTurnSchema,
+    "ap_s":     ApSSchema,       # type: ignore[assignment]
 }
 
 _ROLL_SCHEMA = RollPhaseSchema

@@ -5,10 +5,10 @@ export const PLAYER_COLORS = {
 }
 
 export const HEROES = {
-  ares:     { name: 'Ares',     color: '#b83227', desc: 'wojownicy i ruch po lądzie' },
-  posejdon: { name: 'Posejdon', color: '#1c8c8c', desc: 'statki i ruch po morzu' },
-  atena:    { name: 'Atena',    color: '#5b7da6', desc: 'filozofowie' },
-  zeus:     { name: 'Zeus',     color: '#cf9a12', desc: 'kapłani (zniżka w licytacji)' },
+  ares:     { name: 'Ares',     color: '#b83227', desc: 'wojownicy, ruch po lądzie, forteca' },
+  posejdon: { name: 'Posejdon', color: '#1c8c8c', desc: 'statki, ruch po morzu, port' },
+  atena:    { name: 'Atena',    color: '#5b7da6', desc: 'filozofowie, uniwersytet' },
+  zeus:     { name: 'Zeus',     color: '#cf9a12', desc: 'kapłani (zniżka w licytacji), świątynia' },
   apollon:  { name: 'Apollon',  color: '#e57a1f', desc: 'dochód' },
   ap_s:     { name: 'Apollon',  color: '#e57a1f', desc: 'dochód (kolejny gracz)' },
   metro:    { name: 'Metropolia', color: '#c9a84c', desc: '' },

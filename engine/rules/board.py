@@ -21,6 +21,8 @@ _MAX_WARRIORS = 6
 _MAX_SHIPS = 6
 _ATENA_PHILO_FOR_METRO = 4    # 4 filozofów → prawo do metropolii
 _BUILD_COST = 2
+# bogowie stawiający budynek (forteca, port, uniwersytet, świątynia); Apollon nie
+HEROES_BUILDING = ("ares", "posejdon", "atena", "zeus")
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +56,7 @@ def start_player_turn(state: GameState) -> GameState:
 
     # Reset ulotnych pól tury
     s.board = BoardPhaseState(entity_price=0, poseidon_jumps=0)
+    s = _check_metro_by_buildings(s, s.act_player)
 
     # Natychmiastowe efekty herosa — Atena i Zeus dają karty, Apollon daje monety
     hero = s.act_hero
@@ -111,6 +114,11 @@ def legal_board_actions(state: GameState) -> list[Action]:
         # Apollon nie ma akcji bojowych — znacznik dochodu (tylko "apollon") i koniec
         actions += _legal_apollon_actions(state)
         actions += _legal_build_actions(state)
+
+    # Metropolia z kompletu budynków — w turze dowolnego boga. Atena dokłada
+    # tę samą akcję sama (metro_by_philo), więc nie dublujemy.
+    if state.board.metro_by_build and not (hero == "atena" and state.board.metro_by_philo):
+        actions += _legal_metro_actions(state)
 
     # PlayCard — o ile rejestr kart nie jest pusty (szew Fazy 7)
     # (brak akcji gdy rejestr pusty)
@@ -268,10 +276,8 @@ def _legal_build_actions(state: GameState) -> list[Build]:
     if player.coins < _BUILD_COST:
         return []
     hero = state.act_hero
-    if hero in ("apollon", "ap_s", "atena", "zeus"):
-        # Tylko Ares i Posejdon stawiają budynki fizyczne na planszy;
-        # Atena/Zeus kupują karty a nie budynki — pomijamy tu.
-        # Apollon buduje przez osobną ścieżkę (dochód) — tu też skip.
+    if hero not in HEROES_BUILDING:
+        # Apollon nie stawia budynku — ma znacznik dochodu (PlaceIncome).
         return []
 
     actions = []
@@ -288,7 +294,7 @@ def _legal_build_actions(state: GameState) -> list[Build]:
 
 
 def _legal_metro_actions(state: GameState) -> list[Build]:
-    """Budowanie metropolii (przez filozofów Ateny). Zwraca Build z hero='metro'."""
+    """Budowanie metropolii (filozofowie Ateny albo komplet budynków). Build z hero='metro'."""
     player_id = state.act_player
     actions = []
     for fid, field in state.fields.items():
@@ -326,6 +332,14 @@ def validate_action(state: GameState, action: Action) -> bool:
 
 def apply_board_action(state: GameState, action: Action, rng: Rng) -> tuple[GameState, dict]:
     """Zastosuj akcję. Zwraca (nowy_stan, info). Nie mutuje wejścia."""
+    new_state, info = _dispatch_board_action(state, action, rng)
+    if info.get("valid") and new_state is not state:
+        # walka mogła przejąć/odebrać wyspę z budynkami — przelicz prawo do metropolii
+        new_state = _check_metro_by_buildings(new_state, new_state.act_player)
+    return new_state, info
+
+
+def _dispatch_board_action(state: GameState, action: Action, rng: Rng) -> tuple[GameState, dict]:
     if isinstance(action, PlaceEntity):
         return _apply_place_entity(state, action)
     if isinstance(action, MoveEntity):
@@ -440,12 +454,23 @@ def _apply_build(state: GameState, action: Build) -> tuple[GameState, dict]:
     field = s.fields[action.field_id]
 
     if action.hero == "metro":
-        # Budowa metropolii (filozofowie)
-        if not s.board.metro_by_philo:
+        if field.type != FieldType.ISLAND or field.owner != action.player or field.is_metropolis:
+            return state, {"valid": False, "reason": "nie można tu postawić metropolii"}
+        # Filozofowie są już zapłaceni na starcie tury Ateny — używamy ich najpierw.
+        if s.board.metro_by_philo:
+            s.board.metro_by_philo = False
+            source = "philosophers"
+        elif s.board.metro_by_build:
+            _consume_building_set(s, action.player, action.field_id)
+            source = "buildings"
+        else:
             return state, {"valid": False, "reason": "brak prawa do metropolii"}
         field.is_metropolis = True
-        s.board.metro_by_philo = False
-        return s, {"valid": True, "metropolis": True}
+        s = _check_metro_by_buildings(s, action.player)
+        return s, {"valid": True, "metropolis": True, "source": source}
+
+    if action.hero != state.act_hero or action.hero not in HEROES_BUILDING:
+        return state, {"valid": False, "reason": "budynek musi być boga z tej tury"}
 
     if player.coins < _BUILD_COST:
         return state, {"valid": False, "reason": "brak monet"}
@@ -464,19 +489,39 @@ def _apply_build(state: GameState, action: Build) -> tuple[GameState, dict]:
     return state, {"valid": False, "reason": "brak wolnego slotu"}
 
 
-def _check_metro_by_buildings(state: GameState, player_id: str) -> GameState:
-    """Jeśli gracz ma budynek każdego herosa → prawo do metropolii."""
-    from ..state.enums import HEROES
-    required = set(HEROES.BIDDABLE)
-    player_buildings: set[str] = set()
-    for field in state.fields.values():
-        if field.type == FieldType.ISLAND and field.owner == player_id:
-            for b in field.buildings.values():
-                if b:
-                    player_buildings.add(b.hero)
-    if required.issubset(player_buildings):
-        state.board.metro_by_build = True
+def _own_buildings(state: GameState, player_id: str) -> list[tuple[str, str, str]]:
+    """(field_id, slot, hero) budynków na wyspach gracza, poza metropoliami."""
+    return [
+        (fid, slot, b.hero)
+        for fid, f in state.fields.items()
+        if f.type == FieldType.ISLAND and f.owner == player_id and not f.is_metropolis
+        for slot, b in f.buildings.items() if b
+    ]
+
+
+def _check_metro_by_buildings(state: GameState, player_id: str | None) -> GameState:
+    """Prawo do metropolii = budynek każdego z 4 bogów na wyspach gracza.
+
+    Liczone od nowa (a nie tylko ustawiane), bo zbiór może się rozpaść —
+    przez walkę o wyspę albo przez zużycie budynków na metropolię.
+    """
+    if player_id is None:
+        return state
+    have = {hero for _, _, hero in _own_buildings(state, player_id)}
+    state.board.metro_by_build = set(HEROES_BUILDING).issubset(have)
     return state
+
+
+def _consume_building_set(state: GameState, player_id: str, target_field: str) -> None:
+    """Zdejmij po jednym budynku każdego boga (metropolia je „wchłania”).
+
+    Kolejność deterministyczna: najpierw budynki z wyspy docelowej, potem
+    po id pola i slotu — bez dokładania gałęzi wyboru do legal_actions.
+    """
+    owned = sorted(_own_buildings(state, player_id), key=lambda x: (x[0] != target_field, x[0], x[1]))
+    for hero in HEROES_BUILDING:
+        fid, slot, _ = next(b for b in owned if b[2] == hero)
+        state.fields[fid].buildings[slot] = None
 
 
 def _apply_buy_card(state: GameState, action: BuyCard) -> tuple[GameState, dict]:

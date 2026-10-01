@@ -188,3 +188,119 @@ def test_place_income_roundtrip_and_llm_schema():
     a = PlaceIncome(player="p1", field_id="IS2")
     assert action_from_dict(a.to_dict()) == a
     assert action_from_llm_output({"action_type": "place_income", "field_id": "IS2"}, "p1", "apollon") == a
+
+
+# ---- budynki wszystkich bogów + metropolia z kompletu budynków ------------
+
+def _turn(hero, coins=10):
+    s = build_initial_state(2, Rng(1))
+    s = setup_roll_phase(s, Rng(1))
+    s.stage = Stage.BOARD
+    s.hero_players = {"p1": hero, "p2": "apollon"}
+    s.play_order = ["p1", "p2"]
+    s.players["p1"].coins = coins
+    return start_player_turn(s)
+
+
+def _own_islands(s, pid="p1"):
+    return sorted(fid for fid, f in s.fields.items() if f.type == FieldType.ISLAND and f.owner == pid)
+
+
+def _give_set(s, pid="p1"):
+    """Rozstaw po jednym budynku każdego boga na wyspach gracza."""
+    islands = _own_islands(s, pid)
+    slots = [(fid, slot) for fid in islands for slot in s.fields[fid].buildings]
+    for (fid, slot), hero in zip(slots, ["ares", "posejdon", "atena", "zeus"]):
+        s.fields[fid].buildings[slot] = Building(hero)
+    return s
+
+
+@pytest.mark.parametrize("hero", ["ares", "posejdon", "atena", "zeus"])
+def test_every_god_except_apollo_builds_own_building(hero):
+    s = _turn(hero)
+    builds = [a for a in legal_board_actions(s) if isinstance(a, Build)]
+    assert builds and {a.hero for a in builds} == {hero}
+    s2, info = apply_board_action(s, builds[0], Rng(1))
+    assert info["valid"]
+    assert Building(hero) in s2.fields[builds[0].field_id].buildings.values()
+    assert s2.players["p1"].coins == 8
+
+
+def test_apollo_has_no_building():
+    s = _turn("apollon")
+    assert not [a for a in legal_board_actions(s) if isinstance(a, Build)]
+
+
+def test_build_of_other_god_is_rejected():
+    s = _turn("zeus")
+    fid = _own_islands(s)[0]
+    _, info = apply_board_action(s, Build(player="p1", field_id=fid, hero="ares"), Rng(1))
+    assert not info["valid"]
+
+
+def test_completing_building_set_unlocks_metropolis():
+    s = _turn("zeus")
+    islands = _own_islands(s)
+    slots = [(fid, slot) for fid in islands for slot in s.fields[fid].buildings]
+    for (fid, slot), hero in zip(slots, ["ares", "posejdon", "atena"]):
+        s.fields[fid].buildings[slot] = Building(hero)
+    assert not s.board.metro_by_build
+    zeus_build = next(a for a in legal_board_actions(s) if isinstance(a, Build) and a.hero == "zeus")
+    s, info = apply_board_action(s, zeus_build, Rng(1))
+    assert info["valid"] and s.board.metro_by_build
+    assert any(isinstance(a, Build) and a.hero == "metro" for a in legal_board_actions(s))
+
+
+def test_metropolis_from_buildings_consumes_one_of_each_god():
+    s = _give_set(_turn("ares"))
+    # piąty budynek, który powinien zostać na planszy
+    spare = next((fid, sl) for fid in _own_islands(s) for sl, b in s.fields[fid].buildings.items() if b is None)
+    s.fields[spare[0]].buildings[spare[1]] = Building("ares")
+    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"]}))
+    assert s.board.metro_by_build
+
+    target = _own_islands(s)[-1]
+    s2, info = apply_board_action(s, Build(player="p1", field_id=target, hero="metro"), Rng(1))
+    assert info["valid"] and info["source"] == "buildings"
+    assert s2.fields[target].is_metropolis
+    left = [b.hero for fid in _own_islands(s2) if not s2.fields[fid].is_metropolis
+            for b in s2.fields[fid].buildings.values() if b]
+    assert left == ["ares"]
+    assert not s2.board.metro_by_build
+    assert not any(isinstance(a, Build) and a.hero == "metro" for a in legal_board_actions(s2))
+
+
+def test_metropolis_from_buildings_available_in_any_gods_turn():
+    for hero in ("posejdon", "atena", "zeus", "apollon"):
+        s = _give_set(_turn(hero))
+        s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"]}))
+        assert any(isinstance(a, Build) and a.hero == "metro" for a in legal_board_actions(s)), hero
+
+
+def test_losing_island_breaks_building_set():
+    s = _give_set(_turn("ares"))
+    for fid in _own_islands(s):
+        if any(b and b.hero == "atena" for b in s.fields[fid].buildings.values()):
+            s.fields[fid].owner = "p2"
+    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"]}))
+    assert not s.board.metro_by_build
+
+
+def test_two_metropolises_from_buildings_win_through_engine():
+    from engine.engine import GameEngine
+    eng = GameEngine(rng=Rng(1))
+    s = _give_set(_turn("ares"))
+    s.fields[_own_islands(s)[0]].is_metropolis = True     # pierwsza metropolia już stoi
+    # komplet budynków musi być poza metropolią — rozstaw go na pozostałych wyspach
+    for fid in _own_islands(s)[1:]:
+        s.fields[fid].buildings = {sl: None for sl in s.fields[fid].buildings}
+    free = [(fid, sl) for fid in _own_islands(s)[1:] for sl in s.fields[fid].buildings]
+    extra = "IS5"
+    s.fields[extra].owner = "p1"
+    free += [(extra, sl) for sl in s.fields[extra].buildings]
+    for (fid, sl), hero in zip(free, ["ares", "posejdon", "atena", "zeus"]):
+        s.fields[fid].buildings[sl] = Building(hero)
+    s = start_player_turn(s.__class__.from_dict({**s.to_dict(), "play_order": ["p1"]}))
+    metro = next(a for a in eng.legal_actions(s) if isinstance(a, Build) and a.hero == "metro")
+    s2, info = eng.step(s, metro)
+    assert info.get("winners") == ["p1"] and eng.is_terminal(s2)

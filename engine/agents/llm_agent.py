@@ -132,7 +132,7 @@ PHASE 2 — BOARD actions per god
 - Move warriors (cost 1 coin per move):
   Warriors can move through connected islands you own (DFS reachability).
   Moving onto an enemy or neutral island = COMBAT.
-- Build an Ares building on one of your islands (cost 2 coins).
+- Build an Ares building (fortress) on one of your islands (cost 2 coins).
 
 --- POSEIDON ---
 - Recruit ships on water tiles adjacent to your islands.
@@ -140,17 +140,19 @@ PHASE 2 — BOARD actions per god
 - Move ships between adjacent water tiles (cost 1 coin per ship group moved).
   First paid move grants 2 FREE additional ship-jumps that turn.
   Ships moving onto enemy-occupied water = COMBAT.
-- Build a Poseidon building on one of your islands (cost 2 coins).
+- Build a Poseidon building (port) on one of your islands (cost 2 coins).
 
 --- ATHENA ---
 - Receive 1 free philosopher at the start of your turn.
 - Buy 1 additional philosopher for 4 coins.
 - At 4+ philosophers: spend 4 philosophers → may Build a metropolis on any
   owned island (Build action with hero="metro").
+- Build an Athena building (university) on one of your islands (cost 2 coins).
 
 --- ZEUS ---
 - Receive 1 free priest at the start of your turn (priests reduce auction bids).
 - Buy 1 additional priest for 4 coins.
+- Build a Zeus building (temple) on one of your islands (cost 2 coins).
 - No military actions.
 
 --- APOLLO ---
@@ -186,7 +188,9 @@ Path A — Philosophers (Athena):
 
 Path B — Buildings:
   Own at least one building of EACH type (ares, posejdon, zeus, athena)
-  spread across your islands → building a metropolis becomes available.
+  spread across your islands → Build with hero="metro" becomes available in
+  ANY god's turn. The metropolis consumes one building of each type
+  (taken from the target island first).
 
 ═══════════════════════════════════════════════════════
 STRATEGIC PRINCIPLES
