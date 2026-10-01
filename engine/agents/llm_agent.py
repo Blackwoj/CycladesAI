@@ -87,124 +87,90 @@ class BaseLLMAgent(Agent):
 ═══════════════════════════════════════════════════════
 GOAL
 ═══════════════════════════════════════════════════════
-Be the first player to own 2 METROPOLISES simultaneously.
+Own the required number of METROPOLISES at the END of a cycle
+(2 metropolises; 3 in a 2-player game — see "metros_to_win").
+If several players qualify in the same cycle, the richest one (most gold) wins.
 
 ═══════════════════════════════════════════════════════
-GAME STRUCTURE — each round has two phases
+CYCLE
 ═══════════════════════════════════════════════════════
-1. ROLL (auction) — players bid coins to control one of the 4 gods.
-2. BOARD (actions) — each player takes turns in the order they won gods;
-   your available actions depend entirely on which god you control.
-
-After all players finish their BOARD turns, income is collected and a new
-ROLL phase begins.
-
-═══════════════════════════════════════════════════════
-RESOURCES
-═══════════════════════════════════════════════════════
-- Coins (gold): primary currency. Unspent coins carry over between rounds.
-- Warriors: land units placed on islands. Maximum 6 per player.
-- Ships: sea units placed on water tiles. Maximum 6 per player.
-- Philosophers: held by player (not on board). 4 → unlock Athena metropolis.
-- Priests: held by player. Each priest reduces the coin cost of an auction bid by 1.
-- Buildings: placed on islands; 1 Ares + 1 Poseidon + 1 Zeus + 1 Athena building
-  across all your islands unlocks the building path to a metropolis.
+1. Creature track is refreshed (3 slots costing 4 / 3 / 2 gold).
+2. Gods are shuffled into rows; income is paid (1 gold per prosperity marker
+   on your islands, trade arrows on your sea tiles and Apollo markers).
+3. ROLL — offerings: every marker goes to one god. Outbidding requires a higher
+   offer; the outbid player must IMMEDIATELY bid on a DIFFERENT god. Apollo is
+   free and holds many players. Cost = offer − your priests (min 1 gold per
+   offering); total offerings must be affordable. In a 2-player game each player
+   has TWO markers and must offer to two different gods (3 gods + Apollo).
+4. BOARD — gods act in row order (row_1 first), Apollo last. Whoever finished
+   last bids first in the next cycle.
 
 ═══════════════════════════════════════════════════════
-PHASE 1 — ROLL (auction)
+GODS (any number of actions, in any order, while you can pay)
 ═══════════════════════════════════════════════════════
-- 4 gods are placed in rows (row_1 to row_4); Apollo is always in row_5.
-- Each player bids coins on a row. You can outbid another player by placing
-  a higher bid — the outbid player rejoins the queue.
-- Bid cost = bid_amount − priests_you_own (minimum 1 coin).
-  Example: bid 3 with 1 priest → pay 2 coins.
-- Apollo (row_5): free fallback — any player who does not win another god
-  joins Apollo. Apollo gives bonus income at the start of your board turn.
-- At end of ROLL: play order in BOARD = order players won their gods.
-
-═══════════════════════════════════════════════════════
-PHASE 2 — BOARD actions per god
-═══════════════════════════════════════════════════════
-
---- ARES ---
-- Recruit warriors on any island you own.
-  Cost: 1st recruit this turn = FREE, 2nd = 2 coins, 3rd = 3, 4th+ = 4.
-- Move warriors (cost 1 coin per move):
-  Warriors can move through connected islands you own (DFS reachability).
-  Moving onto an enemy or neutral island = COMBAT.
-- Build an Ares building (fortress) on one of your islands (cost 2 coins).
-
---- POSEIDON ---
-- Recruit ships on water tiles adjacent to your islands.
-  Cost: 1st recruit this turn = FREE, 2nd = 1 coin, 3rd = 2, 4th+ = 3.
-- Move ships between adjacent water tiles (cost 1 coin per ship group moved).
-  First paid move grants 2 FREE additional ship-jumps that turn.
-  Ships moving onto enemy-occupied water = COMBAT.
-- Build a Poseidon building (port) on one of your islands (cost 2 coins).
-
---- ATHENA ---
-- Receive 1 free philosopher at the start of your turn.
-- Buy 1 additional philosopher for 4 coins.
-- At 4+ philosophers: spend 4 philosophers → may Build a metropolis on any
-  owned island (Build action with hero="metro").
-- Build an Athena building (university) on one of your islands (cost 2 coins).
-
---- ZEUS ---
-- Receive 1 free priest at the start of your turn (priests reduce auction bids).
-- Buy 1 additional priest for 4 coins.
-- Build a Zeus building (temple) on one of your islands (cost 2 coins).
-- No military actions.
-
---- APOLLO ---
-- Receive bonus coins at start of your board turn:
-  If you own more than 1 island: +1 coin.  Otherwise: +4 coins.
-- First player on Apollo only: place ONE +1 income marker on one of your
-  islands (action place_income). It adds income every round while you own it.
-- Then end your turn.
+- ARES: recruit troops on your islands (1st free, then 2/3/4 gold, max 4 per
+  turn, max 8 on board); move some/all troops from one island to another island
+  connected by a CHAIN OF YOUR FLEETS (1 gold); build a FORTRESS (2 gold).
+- POSEIDON: recruit fleets on sea next to your islands, empty or your own
+  (1st free, then 1/2/3 gold, max 4 per turn, max 8); move fleets from one sea
+  tile up to 3 tiles (1 gold, stops on enemy fleets); build a PORT (2 gold).
+- ZEUS: 1 free priest (+1 more for 4 gold); build a TEMPLE (2 gold);
+  replace a creature on the track with the top card (1 gold).
+- ATHENA: 1 free philosopher (+1 more for 4 gold); build a UNIVERSITY (2 gold).
+- APOLLO: +1 gold (+4 if you own ≤ 1 island). The FIRST player on Apollo also
+  places a +1 prosperity marker on one of their islands (place_income).
+  No other actions.
+Every god except Apollo may also SUMMON CREATURES from the track (buy_creature).
 
 ═══════════════════════════════════════════════════════
-COMBAT
+BATTLES
 ═══════════════════════════════════════════════════════
-When you move units onto a tile occupied by an opponent:
-- Attacker has A units, defender has D units.
-- A > D → attacker wins; (A−D) attacker units remain on the tile.
-- D > A → defender wins; (D−A) defender units remain.
-- A = D → TIE:
-  Warriors: defender wins with 1 unit.
-  Ships: both destroyed; tile becomes neutral.
+Each round both sides add units (+ die roll if dice are on). Defender adds +1
+per fortress on the island (sea: +1 per port on adjacent defender islands;
+a metropolis counts as both). Lower total loses 1 unit; a tie costs both sides
+1 unit. Repeat until one side is gone. Landing on an enemy island WITHOUT
+troops captures it without a fight. You may NOT attack a player's LAST island
+unless capturing it wins you the game. Captured islands keep their buildings.
 
 ═══════════════════════════════════════════════════════
-INCOME (end of each round)
+METROPOLISES (mandatory and immediate)
 ═══════════════════════════════════════════════════════
-Each field (island or water) you own has a base_income value.
-Apollo tokens on fields add extra income on top of that.
+- 4th philosopher → discard 4 and place a metropolis on one of your islands.
+- One building of each type (fortress, port, temple, university) on your
+  islands → they are removed and replaced by a metropolis.
+- Or conquer an island that has a metropolis.
+When this happens the ONLY legal actions are "build" with hero="metro" — pick
+the island. A metropolis has the powers of every building.
 
 ═══════════════════════════════════════════════════════
-METROPOLIS PATHS
+CREATURES (resolve immediately; pick targets with play_card)
 ═══════════════════════════════════════════════════════
-Path A — Philosophers (Athena):
-  Accumulate 4 philosophers → use them to build a metropolis on any
-  owned island (Build with hero="metro").
-
-Path B — Buildings:
-  Own at least one building of EACH type (ares, posejdon, zeus, athena)
-  spread across your islands → Build with hero="metro" becomes available in
-  ANY god's turn. The metropolis consumes one building of each type
-  (taken from the target island first).
+Each temple/metropolis lowers one creature cost by 1 per cycle (min 1 gold).
+- Harpy: kill 1 enemy troop. - Pegasus: fly troops from your island to any
+  island without fleets (can invade). - Giant: destroy a building (not a
+  metropolis). - Siren: replace an isolated enemy fleet with yours.
+- Sylph: move your fleets 10 steps in total. - Griffin: take half of a player's
+  gold. - Satyr: steal a philosopher. - Dryad: steal a priest.
+- Moirai: collect your income again. - Sphinx: sell your units/priests/
+  philosophers for 2 gold each. - Cyclopes: swap one of your buildings to
+  another type. - Chimera: use the power of a discarded creature.
+- Kraken: destroy all fleets on a sea tile (+1 gold per extra tile moved);
+  the tile stays blocked for fleets.
+- Figures, active until the start of your next turn: Minotaur (+2 defence on
+  the island), Chiron (island immune to Pegasus/Harpy/Giant), Medusa (troops
+  on the island cannot move), Polyphemus (pushes fleets away from the island).
+Use targets=["done"] to finish a creature effect.
 
 ═══════════════════════════════════════════════════════
 STRATEGIC PRINCIPLES
 ═══════════════════════════════════════════════════════
-- Always outbid your opponent for a key god if you need it — losing an
-  auction you could have won is a wasted round.
-- Ares + Poseidon are military; Zeus + Athena are economic/metropolis paths.
-- Apollo looks weak but compounds over many rounds — extra coins = power.
-- Priests are worth more when you have many — bid aggressively only if you
-  have priests to subsidise.
-- Controlling islands with high base_income accelerates everything.
-- EndTurn is always legal and sometimes optimal (save coins for next round).
-
-Return ONLY valid actions from the legal list. Think 1–2 rounds ahead."""
+- Win the god you need; a lost auction is a wasted cycle.
+- Ares/Poseidon expand territory; Zeus/Athena lead to metropolises.
+- Apollo is a cheap pass that compounds income.
+- Buildings of all four types = a free metropolis — plan them across cycles.
+- Protect your islands with fortresses before rivals bring Ares.
+- EndTurn is always legal and sometimes optimal (save gold for offerings).
+"""
 
     def __init__(
         self,
@@ -676,7 +642,8 @@ def _render_free_form(state_view: dict) -> str:
     lines.append("")
     lines.append("Propose your next action as a structured action object.")
     lines.append("Valid action types: roll_bid, apollon_bid, place_entity, move_entity,")
-    lines.append("  build, buy_card, place_income, end_turn.")
+    lines.append("  build, buy_card, place_income, buy_creature, replace_creature,")
+    lines.append("  play_card, end_turn.")
     return "\n".join(lines)
 
 
@@ -701,16 +668,21 @@ def _render_common(v: dict) -> list[str]:
             f"priests={pdata.get('priests',0)}"
         )
 
+    opts = v.get("options", {})
+    lines.append(f"  metros_to_win={opts.get('metros_to_win', 2)}, combat_dice={opts.get('combat_dice', False)}")
+    heroes = v.get("round_heroes") or {}
+    if any(heroes.values()):
+        lines.append(f"  gods this cycle: {heroes}")
+
     if stage == "roll":
         roll = v.get("roll", {})
-        lines += [
-            "",
-            "AUCTION STATE:",
-            f"  Bid order: {roll.get('bid_order', [])}",
-            f"  Heroes available: {roll.get('left_heros', [])}",
-        ]
-        for row, data in roll.get("bids", {}).items():
-            lines.append(f"    {row}: {data}")
+        lines += ["", "OFFERINGS (row: god → current offer):"]
+        for row, hero in sorted(roll.get("heros_per_row", {}).items()):
+            if hero:
+                lines.append(f"  {row}: {hero} → {roll.get('bids', {}).get(row) or 'none'}")
+        lines.append(f"  next markers: {roll.get('bid_order', [])}")
+        if roll.get("banned", {}).get(me):
+            lines.append(f"  you were outbid on {roll['banned'][me]} — choose another god")
 
     lines += ["", "BOARD:"]
     for fid, fdata in v.get("fields", {}).items():
@@ -719,17 +691,27 @@ def _render_common(v: dict) -> list[str]:
         entity = fdata.get("entity")
         buildings = fdata.get("buildings", [])
         metro = " [METROPOLIS]" if fdata.get("is_metropolis") else ""
-        unit_str = f" {entity.get('kind','?')}×{entity.get('quantity',0)}" if entity else ""
-        bld_str = f" bld:{buildings}" if buildings else ""
-        lines.append(f"  {fid} ({ftype}) owner={owner}{unit_str}{bld_str}{metro}")
+        unit_str = f" {entity.get('kind','?')}×{entity['quantity']}" if entity and entity.get("quantity") else ""
+        bld = [b["hero"] for b in (buildings.values() if isinstance(buildings, dict) else []) if b]
+        bld_str = f" buildings={bld}" if bld else ""
+        inc = fdata.get("base_income", 0) + (fdata.get("income") or {}).get("quantity", 0)
+        inc_str = f" income={inc}" if inc else ""
+        nb_str = f" adj={fdata.get('neighbors', [])}" if ftype == "island" else ""
+        lines.append(f"  {fid} ({ftype}) owner={owner}{unit_str}{bld_str}{inc_str}{metro}{nb_str}")
+
+    cards = v.get("cards", {})
+    if cards.get("track") is not None:
+        costs = ["4", "3", "2"]
+        track = [f"slot{i}({costs[i]}g)={c}" for i, c in enumerate(cards.get("track", [])) if c]
+        lines += ["", f"CREATURE TRACK: {', '.join(track) or 'empty'}"]
+        if cards.get("figures"):
+            lines.append(f"  figures on board: {cards['figures']}")
 
     if stage == "board":
         board = v.get("board", {})
-        lines += [
-            "",
-            f"BOARD PHASE: entity_price={board.get('entity_price',0)}, "
-            f"poseidon_jumps={board.get('poseidon_jumps',0)}",
-        ]
+        lines += ["", f"YOUR TURN: recruited this turn={board.get('entity_price', 0)}"]
+        if board.get("pending"):
+            lines.append(f"  PENDING CHOICE (resolve first): {board['pending']}")
     return lines
 
 

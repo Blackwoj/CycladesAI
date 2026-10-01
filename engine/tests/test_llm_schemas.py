@@ -147,3 +147,16 @@ def test_apollo_build_means_metropolis(hero):
     from engine.agents.llm_schemas import action_from_llm_output
     assert action_from_llm_output({"action_type": "build", "field_id": "IS2"}, "p1", hero) == \
         Build(player="p1", field_id="IS2", hero="metro")
+
+
+def test_creature_schemas():
+    from engine.actions import BuyCreature, PlayCard, ReplaceCreature
+    from engine.agents.llm_schemas import action_from_llm_output
+    assert action_from_llm_output({"action_type": "buy_creature", "slot": 1}, "p1", "ares") == \
+        BuyCreature(player="p1", slot=1)
+    assert action_from_llm_output(
+        {"action_type": "play_card", "card_id": "pegaz", "targets": ["IS2", "IS9", "2"]}, "p1", "posejdon"
+    ) == PlayCard(player="p1", card_id="pegaz", targets=("IS2", "IS9", 2))
+    assert action_from_llm_output({"action_type": "replace_creature", "slot": 0}, "p1", "zeus") == \
+        ReplaceCreature(player="p1", slot=0)
+    assert action_from_llm_output({"action_type": "replace_creature", "slot": 0}, "p1", "ares") is None

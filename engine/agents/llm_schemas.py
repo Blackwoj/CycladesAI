@@ -20,8 +20,8 @@ from typing import Annotated, ClassVar, Literal, Union
 from pydantic import BaseModel, Field
 
 from ..actions import (
-    Action, ApollonBid, BuyCard, Build, EndTurn,
-    MoveEntity, PlaceEntity, PlaceIncome, RollBid,
+    Action, ApollonBid, BuyCard, BuyCreature, Build, EndTurn,
+    MoveEntity, PlaceEntity, PlaceIncome, PlayCard, ReplaceCreature, RollBid,
 )
 
 
@@ -108,8 +108,41 @@ class EndTurnSchema(BaseModel):
         return EndTurn(player=player)
 
 
+# ---- STWORY (każdy bóg poza Apollem) --------------------------------------
+
+class BuyCreatureSchema(BaseModel):
+    action_type: Literal["buy_creature"]
+    slot: int = Field(ge=0, le=2, description="Creature track slot: 0 (4 gold), 1 (3 gold), 2 (2 gold).")
+    reasoning: str = ""
+
+    def to_action(self, player: str) -> BuyCreature:
+        return BuyCreature(player=player, slot=self.slot)
+
+
+class PlayCardSchema(BaseModel):
+    action_type: Literal["play_card"]
+    card_id: str = Field(description="The creature being resolved (see PENDING CHOICE).")
+    targets: list[str | int] = Field(description='Targets, e.g. ["IS4"], ["IS2", "IS9", 2] or ["done"].')
+    reasoning: str = ""
+
+    def to_action(self, player: str) -> PlayCard:
+        # LLM bywa niekonsekwentny z typami — liczby jako tekst zamieniamy na int
+        targets = tuple(int(x) if isinstance(x, str) and x.isdigit() else x for x in self.targets)
+        return PlayCard(player=player, card_id=self.card_id, targets=targets)
+
+
+class ReplaceCreatureSchema(BaseModel):
+    action_type: Literal["replace_creature"]
+    slot: int = Field(ge=0, le=2, description="Track slot to replace with the top card (1 gold).")
+    reasoning: str = ""
+
+    def to_action(self, player: str) -> ReplaceCreature:
+        return ReplaceCreature(player=player, slot=self.slot)
+
+
 AresSchema = Annotated[
-    Union[PlaceWarriorSchema, MoveWarriorSchema, AresBuildSchema, EndTurnSchema],
+    Union[PlaceWarriorSchema, MoveWarriorSchema, AresBuildSchema,
+          BuyCreatureSchema, PlayCardSchema, EndTurnSchema],
     Field(discriminator="action_type"),
 ]
 
@@ -143,7 +176,8 @@ class PosejdonBuildSchema(_BuildSchema):
 
 
 PosejdonSchema = Annotated[
-    Union[PlaceShipSchema, MoveShipSchema, PosejdonBuildSchema, EndTurnSchema],
+    Union[PlaceShipSchema, MoveShipSchema, PosejdonBuildSchema,
+          BuyCreatureSchema, PlayCardSchema, EndTurnSchema],
     Field(discriminator="action_type"),
 ]
 
@@ -163,7 +197,7 @@ class AtenaBuildSchema(_BuildSchema):
 
 
 AtenaSchema = Annotated[
-    Union[BuyPhilosopherSchema, AtenaBuildSchema, EndTurnSchema],
+    Union[BuyPhilosopherSchema, AtenaBuildSchema, BuyCreatureSchema, PlayCardSchema, EndTurnSchema],
     Field(discriminator="action_type"),
 ]
 
@@ -183,7 +217,8 @@ class ZeusBuildSchema(_BuildSchema):
 
 
 ZeusSchema = Annotated[
-    Union[BuyPriestSchema, ZeusBuildSchema, EndTurnSchema],
+    Union[BuyPriestSchema, ZeusBuildSchema, BuyCreatureSchema, ReplaceCreatureSchema,
+          PlayCardSchema, EndTurnSchema],
     Field(discriminator="action_type"),
 ]
 
