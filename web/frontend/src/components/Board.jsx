@@ -142,7 +142,7 @@ export default function Board({ fields, islands, figures = {}, highlight, select
       {[...waterIds, ...islandIds].map((id) => {
         const mark = markState(id)
         return (
-          <g key={id} className={`hit ${mark ?? ''}`} onClick={() => onFieldClick?.(id)}>
+          <g key={id} data-field={id} className={`hit ${mark ?? ''}`} onClick={() => onFieldClick?.(id)}>
             {cellsOf(id).map((p, i) => (
               <polygon key={i} points={hexPoints(p.x, p.y, R - 3)} />
             ))}

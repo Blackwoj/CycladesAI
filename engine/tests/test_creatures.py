@@ -292,3 +292,63 @@ def test_games_with_creatures_use_them_and_finish():
             s, info = eng.step(s, a)
             assert info.get("valid", True), info
     assert len(used) >= 10
+
+
+# ---- księgowość kart figurek (błędy znalezione fuzzem API) -------------------
+
+def _all_cards(s):
+    c = s.cards
+    held = [n for n, f in c.figures.items() if n != "kraken" and f.get("held", True)]
+    return sorted([x for x in c.track if x] + c.deck + c.discard + held)
+
+
+def test_figure_card_returns_when_effect_is_skipped():
+    s = _buy(_turn(card="meduza"))
+    s, _ = _play(s, "meduza", *DONE)
+    assert "meduza" in s.cards.discard and _all_cards(s) == sorted(CREATURES)
+
+
+def test_relocating_figure_does_not_duplicate_its_card():
+    from engine.rules.creatures import _place_figure
+    s = _turn()
+    a, b = _isl(s, "p1")
+    s.cards.deck.remove("meduza")
+    s.cards.figures["meduza"] = {"field": a, "owner": "p2", "held": True}
+    _place_figure(s, "p1", "meduza", b, held=False)       # np. przez Chimerę
+    assert s.cards.figures["meduza"] == {"field": b, "owner": "p1", "held": True}
+    assert _all_cards(s) == sorted(CREATURES)
+
+
+def test_chimera_copying_moirai_resolves_once():
+    s = _turn(card="chimera")
+    s.cards.deck.remove("mojry"); s.cards.discard = ["mojry"]
+    s, _ = _play(_buy(s), "chimera", "mojry")
+    assert s.board.pending is None and _all_cards(s) == sorted(CREATURES)
+
+
+def test_figure_placed_via_chimera_holds_no_card():
+    s = _turn(card="chimera")
+    s.cards.deck.remove("minotaur"); s.cards.discard = ["minotaur"]
+    s = _buy(s)
+    s, _ = _play(s, "chimera", "minotaur")
+    s, _ = _play(s, "minotaur", _isl(s, "p1")[0])
+    assert s.cards.figures["minotaur"]["held"] is False
+    assert _all_cards(s) == sorted(CREATURES)
+    from engine.rules.creatures import expire_figures
+    expire_figures(s, "p1")
+    assert _all_cards(s) == sorted(CREATURES)
+
+
+def test_creature_cards_conserved_in_random_games():
+    from engine.agents import RandomAgent
+    for seed in range(6):
+        eng = GameEngine(rng=Rng(seed))
+        s = eng.new_game(3, Rng(seed))
+        agents = {p: RandomAgent(Rng(seed * 3 + i)) for i, p in enumerate(s.players)}
+        while not eng.is_terminal(s):
+            s, _ = eng.step(s, agents[s.act_player].choose({}, eng.legal_actions(s)))
+            pend = s.board.pending or {}
+            cards = _all_cards(s)
+            if pend.get("card") and not pend.get("via_chimera") and pend["card"] not in cards:
+                cards = sorted(cards + [pend["card"]])
+            assert cards == sorted(CREATURES), (seed, s.round_no, pend)

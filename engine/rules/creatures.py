@@ -150,13 +150,16 @@ def apply_buy(s: GameState, action: BuyCreature, rng: Rng) -> dict:
     return {"valid": True, "creature": card, "cost": cost}
 
 
-def _start_effect(s: GameState, pid: str, card: str) -> None:
+def _start_effect(s: GameState, pid: str, card: str, via_chimera: bool = False) -> None:
     if card == "mojry":                      # natychmiastowy dochód — bez wyboru
         from .scoring import calculate_income
         s.players[pid].coins += calculate_income(s)[pid]
         trigger_metropolis(s, pid)
         return
     s.board.pending = {"kind": "creature", "card": card}
+    if via_chimera:
+        # moc kopiowana przez Chimerę: sama karta Stwora leży w talii, nie „u nas”
+        s.board.pending["via_chimera"] = True
     if card == "sylfida":
         s.board.pending["budget"] = SYLPH_STEPS
 
@@ -253,6 +256,8 @@ def apply_play(s: GameState, action: PlayCard, rng: Rng) -> dict:
     if t == DONE:
         if card == "chimera":
             _reshuffle_after_chimera(s, rng)
+        elif card in ISLAND_FIGURES and not s.board.pending.get("via_chimera"):
+            s.cards.discard.append(card)    # figurki nie postawiono — karta wraca na stos
     elif card == "syrena":
         if reserve(s, pid, "ship") == 0:
             src = sorted((fid for fid, x in s.fields.items()
@@ -267,7 +272,8 @@ def apply_play(s: GameState, action: PlayCard, rng: Rng) -> dict:
         s.fields[t[0]].buildings[t[1]] = None
     elif card == "chimera":
         _reshuffle_after_chimera(s, rng)
-        _start_effect(s, pid, t[0])                  # moc wybranego Stwora, bez płacenia
+        s.board.pending = None                        # Chimera rozstrzygnięta…
+        _start_effect(s, pid, t[0], via_chimera=True)    # …teraz moc wybranego (np. Mojry od razu)
         finished = False
         info["chimera_as"] = t[0]
     elif card == "cyklopi":
@@ -303,7 +309,7 @@ def apply_play(s: GameState, action: PlayCard, rng: Rng) -> dict:
         s.board.pending["kraken_at"] = t[0]
         finished = False
     elif card in ISLAND_FIGURES:
-        _place_figure(s, pid, card, t[0])
+        _place_figure(s, pid, card, t[0], held=not s.board.pending.get("via_chimera"))
 
     if finished and s.board.pending is not None and s.board.pending.get("card") == card:
         s.board.pending = None
@@ -346,25 +352,32 @@ def _kraken_to(s: GameState, fid: str) -> None:
         x.owner = None
 
 
-def _place_figure(s: GameState, pid: str, card: str, island: str) -> None:
+def _place_figure(s: GameState, pid: str, card: str, island: str, held: bool = True) -> None:
+    """Postaw figurkę. `held` = figurka „trzyma” swoją kartę (kupioną z toru).
+
+    Figurka jest jedna: jeśli już stoi gdzie indziej, zostaje przeniesiona.
+    Karta wraca na stos odrzuconych tylko raz — gdy figurka ją trzymała.
+    """
     figs = s.cards.figures
+    old = figs.pop(card, None)
+    held = held or bool(old and old.get("held", True))
     # dwie figurki na jednej wyspie niszczą się wzajemnie
     clash = [name for name, fig in figs.items()
-             if name in ISLAND_FIGURES and name != card and fig.get("field") == island]
+             if name in ISLAND_FIGURES and fig.get("field") == island]
     if clash:
         for name in clash:
             remove_figure(s, name)
-        s.cards.discard.append(card)
+        if held:
+            s.cards.discard.append(card)
         return
-    if card in figs:
-        remove_figure(s, card)
-    figs[card] = {"field": island, "owner": pid}
+    figs[card] = {"field": island, "owner": pid, "held": held}
     if card == "polifem":
         _polyphemus_push(s, island)
 
 
 def remove_figure(s: GameState, name: str) -> None:
-    if s.cards.figures.pop(name, None) is not None and name in ISLAND_FIGURES:
+    fig = s.cards.figures.pop(name, None)
+    if fig is not None and name in ISLAND_FIGURES and fig.get("held", True):
         s.cards.discard.append(name)
 
 

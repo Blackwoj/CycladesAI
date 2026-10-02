@@ -24,7 +24,7 @@ export default function RollPanel({ state, legal, onAction, disabled }) {
                 <HeroPortrait hero="apollon" size={44} />
                 <div className="roll-info">
                   <b>Apollon</b>
-                  <div className="muted">{joined.length ? joined.map((p) => <PlayerChip key={p} pid={p} />) : 'nikt'}</div>
+                  <div className="muted">{joined.length ? joined.map((p, i) => <PlayerChip key={`${p}-${i}`} pid={p} />) : 'nikt'}</div>
                 </div>
                 {apollo && <button className="btn" disabled={disabled} onClick={() => onAction(apollo)}>Wybierz</button>}
               </div>
@@ -58,7 +58,7 @@ export default function RollPanel({ state, legal, onAction, disabled }) {
         <div className="muted small-text">Gra 2-osobowa: każdy ofiaruje dwóm różnym bogom.</div>
       )}
       {state.roll.bid_order.length > 0 && (
-        <div className="muted small-text">Dalej licytują: {state.roll.bid_order.map((p) => <PlayerChip key={p} pid={p} />)}</div>
+        <div className="muted small-text">Dalej licytują: {state.roll.bid_order.map((p, i) => <PlayerChip key={`${p}-${i}`} pid={p} />)}</div>
       )}
     </div>
   )
